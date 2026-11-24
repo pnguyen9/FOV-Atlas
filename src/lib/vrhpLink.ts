@@ -2,12 +2,13 @@
  * Decodes a VR Headset Picker share link (`/measure-your-fov/results?results=<base64url>`).
  *
  * Payload layout, version 4: version byte, flags byte, 10 × int16 LE measured angles in
- * centi-degrees, 9 × uint16 LE rendered totals in centi-degrees, then the headset name as text,
- * which is not decoded here.
+ * centi-degrees, 9 × uint16 LE rendered totals in centi-degrees, then the headset name as UTF-8
+ * text.
  *
  * The link is pasted by a visitor, so everything is validated: length, alphabet, version and the
- * range of every angle. Anything unexpected is rejected, never repaired.
+ * range of every angle, and the headset name must be plain text. Anything unexpected is rejected, never repaired.
  */
+import { plainTextProblem } from './plainText.ts'
 
 const supportedVersion = 4
 const headerBytes = 2
@@ -19,6 +20,7 @@ const minimumPayloadBytes = totalsOffset + totalCount * 2
 export const maximumInputLength = 2048
 const maximumAngleDegrees = 90
 const maximumTotalDegrees = 360
+const maximumHeadsetNameLength = 128
 
 export interface EyeAngles {
   readonly temporal: number
@@ -46,6 +48,8 @@ export interface VrhpMeasure {
   readonly left: EyeAngles
   readonly right: EyeAngles
   readonly rendered: RenderedTotals
+  /** The tool's own label for the headset, which can be wrong; empty when the link has none. */
+  readonly headsetName: string
 }
 
 export type VrhpDecodeResult =
@@ -60,6 +64,7 @@ export type VrhpDecodeError =
   | 'unsupported-version'
   | 'angle-out-of-range'
   | 'total-out-of-range'
+  | 'headset-name-invalid'
 
 const base64UrlPattern = /^[A-Za-z0-9_-]+$/
 
@@ -101,6 +106,8 @@ export function decodeVrhpLink(input: string): VrhpDecodeResult {
   if (indices(totalCount).map(totalAt).some((degrees) => degrees > maximumTotalDegrees)) {
     return { ok: false, error: 'total-out-of-range' }
   }
+  const headsetName = decodeHeadsetName(bytes.subarray(minimumPayloadBytes))
+  if (headsetName === null) return { ok: false, error: 'headset-name-invalid' }
   // Stored order per eye: left edge, right edge, up, down, diagonal. The left eye's left edge is
   // temporal; the right eye's left edge is nasal.
   return {
@@ -120,6 +127,17 @@ export function decodeVrhpLink(input: string): VrhpDecodeResult {
         binocularVerticalOverlap: totalAt(7),
         binocularDiagonal: totalAt(8),
       },
+      headsetName,
     },
   }
+}
+
+function decodeHeadsetName(bytes: Uint8Array): string | null {
+  let name: string
+  try {
+    name = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+  } catch {
+    return null
+  }
+  return plainTextProblem(name, { maximumLength: maximumHeadsetNameLength, multiline: false }) === null ? name : null
 }

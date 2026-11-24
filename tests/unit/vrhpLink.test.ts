@@ -5,37 +5,7 @@ import {
   extractResultsParameter,
   maximumInputLength,
 } from '../../src/lib/vrhpLink'
-
-interface PayloadParts {
-  version?: number
-  flags?: number
-  angles?: number[]
-  totals?: number[]
-  trailingText?: string
-}
-
-// A real Bigscreen Beyond 2 measure and its rendered totals.
-const beyondAngles = [55.0, 42.0, 43.0, 53.9, 59.0, 41.5, 54.3, 44.2, 52.5, 52.0]
-const beyondTotals = [96.95, 96.93, 96.62, 96.67, 109.24, 84.33, 98.06, 95.54, 122.66]
-
-function encodePayload({
-  version = 4,
-  flags = 0,
-  angles = beyondAngles,
-  totals = beyondTotals,
-  trailingText = 'Bigscreen Beyond 2',
-}: PayloadParts = {}): string {
-  const text = new TextEncoder().encode(trailingText)
-  const bytes = new Uint8Array(2 + angles.length * 2 + totals.length * 2 + text.length)
-  const view = new DataView(bytes.buffer)
-  view.setUint8(0, version)
-  view.setUint8(1, flags)
-  angles.forEach((degrees, angleIndex) => { view.setInt16(2 + angleIndex * 2, Math.round(degrees * 100), true) })
-  const totalsOffset = 2 + angles.length * 2
-  totals.forEach((degrees, totalIndex) => { view.setUint16(totalsOffset + totalIndex * 2, Math.round(degrees * 100), true) })
-  bytes.set(text, totalsOffset + totals.length * 2)
-  return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
-}
+import { beyondAngles, beyondTotals, encodeVrhpPayload as encodePayload } from './fixtures'
 
 const shareLink = (payload: string): string =>
   `https://example.test/measure-your-fov/results?results=${payload}`
@@ -73,6 +43,7 @@ describe('decodeVrhpLink', () => {
     expect(result.measure.right).toEqual({ nasal: 41.5, temporal: 54.3, up: 44.2, down: 52.5, diagonal: 52 })
     expect(result.measure.rendered.binocularHorizontal).toBe(109.24)
     expect(result.measure.rendered.binocularDiagonal).toBe(122.66)
+    expect(result.measure.headsetName).toBe('Bigscreen Beyond 2')
   })
 
   it('keeps the flags byte', () => {
@@ -80,8 +51,9 @@ describe('decodeVrhpLink', () => {
     expect(result.ok && result.measure.flags).toBe(7)
   })
 
-  it('decodes a payload without trailing text', () => {
-    expect(decodeVrhpLink(encodePayload({ trailingText: '' })).ok).toBe(true)
+  it('decodes a payload without trailing text as an empty headset name', () => {
+    const result = decodeVrhpLink(encodePayload({ trailingText: '' }))
+    expect(result.ok && result.measure.headsetName).toBe('')
   })
 
   it.each([
@@ -96,6 +68,9 @@ describe('decodeVrhpLink', () => {
     ['angle-out-of-range', encodePayload({ angles: [-1, ...beyondAngles.slice(1)] })],
     ['angle-out-of-range', encodePayload({ angles: [...beyondAngles.slice(0, 9), 90.01] })],
     ['total-out-of-range', encodePayload({ totals: [...beyondTotals.slice(0, 8), 360.01] })],
+    ['headset-name-invalid', encodePayload({ trailingBytes: [0xc3, 0x28] })],
+    ['headset-name-invalid', encodePayload({ trailingText: 'Beyond<script>' })],
+    ['headset-name-invalid', encodePayload({ trailingText: 'B'.repeat(129) })],
   ])('rejects input with %s', (error, input) => {
     expect(decodeVrhpLink(input)).toEqual({ ok: false, error })
   })

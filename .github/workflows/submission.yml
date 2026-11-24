@@ -1,0 +1,117 @@
+name: Submission
+
+# Stores, replaces or withdraws a measure submitted as an issue. Issue bodies and comments are
+# attacker-controlled: they only ever reach the script through the event file, never through an
+# expression inside `run:`.
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+# Events of one issue run in order. Runs for different issues may overlap; the push loop below
+# replays the change on top of whatever landed meanwhile.
+concurrency:
+  group: submission-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  process:
+    if: >-
+      contains(github.event.issue.labels.*.name, 'submission') &&
+      !contains(github.event.issue.labels.*.name, 'withdrawn') &&
+      !github.event.issue.pull_request &&
+      (github.event_name == 'issues' || startsWith(github.event.comment.body, '/withdraw'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      outcome: ${{ steps.process.outputs.outcome }}
+      message: ${{ steps.process.outputs.message }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Kept for the push of the data commit.
+          persist-credentials: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: prepare
+        run: node scripts/submission-action.ts prepare
+      # The browser cannot read WIMFOV pages (no CORS), so the read-only link is resolved here. The
+      # id is validated hex; a failed fetch leaves no page and the issue is answered as invalid.
+      - name: Fetch the WIMFOV result page
+        if: steps.prepare.outputs.wimfov_id != ''
+        continue-on-error: true
+        env:
+          WIMFOV_ID: ${{ steps.prepare.outputs.wimfov_id }}
+        run: >-
+          curl --fail --silent --show-error --proto '=https' --max-redirs 0 --max-time 20
+          --max-filesize 65536 --output "$RUNNER_TEMP/wimfov.html"
+          "https://andreasaronsson.com/!apps/wimfov/?id=${WIMFOV_ID}"
+      - id: process
+        env:
+          WIMFOV_PAGE_PATH: ${{ runner.temp }}/wimfov.html
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          outputs="$RUNNER_TEMP/outputs"
+          for attempt in 1 2 3 4 5; do
+            : > "$outputs"
+            GITHUB_OUTPUT="$outputs" node scripts/submission-action.ts process
+            if [ -z "$(git status --porcelain -- public/data)" ]; then break; fi
+            git add --all -- public/data
+            git commit --quiet --message "$(sed -n 's/^commit_message=//p' "$outputs")"
+            if git push --quiet origin "HEAD:$GITHUB_REF_NAME"; then break; fi
+            if [ "$attempt" = 5 ]; then echo 'Could not push the data commit' >&2; exit 1; fi
+            git fetch --quiet origin "$GITHUB_REF_NAME"
+            git reset --quiet --hard FETCH_HEAD
+          done
+          cat "$outputs" >> "$GITHUB_OUTPUT"
+
+  report:
+    needs: process
+    if: needs.process.outputs.outcome != 'ignored'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      ISSUE: ${{ github.event.issue.number }}
+      OUTCOME: ${{ needs.process.outputs.outcome }}
+      MESSAGE: ${{ needs.process.outputs.message }}
+      MARKED_INVALID: ${{ contains(github.event.issue.labels.*.name, 'invalid') }}
+    steps:
+      - run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE" --body "$MESSAGE"
+          case "$OUTCOME" in
+            accepted)
+              if [ "$MARKED_INVALID" = true ]; then gh issue edit "$ISSUE" --remove-label invalid; fi
+              gh issue close "$ISSUE" --reason completed
+              ;;
+            invalid)
+              gh issue edit "$ISSUE" --add-label invalid
+              ;;
+            withdrawn)
+              gh issue edit "$ISSUE" --add-label withdrawn
+              gh issue close "$ISSUE" --reason 'not planned'
+              ;;
+          esac
+
+  # Pushes made with the workflow token start no workflow, so the site is redeployed explicitly.
+  deploy:
+    needs: process
+    if: needs.process.outputs.outcome == 'accepted' || needs.process.outputs.outcome == 'withdrawn'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: gh workflow run ci.yml --ref "$GITHUB_REF_NAME"

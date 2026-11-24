@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  # The submission workflow redeploys after it stores or removes a measure.
+  workflow_dispatch:
 
 # Every job starts read-only; only the deploy job is granted Pages rights.
 permissions:

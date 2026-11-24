@@ -1,0 +1,101 @@
+# The FOV Atlas site opens this form with every field filled in. Field ids and labels must match
+# src/lib/issueForm.ts: the ids are the query parameters that prefill the form, and the labels are
+# the headings the submission workflow reads back. Only inputs and textareas can be prefilled,
+# so even the closed choices are text inputs.
+name: Add a measure
+description: Publish a field-of-view measure on FOV Atlas. The site fills this in for you.
+title: "Measure: "
+labels: [submission]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        FOV Atlas fills this form in for you: press **Create** and you are done.
+        Everything here is public, and your GitHub name is shown next to your measure.
+        To remove it later, comment `/withdraw` on this issue.
+        You can edit the issue afterwards: every edit is checked again.
+  - type: input
+    id: tool
+    attributes:
+      label: Measuring tool
+      description: "`atlas` (FOV Atlas), `vrhp` (VR Headset Picker), `wimfov` (WIMFOV) or `testhmd` (TestHMD)."
+    validations:
+      required: true
+  - type: input
+    id: headset
+    attributes:
+      label: Headset model
+      description: The model id used by FOV Atlas, such as `bigscreen-beyond-2`.
+    validations:
+      required: true
+  - type: textarea
+    id: measure
+    attributes:
+      label: Measure
+      description: |
+        VR Headset Picker: your share link. WIMFOV: the `points` value of your result page, or leave
+        this empty and give the read-only link below. TestHMD: `{"horizontal":…,"vertical":…}`.
+        FOV Atlas, or values typed by hand: the JSON the site produced.
+  - type: input
+    id: wimfov-link
+    attributes:
+      label: WIMFOV read-only link
+      description: |
+        Only the read-only link, `https://andreasaronsson.com/!apps/wimfov/?id=…`. Never paste your
+        WIMFOV edit link here: this issue is public, and anyone holding that link can change or
+        delete your result.
+  - type: input
+    id: eye-depth
+    attributes:
+      label: Eyes vs brow
+      description: "`deep-set`, `in-between` or `almost-flush`."
+    validations:
+      required: true
+  - type: input
+    id: nose-bridge
+    attributes:
+      label: Nose bridge
+      description: "`low`, `in-between` or `high`."
+    validations:
+      required: true
+  - type: input
+    id: modded
+    attributes:
+      label: Physically modded
+      description: "`yes` or `no`."
+    validations:
+      required: true
+  - type: input
+    id: tuned
+    attributes:
+      label: Driver tuned
+      description: "`yes` or `no`."
+    validations:
+      required: true
+  - type: input
+    id: tuning-details
+    attributes:
+      label: Tuning details
+      description: Optional, plain text, up to 200 characters.
+  - type: input
+    id: gaze
+    attributes:
+      label: Gaze while measuring
+      description: "`fixed` (stared straight ahead) or `free` (looked around)."
+    validations:
+      required: true
+  - type: input
+    id: ipd
+    attributes:
+      label: Lens IPD (mm)
+      description: Optional, such as `63` or `63.5`.
+  - type: input
+    id: facial-interface
+    attributes:
+      label: Facial interface and cushion
+      description: Optional, plain text, up to 200 characters.
+  - type: textarea
+    id: note
+    attributes:
+      label: Note
+      description: Optional, plain text, up to 500 characters.

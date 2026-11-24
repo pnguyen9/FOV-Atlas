@@ -1,0 +1,244 @@
+/**
+ * A submitted measure, as stored in the repository and shown on the site.
+ *
+ * Angles are degrees from straight ahead, per eye, in the head frame as the wearer sees it, and
+ * are stored exactly as the tool gave them. Each tool keeps its own directions and its own
+ * convention; nothing here converts one tool's figures into another's.
+ */
+
+import { plainTextProblem, type PlainTextProblem } from './plainText.ts'
+import type { RenderedTotals } from './vrhpLink.ts'
+
+export const tools = ['atlas', 'vrhp', 'wimfov', 'testhmd'] as const
+export type Tool = (typeof tools)[number]
+
+/**
+ * Sixteen directions in radial order, from up toward the wearer's left and around. Every other
+ * one is a principal direction; the ones between are the in-betweens WIMFOV also measures, named
+ * like compass points (`up-up-left` lies between up and up-left).
+ */
+export const directions = [
+  'up', 'up-up-left', 'up-left', 'left-up-left', 'left', 'left-down-left', 'down-left', 'down-down-left',
+  'down', 'down-down-right', 'down-right', 'right-down-right', 'right', 'right-up-right', 'up-right', 'up-up-right',
+] as const
+export type Direction = (typeof directions)[number]
+export const principalDirections: readonly Direction[] = directions.filter((_, index) => index % 2 === 0)
+
+export type EyeMeasure = Readonly<Partial<Record<Direction, number>>>
+export interface EyeMeasures {
+  readonly left: EyeMeasure
+  readonly right: EyeMeasure
+}
+
+/** One eye's rendered frustum edges, read from the browser while measuring with FOV Atlas. */
+export interface EdgeAngles {
+  readonly left: number
+  readonly right: number
+  readonly up: number
+  readonly down: number
+}
+
+/** What the headset renders, the most anyone could see: the measure's own figures when known. */
+export type Ceiling =
+  | { readonly source: 'measured'; readonly left: EdgeAngles; readonly right: EdgeAngles; readonly canting: number }
+  | { readonly source: 'link'; readonly totals: RenderedTotals }
+  | { readonly source: 'model' }
+
+/** Never asked: read from the browser (FOV Atlas) or inferred from a link's diagonal total. */
+export const cornerMaskStates = ['on', 'off-probably', 'unknown'] as const
+export type CornerMask = (typeof cornerMaskStates)[number]
+
+export const eyeDepths = ['deep-set', 'in-between', 'almost-flush'] as const
+export type EyeDepth = (typeof eyeDepths)[number]
+export const noseBridges = ['low', 'in-between', 'high'] as const
+export type NoseBridge = (typeof noseBridges)[number]
+export const gazes = ['fixed', 'free'] as const
+export type Gaze = (typeof gazes)[number]
+
+/**
+ * How the values reached the issue: measured on this site, decoded from a tool's link, pasted from
+ * a tool's result page, or typed by hand.
+ */
+export const inputKinds = ['measured', 'link', 'paste', 'typed'] as const
+export type InputKind = (typeof inputKinds)[number]
+export interface Provenance {
+  readonly input: InputKind
+  /** The VR Headset Picker `results` value or the WIMFOV read-only result id, for `link` input. */
+  readonly linkData: string | null
+}
+
+export interface Submission {
+  readonly tool: Tool
+  readonly headset: string
+  readonly measures: EyeMeasures
+  readonly ceiling: Ceiling
+  readonly cornerMask: CornerMask
+  readonly provenance: Provenance
+  /** The tool's own label for the headset (VR Headset Picker link, WIMFOV page), or empty. */
+  readonly reportedHeadset: string
+  readonly face: { readonly eyeDepth: EyeDepth; readonly noseBridge: NoseBridge }
+  readonly tuning: { readonly physicallyModded: boolean; readonly driverTuned: boolean; readonly details: string }
+  readonly gaze: Gaze
+  /** Lens IPD in millimetres. */
+  readonly ipd: number | null
+  readonly facialInterface: string
+  readonly note: string
+}
+
+export const maximumAngleDegrees = 90
+export const maximumCantingDegrees = 45
+export const ipdRange = { minimum: 45, maximum: 85 } as const
+export const textLimits = {
+  headset: 48,
+  reportedHeadset: 128,
+  tuningDetails: 200,
+  facialInterface: 200,
+  note: 500,
+} as const
+
+interface DirectionRule {
+  readonly required: readonly Direction[]
+  readonly allowed: readonly Direction[]
+}
+type EyeRules = Readonly<Record<keyof EyeMeasures, DirectionRule>>
+
+const exactly = (required: readonly Direction[]): DirectionRule => ({ required, allowed: required })
+const principalRequired: DirectionRule = { required: principalDirections, allowed: directions }
+
+/**
+ * VR Headset Picker measures four edges and one outer diagonal per eye. TestHMD measures both
+ * eyes at once, so only each eye's outer edge and the shared top and bottom exist.
+ */
+export const directionRules: ReadonlyMap<Tool, EyeRules> = new Map([
+  ['atlas', { left: principalRequired, right: principalRequired }],
+  ['wimfov', { left: principalRequired, right: principalRequired }],
+  [
+    'vrhp',
+    {
+      left: exactly(['left', 'right', 'up', 'down', 'down-left']),
+      right: exactly(['left', 'right', 'up', 'down', 'up-right']),
+    },
+  ],
+  ['testhmd', { left: exactly(['left', 'up', 'down']), right: exactly(['right', 'up', 'down']) }],
+])
+
+const allowedCeilings: ReadonlyMap<Tool, readonly Ceiling['source'][]> = new Map([
+  ['atlas', ['measured', 'model']],
+  ['vrhp', ['link', 'model']],
+  ['wimfov', ['model']],
+  ['testhmd', ['model']],
+])
+
+const allowedCornerMasks: ReadonlyMap<Ceiling['source'], readonly CornerMask[]> = new Map([
+  ['measured', ['on', 'unknown']],
+  ['link', ['off-probably', 'unknown']],
+  ['model', ['unknown']],
+])
+
+const allowedInputs: ReadonlyMap<Tool, readonly InputKind[]> = new Map([
+  ['atlas', ['measured', 'typed']],
+  ['vrhp', ['link', 'typed']],
+  ['wimfov', ['link', 'paste', 'typed']],
+  ['testhmd', ['typed']],
+])
+
+export type SubmissionError =
+  | 'unknown-tool'
+  | 'headset-invalid'
+  | 'missing-direction'
+  | 'unexpected-direction'
+  | 'angle-out-of-range'
+  | 'testhmd-not-symmetric'
+  | 'ceiling-not-allowed'
+  | 'ceiling-out-of-range'
+  | 'corner-mask-not-allowed'
+  | 'input-not-allowed'
+  | 'reported-headset-invalid'
+  | 'ipd-out-of-range'
+  | `${TextField}-${PlainTextProblem}`
+
+export type TextField = 'tuning-details' | 'facial-interface' | 'note'
+
+const headsetPattern = /^[a-z0-9-]+$/
+
+/** Hundredths of a degree is the finest step any tool reports. */
+export function hasAtMostDecimals(value: number, decimals: number): boolean {
+  const scaled = value * 10 ** decimals
+  return Math.abs(scaled - Math.round(scaled)) < 1e-6
+}
+
+export function isAngle(value: unknown, maximum = maximumAngleDegrees): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= maximum && hasAtMostDecimals(value, 2)
+}
+
+export function isHeadsetId(value: string): boolean {
+  return (
+    value.length <= textLimits.headset &&
+    headsetPattern.test(value) &&
+    !value.startsWith('-') &&
+    !value.endsWith('-') &&
+    !value.includes('--')
+  )
+}
+
+function eyeProblem(measure: EyeMeasure, rule: DirectionRule): SubmissionError | null {
+  const given = Object.keys(measure)
+  if (given.some((direction) => !rule.allowed.includes(direction as Direction))) return 'unexpected-direction'
+  if (rule.required.some((direction) => !given.includes(direction))) return 'missing-direction'
+  return Object.values(measure).every((angle) => isAngle(angle)) ? null : 'angle-out-of-range'
+}
+
+/** TestHMD's halves: one horizontal and one vertical figure, split evenly over the edges. */
+function testHmdSymmetric({ left, right }: EyeMeasures): boolean {
+  return left.left === right.right && left.up === right.up && left.down === right.down && left.up === left.down
+}
+
+function ceilingProblem(ceiling: Ceiling): SubmissionError | null {
+  if (ceiling.source !== 'measured') return null
+  const edgesValid = [ceiling.left, ceiling.right].every((edges) => Object.values(edges).every((angle) => isAngle(angle)))
+  const cantingValid = Number.isFinite(ceiling.canting) && Math.abs(ceiling.canting) <= maximumCantingDegrees
+  return edgesValid && cantingValid ? null : 'ceiling-out-of-range'
+}
+
+function textProblem(field: TextField, text: string, maximumLength: number, multiline = false): SubmissionError | null {
+  const problem = plainTextProblem(text, { maximumLength, multiline })
+  return problem === null ? null : `${field}-${problem}`
+}
+
+/** Checks every invariant of a submission; the first problem found is returned. */
+export function submissionProblem(submission: Submission): SubmissionError | null {
+  const { tool, measures, ceiling } = submission
+  const rules = directionRules.get(tool)
+  if (rules === undefined) return 'unknown-tool'
+  if (!isHeadsetId(submission.headset)) return 'headset-invalid'
+  const eyeError = eyeProblem(measures.left, rules.left) ?? eyeProblem(measures.right, rules.right)
+  if (eyeError !== null) return eyeError
+  if (tool === 'testhmd' && !testHmdSymmetric(measures)) return 'testhmd-not-symmetric'
+  if (allowedCeilings.get(tool)?.includes(ceiling.source) !== true) return 'ceiling-not-allowed'
+  const ceilingError = ceilingProblem(ceiling)
+  if (ceilingError !== null) return ceilingError
+  if (allowedCornerMasks.get(ceiling.source)?.includes(submission.cornerMask) !== true) return 'corner-mask-not-allowed'
+  if (allowedInputs.get(tool)?.includes(submission.provenance.input) !== true) return 'input-not-allowed'
+  if (plainTextProblem(submission.reportedHeadset, { maximumLength: textLimits.reportedHeadset, multiline: false }) !== null) {
+    return 'reported-headset-invalid'
+  }
+  const { ipd } = submission
+  if (ipd !== null && !(ipd >= ipdRange.minimum && ipd <= ipdRange.maximum && hasAtMostDecimals(ipd, 1))) {
+    return 'ipd-out-of-range'
+  }
+  return (
+    textProblem('tuning-details', submission.tuning.details, textLimits.tuningDetails) ??
+    textProblem('facial-interface', submission.facialInterface, textLimits.facialInterface) ??
+    textProblem('note', submission.note, textLimits.note, true)
+  )
+}
+
+/**
+ * A link's binocular diagonal clearly above the model's corner-masked figure means the corners
+ * were drawn. Each tool defines the diagonal slightly differently, hence the margin.
+ */
+const cornerMaskMarginDegrees = 3
+export function cornerMaskFromLinkTotals(totals: RenderedTotals, maskedDiagonal: number | undefined): CornerMask {
+  if (maskedDiagonal === undefined) return 'unknown'
+  return totals.binocularDiagonal > maskedDiagonal + cornerMaskMarginDegrees ? 'off-probably' : 'unknown'
+}
