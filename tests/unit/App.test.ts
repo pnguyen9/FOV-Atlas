@@ -56,7 +56,7 @@ describe('App', () => {
     expect(wrapper.find('#credits-heading').exists()).toBe(true)
     expect(scrollIntoView).toHaveBeenCalled()
     await goTo(`#compare?measure=${encodeMeasureParameter(testHmdSubmission)}`)
-    expect(wrapper.text()).toContain('Kept measure opened')
+    expect(wrapper.text()).toContain('Kept measure: Bigscreen Beyond 2, measured with TestHMD')
     expect(wrapper.find('nav a[aria-current="page"]').text()).toBe('Compare')
   })
 

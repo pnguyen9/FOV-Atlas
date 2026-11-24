@@ -64,7 +64,13 @@ export type FieldId = (typeof issueFields)[number]['id']
 export type IssueFields = Readonly<Record<FieldId, string>>
 
 export const issueTemplate = 'submission.yml'
-export const newIssueUrl = 'https://github.com/pnguyen9/FOV-Atlas/issues/new'
+const issuesUrl = 'https://github.com/pnguyen9/FOV-Atlas/issues'
+export const newIssueUrl = `${issuesUrl}/new`
+
+/** The GitHub page of an accepted submission's issue. */
+export function issueUrl(issue: number): string {
+  return `${issuesUrl}/${String(issue)}`
+}
 /** Browsers and GitHub start refusing links somewhere above 8 000 characters. */
 export const maximumUrlLength = 8000
 /** Far above any valid body; caps the work done on hostile input. */

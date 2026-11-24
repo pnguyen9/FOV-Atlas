@@ -16,9 +16,11 @@ import {
   pagePath,
   parseIndex,
   parsePage,
+  tunings,
   type Aggregate,
   type CellStats,
   type DataIndex,
+  type HeadsetSummary,
   type Page,
   type Stat,
 } from './submissionStore.ts'
@@ -80,6 +82,11 @@ function checked<Value>(loaded: Loaded<string>, parse: (json: string) => Value |
   return value === null ? { ok: false, error: 'invalid' } : { ok: true, value }
 }
 
+/** The headsets measured with a tool and their summaries; empty when the tool has none. */
+export function headsetsOf(index: DataIndex, tool: Tool): ReadonlyMap<string, HeadsetSummary> {
+  return new Map(Object.entries(new Map(Object.entries(index.headsets)).get(tool) ?? {}))
+}
+
 const badRequest = { ok: false, error: 'bad-request' } as const
 
 /** The list of headsets with measures, per tool; empty while nothing is published. */
@@ -130,8 +137,6 @@ function isCell(value: unknown): value is CellStats {
   )
 }
 
-const tunings: readonly string[] = ['stock', 'modded', 'tuned', 'both']
-
 function isCellKey(key: string): boolean {
   const parts = key.split('|')
   const [eyeDepth = '', noseBridge = '', tuning = '', gaze = ''] = parts
@@ -139,7 +144,7 @@ function isCellKey(key: string): boolean {
     parts.length === 4 &&
     (eyeDepths as readonly string[]).includes(eyeDepth) &&
     (noseBridges as readonly string[]).includes(noseBridge) &&
-    tunings.includes(tuning) &&
+    (tunings as readonly string[]).includes(tuning) &&
     (gazes as readonly string[]).includes(gaze)
   )
 }

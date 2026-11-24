@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { importTools, type ImportTool } from '../../lib/measureDraft.ts'
-import { toolNames } from '../../lib/submission.ts'
+import { toolNameOf } from '../../lib/submission.ts'
 import { useDraft } from './draftContext.ts'
 
 const draft = useDraft()
@@ -36,7 +36,7 @@ const toolLinks: Readonly<Record<ImportTool, string>> = {
           name="tool"
           :value="tool"
         >
-        <b>{{ toolNames[tool] }}</b>
+        <b>{{ toolNameOf(tool) }}</b>
         <span class="small muted">{{ descriptions[tool] }}</span>
       </label>
     </div>
@@ -50,7 +50,7 @@ const toolLinks: Readonly<Record<ImportTool, string>> = {
           :href="toolLinks[tool]"
           target="_blank"
           rel="noopener noreferrer"
-        >{{ toolNames[tool] }}</a>{{ toolIndex < importTools.length - 1 ? ', ' : '.' }}
+        >{{ toolNameOf(tool) }}</a>{{ toolIndex < importTools.length - 1 ? ', ' : '.' }}
       </template>
     </p>
   </fieldset>

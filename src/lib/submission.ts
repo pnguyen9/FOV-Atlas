@@ -12,12 +12,13 @@ import type { RenderedTotals } from './vrhpLink.ts'
 
 export const tools = ['atlas', 'vrhp', 'wimfov', 'testhmd'] as const
 export type Tool = (typeof tools)[number]
-export const toolNames: Readonly<Record<Tool, string>> = {
-  atlas: 'FOV Atlas',
-  vrhp: 'VR Headset Picker',
-  wimfov: 'WIMFOV',
-  testhmd: 'TestHMD',
-}
+const toolNames: ReadonlyMap<Tool, string> = new Map([
+  ['atlas', 'FOV Atlas'],
+  ['vrhp', 'VR Headset Picker'],
+  ['wimfov', 'WIMFOV'],
+  ['testhmd', 'TestHMD'],
+])
+export const toolNameOf = (tool: Tool): string => toolNames.get(tool) ?? tool
 
 /**
  * Sixteen directions in radial order, from up toward the wearer's left and around. Every other

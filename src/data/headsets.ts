@@ -12,13 +12,23 @@ export interface Headset {
   readonly id: string
   readonly brand: string
   readonly name: string
+  /**
+   * A model hmdgdb doesn't record but that renders like one it does: its rendered reference is
+   * taken from that model, and the page says so with the reason.
+   */
+  readonly referenceBorrowedFrom?: { readonly headset: string; readonly reason: string }
 }
 
 export const headsets: readonly Headset[] = [
   { id: 'apple-vision-pro', brand: 'Apple', name: 'Apple Vision Pro' },
 
   { id: 'bigscreen-beyond', brand: 'Bigscreen', name: 'Bigscreen Beyond' },
-  { id: 'bigscreen-beyond-2', brand: 'Bigscreen', name: 'Bigscreen Beyond 2' },
+  {
+    id: 'bigscreen-beyond-2',
+    brand: 'Bigscreen',
+    name: 'Bigscreen Beyond 2',
+    referenceBorrowedFrom: { headset: 'bigscreen-beyond-2e', reason: 'same lenses and panels' },
+  },
   { id: 'bigscreen-beyond-2e', brand: 'Bigscreen', name: 'Bigscreen Beyond 2e' },
 
   { id: 'dpvr-e4', brand: 'DPVR', name: 'DPVR E4' },

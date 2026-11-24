@@ -9,8 +9,9 @@ describe('parseRoute', () => {
     ['', { page: 'home' }],
     ['#', { page: 'home' }],
     ['#home', { page: 'home' }],
-    ['#compare', { page: 'compare', measure: null }],
-    ['#compare?measure=eyJmb3JtYXQiOjF9', { page: 'compare', measure: 'eyJmb3JtYXQiOjF9' }],
+    ['#compare', { page: 'compare', view: 'table', measure: null }],
+    ['#compare/radar', { page: 'compare', view: 'radar', measure: null }],
+    ['#compare?measure=eyJmb3JtYXQiOjF9', { page: 'compare', view: 'table', measure: 'eyJmb3JtYXQiOjF9' }],
     ['#submit', { page: 'submit' }],
     ['method', { page: 'method', section: null }],
     ['#method/credits', { page: 'method', section: 'credits' }],
@@ -21,7 +22,8 @@ describe('parseRoute', () => {
 
   it.each([
     ['an unknown page', '#settings'],
-    ['a page with an argument it does not take', '#compare/radar'],
+    ['a page with an argument it does not take', '#compare/list'],
+    ['the radar with a path after it', '#compare/radar/x'],
     ['a page with a section it does not have', '#submit/credits'],
     ['an unknown section', '#method/history'],
     ['a compare query without a measure', '#compare?other=1'],
@@ -42,8 +44,9 @@ describe('routeHref', () => {
     [{ page: 'submit' }, '#submit'],
     [{ page: 'method', section: null }, '#method'],
     [{ page: 'method', section: 'credits' }, '#method/credits'],
-    [{ page: 'compare', measure: null }, '#compare'],
-    [{ page: 'compare', measure: 'abc-_' }, '#compare?measure=abc-_'],
+    [{ page: 'compare', view: 'table', measure: null }, '#compare'],
+    [{ page: 'compare', view: 'radar', measure: null }, '#compare/radar'],
+    [{ page: 'compare', view: 'table', measure: 'abc-_' }, '#compare?measure=abc-_'],
     [{ page: 'headset', headset: 'meta-quest-3' }, '#headset/meta-quest-3'],
     [{ page: 'not-found' }, '#home'],
   ])('links %j to %s', (route, href) => {
@@ -52,7 +55,8 @@ describe('routeHref', () => {
 
   it.each<Route>([
     { page: 'headset', headset: 'pimax-crystal' },
-    { page: 'compare', measure: 'eyJ2IjoxfQ' },
+    { page: 'compare', view: 'table', measure: 'eyJ2IjoxfQ' },
+    { page: 'compare', view: 'radar', measure: null },
     { page: 'method', section: 'credits' },
   ])('round-trips %j through parseRoute', (route) => {
     expect(parseRoute(routeHref(route))).toEqual(route)

@@ -1,0 +1,231 @@
+/**
+ * The figures the compare pages show: from a headset's aggregate (see `submissionStore.ts`) for
+ * everyone who matches the filters, or from a single measure. Every function takes one tool's
+ * data at a time; nothing here combines measures of different tools.
+ */
+
+import {
+  directions,
+  type Direction,
+  type EyeDepth,
+  type EyeMeasure,
+  type EyeMeasures,
+  type Gaze,
+  type NoseBridge,
+  type Submission,
+  type Tool,
+} from './submission.ts'
+import {
+  binocularOf,
+  cellKey,
+  type Aggregate,
+  type BinocularFigure,
+  type CellStats,
+  type Stat,
+  type Tuning,
+} from './submissionStore.ts'
+
+/** The soft filters: an empty list accepts any value, several values accept any of them. */
+export interface FilterChoices {
+  eyeDepth: EyeDepth[]
+  noseBridge: NoseBridge[]
+  tuning: Tuning[]
+  gaze: Gaze[]
+}
+export type Filters = { readonly [Group in keyof FilterChoices]: readonly FilterChoices[Group][number][] }
+
+const allows = (chosen: readonly string[], value: string | undefined): boolean =>
+  chosen.length === 0 || (value !== undefined && chosen.includes(value))
+
+/** Whether an aggregate cell, keyed as `cellKey` builds it, passes every filter group. */
+export function cellMatches(key: string, filters: Filters): boolean {
+  const [eyeDepth, noseBridge, tuning, gaze] = key.split('|')
+  return (
+    allows(filters.eyeDepth, eyeDepth) &&
+    allows(filters.noseBridge, noseBridge) &&
+    allows(filters.tuning, tuning) &&
+    allows(filters.gaze, gaze)
+  )
+}
+
+export const submissionMatches = (submission: Submission, filters: Filters): boolean => cellMatches(cellKey(submission), filters)
+
+function addStat(first: Stat | undefined, second: Stat): Stat {
+  if (first === undefined) return second
+  return {
+    count: first.count + second.count,
+    sum: first.sum + second.sum,
+    sumsq: first.sumsq + second.sumsq,
+    max: Math.max(first.max, second.max),
+  }
+}
+
+function addGroup<Key extends string>(
+  total: Partial<Record<Key, Stat>>,
+  group: Partial<Record<Key, Stat>>,
+): Partial<Record<Key, Stat>> {
+  const sums = new Map<string, Stat>(Object.entries(total) as [Key, Stat][])
+  for (const [key, stat] of Object.entries(group) as [Key, Stat][]) sums.set(key, addStat(sums.get(key), stat))
+  return Object.fromEntries(sums) as Partial<Record<Key, Stat>>
+}
+
+/** Every submission adds to each direction its tool requires, so the largest count is the cell's. */
+function cellCount(cell: CellStats): number {
+  const stats = [...Object.values(cell.left), ...Object.values(cell.right), ...Object.values(cell.binocular)]
+  return Math.max(0, ...stats.map((stat) => stat.count))
+}
+
+export interface Combined {
+  readonly count: number
+  readonly stats: CellStats
+}
+
+/** The cells of one aggregate that pass the filters, added up. */
+export function combineCells(aggregate: Aggregate, filters: Filters): Combined {
+  let stats: CellStats = { left: {}, right: {}, binocular: {} }
+  let count = 0
+  for (const [key, cell] of Object.entries(aggregate.cells)) {
+    if (!cellMatches(key, filters)) continue
+    count += cellCount(cell)
+    stats = {
+      left: addGroup(stats.left, cell.left),
+      right: addGroup(stats.right, cell.right),
+      binocular: addGroup(stats.binocular, cell.binocular),
+    }
+  }
+  return { count, stats }
+}
+
+export interface Summary {
+  readonly count: number
+  readonly mean: number
+  /** Population standard deviation: the spread of the measures themselves. */
+  readonly sigma: number
+  readonly highest: number
+}
+
+export function summarize(stat: Stat): Summary {
+  const mean = stat.sum / stat.count
+  // Rounding in the stored sums can push a zero variance slightly below zero.
+  const variance = Math.max(0, stat.sumsq / stat.count - mean * mean)
+  return { count: stat.count, mean, sigma: Math.sqrt(variance), highest: stat.max }
+}
+
+export type Statistic = 'highest' | 'mean'
+
+/** One eye's shape: the highest or the mean angle in each direction measured. */
+export function eyeShape(stats: Partial<Record<Direction, Stat>>, statistic: Statistic): EyeMeasure {
+  const byDirection = new Map(Object.entries(stats))
+  return Object.fromEntries(
+    directions.flatMap((direction) => {
+      const stat = byDirection.get(direction)
+      if (stat === undefined) return []
+      const summary = summarize(stat)
+      return [[direction, statistic === 'highest' ? summary.highest : summary.mean]]
+    }),
+  )
+}
+
+export const shapeOf = (stats: CellStats, statistic: Statistic): EyeMeasures => ({
+  left: eyeShape(stats.left, statistic),
+  right: eyeShape(stats.right, statistic),
+})
+
+export type EyeMode = 'left' | 'right' | 'union' | 'overlap'
+
+/** TestHMD measures both eyes at once, so only what both see together exists for it. */
+export const measuresBothEyesAtOnce = (tool: Tool): boolean => tool === 'testhmd'
+
+export function eyeModeFor(tool: Tool, mode: EyeMode): EyeMode {
+  return measuresBothEyesAtOnce(tool) ? 'union' : mode
+}
+
+/**
+ * What one eye, either eye (union: the farther of the two in each direction) or both eyes at once
+ * (overlap: the nearer, where both were measured) see.
+ */
+export function combineEyes({ left, right }: EyeMeasures, mode: EyeMode): EyeMeasure {
+  if (mode === 'left') return left
+  if (mode === 'right') return right
+  const leftAngles = new Map(Object.entries(left))
+  const rightAngles = new Map(Object.entries(right))
+  return Object.fromEntries(
+    directions.flatMap((direction) => {
+      const first = leftAngles.get(direction)
+      const second = rightAngles.get(direction)
+      if (first === undefined || second === undefined) {
+        const only = first ?? second
+        return mode === 'union' && only !== undefined ? [[direction, only]] : []
+      }
+      return [[direction, mode === 'union' ? Math.max(first, second) : Math.min(first, second)]]
+    }),
+  )
+}
+
+/** The diagonals pointing away from the nose: where the widest corner of each eye's view lies. */
+const outerDiagonals = { left: ['up-left', 'down-left'], right: ['up-right', 'down-right'] } as const
+
+function highestOf(values: readonly (number | undefined)[]): number | undefined {
+  const present = values.filter((value) => value !== undefined)
+  return present.length === 0 ? undefined : Math.max(...present)
+}
+
+export interface Figures {
+  readonly count: number
+  readonly horizontal: Summary | undefined
+  readonly vertical: Summary | undefined
+  readonly overlap: Summary | undefined
+  /** The highest outer diagonal of either eye. */
+  readonly diagonal: number | undefined
+  /** Mean overlap as a share of mean horizontal, in percent. */
+  readonly overlapShare: number | undefined
+}
+
+function figuresFrom(
+  count: number,
+  binocular: Readonly<Record<BinocularFigure, Summary | undefined>>,
+  diagonal: number | undefined,
+): Figures {
+  const { horizontal, vertical, overlap } = binocular
+  const overlapShare = horizontal === undefined || overlap === undefined ? undefined : (overlap.mean / horizontal.mean) * 100
+  return { count, horizontal, vertical, overlap, diagonal, overlapShare }
+}
+
+export function figuresOfCombined({ count, stats }: Combined): Figures {
+  const summary = (stat: Stat | undefined): Summary | undefined => (stat === undefined ? undefined : summarize(stat))
+  const left = new Map(Object.entries(stats.left))
+  const right = new Map(Object.entries(stats.right))
+  const diagonal = highestOf([
+    ...outerDiagonals.left.map((direction) => left.get(direction)?.max),
+    ...outerDiagonals.right.map((direction) => right.get(direction)?.max),
+  ])
+  const binocular = {
+    horizontal: summary(stats.binocular.horizontal),
+    vertical: summary(stats.binocular.vertical),
+    overlap: summary(stats.binocular.overlap),
+  }
+  return figuresFrom(count, binocular, diagonal)
+}
+
+/** The same figures for one measure, its own values standing as highest and mean. */
+export function figuresOfMeasure(measures: EyeMeasures): Figures {
+  const single = (value: number | undefined): Summary | undefined =>
+    value === undefined ? undefined : { count: 1, mean: value, sigma: 0, highest: value }
+  const binocular = binocularOf(measures)
+  const left = new Map(Object.entries(measures.left))
+  const right = new Map(Object.entries(measures.right))
+  const diagonal = highestOf([
+    ...outerDiagonals.left.map((direction) => left.get(direction)),
+    ...outerDiagonals.right.map((direction) => right.get(direction)),
+  ])
+  return figuresFrom(
+    1,
+    { horizontal: single(binocular.horizontal), vertical: single(binocular.vertical), overlap: single(binocular.overlap) },
+    diagonal,
+  )
+}
+
+/** The largest angle in a set of shapes, to size the chart that draws them. */
+export function largestAngle(shapes: readonly EyeMeasure[]): number {
+  return Math.max(0, ...shapes.flatMap((shape) => Object.values(shape)))
+}

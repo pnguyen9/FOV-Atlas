@@ -24,7 +24,7 @@ const page = computed(() => pages[route.value.page])
 const pageProps = computed(() => {
   const current = route.value
   if (current.page === 'headset') return { headset: current.headset }
-  if (current.page === 'compare') return { measure: current.measure }
+  if (current.page === 'compare') return { measure: current.measure, view: current.view }
   return current.page === 'method' ? { section: current.section } : {}
 })
 

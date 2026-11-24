@@ -13,7 +13,7 @@
 import { otherHeadset } from './headsets.ts'
 import { parseIssueBody, type IssueError, type ParseOptions } from './issueForm.ts'
 import type { PlainTextProblem } from './plainText.ts'
-import { toolNames, type Submission, type TextField, type Tool } from './submission.ts'
+import { toolNameOf, type Submission, type TextField, type Tool } from './submission.ts'
 import {
   aggregatePages,
   aggregatePath,
@@ -322,7 +322,7 @@ export function runAction(event: ActionEvent, files: DataFiles, options: ParseOp
   store(files, event.issue, event.author, submission)
   return {
     outcome: 'accepted',
-    message: `Thanks! Your ${toolNames[submission.tool]} measure of \`${submission.headset}\` is stored and appears on the site with the next deploy. Comment \`${withdrawCommand}\` here at any time to remove it.`,
+    message: `Thanks! Your ${toolNameOf(submission.tool)} measure of \`${submission.headset}\` is stored and appears on the site with the next deploy. Comment \`${withdrawCommand}\` here at any time to remove it.`,
     commitMessage: `Store submission #${String(event.issue)} (${submission.tool}/${submission.headset})`,
   }
 }

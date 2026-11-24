@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  toolNameOf,
   angleConventionOf,
   cornerMaskFromLinkTotals,
   directions,
@@ -148,5 +149,12 @@ describe('cornerMaskFromLinkTotals', () => {
     ['off-probably', 'clearly above the masked figure', 120.17, 114.3],
   ])('is %s %s', (expected, _description, diagonal, masked) => {
     expect(cornerMaskFromLinkTotals({ ...totals, binocularDiagonal: diagonal }, masked)).toBe(expected)
+  })
+})
+
+describe('toolNameOf', () => {
+  it('names each tool', () => {
+    expect(toolNameOf('vrhp')).toBe('VR Headset Picker')
+    expect(toolNameOf('atlas')).toBe('FOV Atlas')
   })
 })

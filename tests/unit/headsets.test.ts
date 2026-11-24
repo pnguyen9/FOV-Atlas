@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { headsets } from '../../src/data/headsets'
 import { hmdgdbConfigurations } from '../../src/data/hmdgdb'
-import { brands, catalogHeadset, maskedDiagonalOf, modelsOf, otherHeadset } from '../../src/lib/headsets'
+import {
+  brands,
+  catalogHeadset,
+  borrowedReferenceLabel,
+  configurationsOf,
+  hasCornerMask,
+  hmdgdbPageUrl,
+  maskedDiagonalOf,
+  modelsOf,
+  otherHeadset,
+  referenceConfigurationOf,
+} from '../../src/lib/headsets'
 import { isHeadsetId } from '../../src/lib/submission'
 
 describe('headset catalog', () => {
@@ -49,5 +60,53 @@ describe('maskedDiagonalOf', () => {
     ['no hmdgdb record', 'apple-vision-pro', undefined],
   ])('reads %s', (_description, id, expected) => {
     expect(maskedDiagonalOf(id)).toBe(expected)
+  })
+})
+
+describe('referenceConfigurationOf', () => {
+  it('takes the only native configuration, setting parallel projection aside', () => {
+    expect(referenceConfigurationOf('valve-index')?.config).toBe('Native+R144')
+  })
+  it.each([['pimax-5k-plus'], ['valve-steam-frame'], ['apple-vision-pro']])('has none for %s', (id) => {
+    expect(referenceConfigurationOf(id)).toBeUndefined()
+  })
+})
+
+describe('configurationsOf', () => {
+  it('lists every configuration of a model, linked to its hmdgdb page', () => {
+    const configurations = configurationsOf('valve-index')
+    expect(configurations.map((configuration) => configuration.config)).toEqual(['Native+R144', 'PP+R144'])
+    const [first] = configurations
+    if (first === undefined) throw new Error('no configuration')
+    expect(hmdgdbPageUrl(first)).toBe('https://risa2000.github.io/hmdgdb/hmd_cfgs/Index_Native_R144.html')
+    expect(configurationsOf('apple-vision-pro')).toEqual([])
+  })
+})
+
+describe('hasCornerMask', () => {
+  it('tells masked configurations from full-frame ones', () => {
+    const [index, beyond] = [referenceConfigurationOf('valve-index'), referenceConfigurationOf('bigscreen-beyond-2e')]
+    if (index === undefined || beyond === undefined) throw new Error('no configuration')
+    expect(hasCornerMask(index)).toBe(true)
+    expect(hasCornerMask(beyond)).toBe(false)
+  })
+})
+
+describe('borrowed references', () => {
+  it('point at catalog models with a reference of their own', () => {
+    const borrowing = headsets.filter((headset) => headset.referenceBorrowedFrom !== undefined)
+    expect(borrowing.map((headset) => headset.id)).toEqual(['bigscreen-beyond-2'])
+    for (const headset of borrowing) {
+      const source = headset.referenceBorrowedFrom?.headset ?? ''
+      expect(catalogHeadset(source)?.referenceBorrowedFrom).toBeUndefined()
+      expect(referenceConfigurationOf(source)).toBeDefined()
+    }
+  })
+  it('stand in for the model and say where they come from', () => {
+    expect(referenceConfigurationOf('bigscreen-beyond-2')).toBe(referenceConfigurationOf('bigscreen-beyond-2e'))
+    expect(configurationsOf('bigscreen-beyond-2')).toEqual(configurationsOf('bigscreen-beyond-2e'))
+    expect(borrowedReferenceLabel('bigscreen-beyond-2')).toBe('from the Beyond 2e (same lenses and panels)')
+    expect(borrowedReferenceLabel('bigscreen-beyond-2e')).toBeUndefined()
+    expect(borrowedReferenceLabel('nothing-here')).toBeUndefined()
   })
 })

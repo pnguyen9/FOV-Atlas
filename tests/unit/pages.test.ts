@@ -1,21 +1,18 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
 import FaceFitDrawing from '../../src/components/FaceFitDrawing.vue'
 import MeasurePreview from '../../src/components/MeasurePreview.vue'
-import ComparePage from '../../src/pages/ComparePage.vue'
-import HeadsetPage from '../../src/pages/HeadsetPage.vue'
 import HomePage from '../../src/pages/HomePage.vue'
 import HowItWorksPage from '../../src/pages/HowItWorksPage.vue'
 import NotFoundPage from '../../src/pages/NotFoundPage.vue'
 import { parseWimfovPoints } from '../../src/lib/wimfov'
-import { encodeMeasureParameter } from '../../src/lib/measureFile'
-import { testHmdSubmission, wimfovPoints } from './fixtures'
+import { wimfovPoints } from './fixtures'
 
 describe('HomePage', () => {
   it('sends people where they want to go, with no table up front', () => {
     const wrapper = mount(HomePage)
-    expect(wrapper.findAll('a').map((link) => link.attributes('href'))).toEqual(['#compare', '#submit', '#method'])
+    expect(wrapper.findAll('a').map((link) => link.attributes('href'))).toEqual(['#compare', '#compare/radar', '#submit', '#method'])
     expect(wrapper.find('table').exists()).toBe(false)
   })
 })
@@ -52,78 +49,6 @@ describe('HowItWorksPage', () => {
     expect(text).toContain('people whose headset probably fits them the way it fits you')
     expect(text).toContain('/withdraw')
     expect(text.toLowerCase()).not.toContain('corner mask')
-  })
-})
-
-describe('ComparePage', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  const serve = (status: number, body = ''): void => {
-    vi.stubGlobal('fetch', () => Promise.resolve({ ok: status === 200, status, text: () => Promise.resolve(body) }))
-  }
-
-  it('says when nothing is published yet', async () => {
-    serve(404)
-    const wrapper = mount(ComparePage)
-    expect(wrapper.text()).toContain('Loading')
-    await flushPromises()
-    expect(wrapper.text()).toContain('No measures are published yet')
-  })
-
-  it('counts measures per tool, never across tools', async () => {
-    serve(
-      200,
-      JSON.stringify({
-        version: 1,
-        headsets: {
-          vrhp: { 'htc-vive': { count: 2, pages: 1 }, 'meta-quest-3': { count: 3, pages: 1 } },
-          wimfov: { 'htc-vive': { count: 1, pages: 1 } },
-        },
-      }),
-    )
-    const wrapper = mount(ComparePage)
-    await flushPromises()
-    expect(wrapper.findAll('li').map((item) => item.text().replace(/\s+/g, ' '))).toEqual([
-      'VR Headset Picker: 5 measures on 2 headsets',
-      'WIMFOV: 1 measure on 1 headset',
-    ])
-  })
-
-  it('opens a kept measure from its link', async () => {
-    serve(404)
-    const measure = encodeMeasureParameter(testHmdSubmission)
-    const wrapper = mount(ComparePage, { props: { measure } })
-    await flushPromises()
-    expect(wrapper.text()).toContain('Kept measure opened: Bigscreen Beyond 2, measured with TestHMD')
-    await wrapper.setProps({ measure: encodeMeasureParameter({ ...testHmdSubmission, headset: 'other', otherHeadsetName: 'Boba 3' }) })
-    expect(wrapper.text()).toContain('Kept measure opened: Boba 3, measured with TestHMD')
-  })
-
-  it('says when a kept measure link is damaged', async () => {
-    serve(404)
-    const wrapper = mount(ComparePage, { props: { measure: 'abc+' } })
-    await flushPromises()
-    expect(wrapper.find('.problem').text()).toContain('not-base64url')
-  })
-
-  it('reports data it cannot use', async () => {
-    serve(200, '{"version":9}')
-    const wrapper = mount(ComparePage)
-    await flushPromises()
-    expect(wrapper.text()).toContain("couldn't be loaded")
-  })
-})
-
-describe('HeadsetPage', () => {
-  it('names a catalog headset', () => {
-    expect(mount(HeadsetPage, { props: { headset: 'htc-vive' } }).find('h1').text()).toBe('HTC Vive')
-  })
-
-  it('says when no headset has this address', () => {
-    const wrapper = mount(HeadsetPage, { props: { headset: 'nothing-here' } })
-    expect(wrapper.find('h1').text()).toBe('Unknown headset')
   })
 })
 

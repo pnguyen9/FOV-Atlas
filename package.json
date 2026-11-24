@@ -19,9 +19,13 @@
     "node": "^22.22.2 || >=24.15.0"
   },
   "dependencies": {
+    "d3-scale": "4.0.3",
+    "d3-shape": "3.2.1",
     "vue": "3.5.45"
   },
   "devDependencies": {
+    "@types/d3-scale": "4.0.9",
+    "@types/d3-shape": "3.2.0",
     "@types/node": "26.6.6",
     "@vitejs/plugin-vue": "6.0.10",
     "@vitest/coverage-v8": "5.1.0",

@@ -3,7 +3,7 @@
  *
  * The hash comes from the address bar and from links anyone can share, so it is parsed strictly:
  * a known page name, for a headset page a well-formed headset id, for How it works a known
- * section, and for Compare an optional kept measure (see `measureFile.ts`), carried as given and
+ * section, and for Compare the radar or an optional kept measure (see `measureFile.ts`), carried as given and
  * checked by the page that reads it. Anything else is a page that doesn't exist, never a guess at
  * the closest one.
  */
@@ -17,16 +17,19 @@ export type PageName = (typeof pageNames)[number]
 export const methodSections = ['credits'] as const
 export type MethodSection = (typeof methodSections)[number]
 
+export type CompareView = 'table' | 'radar'
+
 export type Route =
   | { readonly page: 'home' | 'submit' }
-  | { readonly page: 'compare'; readonly measure: string | null }
+  | { readonly page: 'compare'; readonly view: 'table'; readonly measure: string | null }
+  | { readonly page: 'compare'; readonly view: 'radar'; readonly measure: null }
   | { readonly page: 'method'; readonly section: MethodSection | null }
   | { readonly page: 'headset'; readonly headset: string }
   | { readonly page: 'not-found' }
 
 export const navigation: readonly { readonly page: PageName; readonly route: Route; readonly label: string }[] = [
   { page: 'home', route: { page: 'home' }, label: 'Home' },
-  { page: 'compare', route: { page: 'compare', measure: null }, label: 'Compare' },
+  { page: 'compare', route: { page: 'compare', view: 'table', measure: null }, label: 'Compare' },
   { page: 'submit', route: { page: 'submit' }, label: 'Add a measure' },
   { page: 'method', route: { page: 'method', section: null }, label: 'How it works' },
 ]
@@ -40,10 +43,11 @@ export function parseRoute(hash: string): Route {
   const path = hash.startsWith('#') ? hash.slice(1) : hash
   if (path === '' || path === 'home') return { page: 'home' }
   if (path === 'submit') return { page: 'submit' }
-  if (path === 'compare') return { page: 'compare', measure: null }
+  if (path === 'compare') return { page: 'compare', view: 'table', measure: null }
+  if (path === 'compare/radar') return { page: 'compare', view: 'radar', measure: null }
   if (path.startsWith('compare?')) {
     const measure = measureParameterOfLink(`#${path}`)
-    return measure === null ? notFound : { page: 'compare', measure }
+    return measure === null ? notFound : { page: 'compare', view: 'table', measure }
   }
   const [name, argument, ...rest] = path.split('/')
   if (rest.length > 0) return notFound
@@ -60,6 +64,7 @@ export function routeHref(route: Route): string {
     case 'headset':
       return `#headset/${route.headset}`
     case 'compare':
+      if (route.view === 'radar') return '#compare/radar'
       return route.measure === null ? '#compare' : `#compare?measure=${encodeURIComponent(route.measure)}`
     case 'method':
       return route.section === null ? '#method' : `#method/${route.section}`

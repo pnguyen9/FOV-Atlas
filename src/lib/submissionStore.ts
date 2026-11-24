@@ -123,7 +123,8 @@ export interface DataIndex {
   readonly headsets: Readonly<Partial<Record<Tool, Readonly<Record<string, HeadsetSummary>>>>>
 }
 
-export type Tuning = 'stock' | 'modded' | 'tuned' | 'both'
+export const tunings = ['stock', 'modded', 'tuned', 'both'] as const
+export type Tuning = (typeof tunings)[number]
 
 export function tuningOf({ tuning }: Submission): Tuning {
   if (tuning.physicallyModded) return tuning.driverTuned ? 'both' : 'modded'

@@ -5,40 +5,32 @@
  * from the centre, straight ahead, up at the top and the wearer's left on the left.
  */
 import { computed } from 'vue'
+import { radialScale, shapePoints } from '../lib/radarGeometry.ts'
 import { binocularOf } from '../lib/submissionStore.ts'
-import { directions, type EyeMeasure, type EyeMeasures } from '../lib/submission.ts'
+import type { EyeMeasure, EyeMeasures } from '../lib/submission.ts'
 
 const props = defineProps<{ readonly measures: EyeMeasures }>()
 
 const radius = 90
 const ringStepDegrees = 30
-const stepRadians = (2 * Math.PI) / directions.length
 
 const scaleDegrees = computed(() => {
   const angles = [...Object.values(props.measures.left), ...Object.values(props.measures.right)]
   return Math.max(ringStepDegrees * 3, ...angles)
 })
+const scale = computed(() => radialScale(scaleDegrees.value, radius))
 
 const rings = computed(() =>
   Array.from({ length: Math.floor(scaleDegrees.value / ringStepDegrees) }, (_, ringIndex) => ({
     degrees: (ringIndex + 1) * ringStepDegrees,
-    radius: (((ringIndex + 1) * ringStepDegrees) / scaleDegrees.value) * radius,
+    radius: scale.value((ringIndex + 1) * ringStepDegrees),
   })),
 )
 
-/** Directions run from up toward the wearer's left, so counter-clockwise on screen. */
-function outline(eye: EyeMeasure): string {
-  const angles = new Map(Object.entries(eye))
-  return directions
-    .flatMap((direction, directionIndex) => {
-      const degrees = angles.get(direction)
-      if (degrees === undefined) return []
-      const distance = (degrees / scaleDegrees.value) * radius
-      const turn = directionIndex * stepRadians
-      return [`${(-Math.sin(turn) * distance).toFixed(1)},${(-Math.cos(turn) * distance).toFixed(1)}`]
-    })
+const outline = (eye: EyeMeasure): string =>
+  shapePoints(eye, scale.value)
+    .map((point) => `${point.screenX.toFixed(1)},${point.screenY.toFixed(1)}`)
     .join(' ')
-}
 
 const outlines = computed(() => ({ left: outline(props.measures.left), right: outline(props.measures.right) }))
 const figures = computed(() => {

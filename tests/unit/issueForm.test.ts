@@ -7,6 +7,7 @@ import {
   issueFieldsOf,
   issueUrlOfFields,
   maximumBodyLength,
+  issueUrl,
   newIssueUrl,
   parseIssueBody,
   readIssueForm,
@@ -288,5 +289,11 @@ describe('headsetChoiceOfVrhpLink', () => {
     ['nothing when the name is too long for the form', { name: 'x'.repeat(81), id: null }, null],
   ])('picks %s', (_description, parts, expected) => {
     expect(headsetChoiceOfVrhpLink(measureOf(encodeVrhpPayload(parts)))).toEqual(expected)
+  })
+})
+
+describe('issueUrl', () => {
+  it('links an issue of the repository the form opens', () => {
+    expect(issueUrl(42)).toBe(newIssueUrl.replace(/new$/, '42'))
   })
 })

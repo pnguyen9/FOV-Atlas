@@ -5,7 +5,7 @@ import { catalogHeadset, otherHeadset } from '../../lib/headsets.ts'
 import { renderIssueBody } from '../../lib/issueForm.ts'
 import { issueOf, keptMeasureOf, type IssueResult } from '../../lib/measureDraft.ts'
 import { encodeMeasureText, measureLink } from '../../lib/measureFile.ts'
-import { toolNames } from '../../lib/submission.ts'
+import { toolNameOf } from '../../lib/submission.ts'
 import { useDraft } from './draftContext.ts'
 
 const draft = useDraft()
@@ -54,7 +54,7 @@ const yesNo = (value: boolean): string => (value ? 'Yes' : 'No')
 const summary = computed(() => {
   const headset = draft.headset === otherHeadset ? `${draft.otherHeadsetName} (not listed yet)` : catalogHeadset(draft.headset)?.name
   return [
-    { label: 'Tool', value: draft.tool === null ? '' : toolNames[draft.tool] },
+    { label: 'Tool', value: draft.tool === null ? '' : toolNameOf(draft.tool) },
     { label: 'Headset', value: headset ?? '' },
     { label: 'Eyes vs brow', value: eyeDepthOptions.find((option) => option.value === draft.eyeDepth)?.label ?? '' },
     { label: 'Nose bridge', value: noseBridgeOptions.find((option) => option.value === draft.noseBridge)?.label ?? '' },

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   dataUrl,
+  headsetsOf,
   loadAggregate,
   loadIndex,
   loadPage,
@@ -169,5 +170,12 @@ describe('parseAggregate', () => {
     ['a text sum of squares', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, sumsq: '5000' } } } } }],
   ])('refuses %s', (_description, value) => {
     expect(typeof value === 'string' ? parseAggregate(value, 'vrhp', 'htc-vive') : parse(value)).toBeNull()
+  })
+})
+
+describe('headsetsOf', () => {
+  it('lists a tool’s headsets, none for a tool without measures', () => {
+    expect([...headsetsOf(index as never, 'atlas')]).toEqual([['bigscreen-beyond-2', { count: 1, pages: 1 }]])
+    expect(headsetsOf(emptyIndex(), 'vrhp').size).toBe(0)
   })
 })

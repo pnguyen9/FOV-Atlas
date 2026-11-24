@@ -3,10 +3,16 @@ import { routeHref } from '../lib/hashRoute.ts'
 
 const destinations = [
   {
-    href: routeHref({ page: 'compare', measure: null }),
+    href: routeHref({ page: 'compare', view: 'table', measure: null }),
     icon: '▦',
     title: 'Compare headsets',
     text: 'Pick a measuring tool, then see what people measured in each headset.',
+  },
+  {
+    href: routeHref({ page: 'compare', view: 'radar', measure: null }),
+    icon: '◎',
+    title: 'Overlay shapes',
+    text: 'See several headsets’ field of view on one radar.',
   },
   {
     href: routeHref({ page: 'submit' }),
