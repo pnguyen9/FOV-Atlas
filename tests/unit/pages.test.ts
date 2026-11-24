@@ -46,7 +46,6 @@ describe('HowItWorksPage', () => {
 
   it('separates driver tuning from fit', () => {
     expect(text).toContain('They never change how the headset fits a face')
-    expect(text).toContain('a correction, not a way to widen the field of view')
   })
 
   it('phrases filters about fit and explains withdrawing', () => {

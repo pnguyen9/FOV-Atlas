@@ -133,10 +133,6 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
       how the headset fits a face. Only the shape of the face, the facial interface and its cushion change how close
       the eyes sit to the lenses.
     </p>
-    <p>
-      Some tools for Pimax headsets, such as SBoys', offer image alignment, sometimes called eye rotation. It corrects
-      the alignment of each eye's image: a correction, not a way to widen the field of view.
-    </p>
 
     <h2>Why the face matters</h2>
     <p>
