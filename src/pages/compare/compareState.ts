@@ -47,6 +47,8 @@ interface CompareState {
   radar: {
     eye: EyeMode
     statistic: Statistic
+    /** With the highest shown, each group's mean shape is drawn beside it. */
+    alsoMean: boolean
     showRendered: boolean
     view: 'shape' | 'see'
     scene: SceneName
@@ -68,7 +70,7 @@ function initialState(): CompareState {
     filters: { eyeDepth: [], noseBridge: [], tuning: [], gaze: [] },
     columns: Object.fromEntries(tools.map((tool) => [tool, defaultColumnsFor(tool)])) as Record<Tool, CompareColumnId[]>,
     sort: { column: 'highestHorizontal', descending: true },
-    radar: { eye: 'union', statistic: 'highest', showRendered: true, view: 'shape', scene: 'room', through: null, enlarged: false },
+    radar: { eye: 'union', statistic: 'highest', alsoMean: false, showRendered: true, view: 'shape', scene: 'room', through: null, enlarged: false },
     kept: null,
     keptOnRadar: true,
     keptFromLink: null,

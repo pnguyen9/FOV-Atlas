@@ -4,11 +4,9 @@
  * data at a time; nothing here combines measures of different tools.
  */
 
-import type { RenderedFrame } from './ceiling.ts'
 import {
   directions,
   type Direction,
-  type EdgeAngles,
   type EyeDepth,
   type EyeMeasure,
   type EyeMeasures,
@@ -19,11 +17,9 @@ import {
 } from './submission.ts'
 import {
   cellKey,
-  edgeNames,
   figuresOf,
   type Aggregate,
   type CellStats,
-  type EdgeName,
   type FigureName,
   type Stat,
   type Tuning,
@@ -79,7 +75,7 @@ function cellCount(cell: CellStats): number {
   return Math.max(0, ...stats.map((stat) => stat.count))
 }
 
-const emptyStats = (): CellStats => ({ left: {}, right: {}, figures: {}, renderedLeft: {}, renderedRight: {} })
+const emptyStats = (): CellStats => ({ left: {}, right: {}, figures: {} })
 
 export interface Combined {
   readonly count: number
@@ -97,8 +93,6 @@ export function combineCells(aggregate: Aggregate, filters: Filters): Combined {
       left: addGroup(stats.left, cell.left),
       right: addGroup(stats.right, cell.right),
       figures: addGroup(stats.figures, cell.figures),
-      renderedLeft: addGroup(stats.renderedLeft, cell.renderedLeft),
-      renderedRight: addGroup(stats.renderedRight, cell.renderedRight),
     }
   }
   return { count, stats }
@@ -218,26 +212,6 @@ export function figuresOfMeasure(submission: Submission): Figures {
     Object.entries(figuresOf(submission)).map(([figure, value]) => [figure, { count: 1, mean: value, sigma: 0, highest: value }]),
   )
   return figuresFrom(1, summaries, outerDiagonalOf(submission.measures.left, submission.measures.right))
-}
-
-/**
- * The rendered frame of a group's own headsets, for its outline: each edge's highest or mean, and
- * the mean turn of the pictures. Undefined unless every edge of both eyes was read.
- */
-export function renderedFrameOfCombined({ stats }: Combined, statistic: Statistic): RenderedFrame | undefined {
-  const edgesOf = (group: Partial<Record<EdgeName, Stat>>): EdgeAngles | undefined => {
-    const byEdge = new Map(Object.entries(group))
-    const values = edgeNames.map((edge) => {
-      const stat = byEdge.get(edge)
-      return stat === undefined ? undefined : summarize(stat)[statistic === 'highest' ? 'highest' : 'mean']
-    })
-    const [left, right, up, down] = values
-    return left === undefined || right === undefined || up === undefined || down === undefined ? undefined : { left, right, up, down }
-  }
-  const left = edgesOf(stats.renderedLeft)
-  const right = edgesOf(stats.renderedRight)
-  const canting = stats.figures.canting
-  return left === undefined || right === undefined || canting === undefined ? undefined : { left, right, canting: summarize(canting).mean }
 }
 
 /** The largest angle in a set of shapes, to size the chart that draws them. */

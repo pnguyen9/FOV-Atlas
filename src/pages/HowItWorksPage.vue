@@ -133,8 +133,15 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
         <b>VR Headset Picker</b> links carry it too. Each eye's width and height are set against that same eye's
         picture, and the horizontal and overlap of both eyes are shown exactly as the link gives them.
       </li>
-      <li><b>WIMFOV and TestHMD</b> measure in their own way, so their measures aren't set against it.</li>
+      <li><b>WIMFOV and TestHMD</b> carry no report from the headset.</li>
     </ul>
+    <p>
+      What FOV Atlas measures read is also averaged for each headset model, leaving out measures with driver tuning.
+      This average comes from the headsets themselves, not from what anyone saw, so it serves as a reference for FOV
+      Atlas, VR Headset Picker and TestHMD, which all follow the same definition: a dotted outline on the radar, optional
+      columns on Compare, and a section on each headset page. WIMFOV uses another standard and doesn't show it. When
+      units of a model report noticeably different pictures, the headset page says by how much.
+    </p>
 
     <h2>Driver tuning</h2>
     <p>

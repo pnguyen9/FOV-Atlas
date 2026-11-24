@@ -3,6 +3,7 @@
  *
  *   prepare  writes `wimfov_id`, the WIMFOV result the workflow must fetch, or an empty value
  *   process  applies the event to the data files and writes `outcome`, `message`, `commit_message`
+ *            and `rendered_differs` (`true` or `false`)
  *
  * The event comes from the file GitHub names in GITHUB_EVENT_PATH; outputs go to GITHUB_OUTPUT.
  * The fetched WIMFOV page, if any, is read from WIMFOV_PAGE_PATH.
@@ -46,6 +47,7 @@ if (command === 'prepare') {
     writeOutput('outcome', result.outcome)
     writeOutput('message', result.message)
     writeOutput('commit_message', result.commitMessage)
+    writeOutput('rendered_differs', String(result.renderedDiffers))
   }
 } else {
   throw new Error('Usage: submission-action.ts prepare|process')

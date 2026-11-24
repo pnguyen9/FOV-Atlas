@@ -2,9 +2,12 @@
  * The Compare table's columns: one tool's figures per headset. Each tool has its own set, because
  * each starts its angles from its own point: VR Headset Picker's figures are per eye, and only the
  * tools that carry the rendered field of view of the measurers' own headsets have rendered columns.
+ * FOV Atlas, VR Headset Picker and TestHMD also get the model's averaged rendered field of view
+ * (`renderedAverage.ts`) as a reference, in each tool's own terms; WIMFOV has its own standard.
  */
 
 import type { Figures, Summary } from '../../lib/fovStats.ts'
+import { renderedMean, type RenderedAverage, type RenderedValueName } from '../../lib/renderedAverage.ts'
 import type { Tool } from '../../lib/submission.ts'
 import type { FigureName } from '../../lib/submissionStore.ts'
 
@@ -17,15 +20,15 @@ export interface CompareRow {
   readonly figures: Figures | null
   /** All of the headset's measures with this tool, filters aside. */
   readonly total: number
+  /** The model's averaged rendered field of view; null or left out when it has none. */
+  readonly averaged?: RenderedAverage | null
 }
 
 export const compareColumnIds = [
   'highestHorizontal',
   'highestVertical',
-  'highestLeftWidth',
-  'highestRightWidth',
-  'highestLeftHeight',
-  'highestRightHeight',
+  'highestWidth',
+  'highestHeight',
   'diagonal',
   'highestOverlap',
   'overlapShare',
@@ -36,22 +39,22 @@ export const compareColumnIds = [
   'sigmaVertical',
   'meanOverlap',
   'sigmaOverlap',
-  'meanLeftWidth',
-  'meanRightWidth',
-  'meanLeftHeight',
-  'meanRightHeight',
+  'meanWidth',
+  'meanHeight',
   'renderedHorizontal',
   'renderedGap',
-  'renderedLeftWidth',
-  'renderedRightWidth',
-  'renderedLeftHeight',
-  'renderedRightHeight',
-  'leftWidthGap',
-  'rightWidthGap',
-  'leftHeightGap',
-  'rightHeightGap',
+  'renderedWidth',
+  'renderedHeight',
+  'widthGap',
+  'heightGap',
   'linkHorizontal',
   'linkOverlap',
+  'averagedHorizontal',
+  'averagedGap',
+  'averagedWidth',
+  'averagedHeight',
+  'averagedWidthGap',
+  'averagedHeightGap',
 ] as const
 export type CompareColumnId = (typeof compareColumnIds)[number]
 
@@ -60,7 +63,10 @@ export interface Column {
   readonly label: string
   readonly title: string
   readonly unit: '°' | '%' | ''
+  /** What the column sorts by. */
   readonly value: (row: CompareRow) => number | undefined
+  /** The cell's text, when it shows more than `value`. */
+  readonly display?: (row: CompareRow) => string
 }
 
 const summaryOf = (row: CompareRow, figure: FigureName): Summary | undefined =>
@@ -97,6 +103,43 @@ const degreeColumn = (id: CompareColumnId, label: string, title: string, value: 
 const gapTitle = (figure: string): string =>
   `Smallest gap between a measure's ${figure} and what that measurer's own headset reports drawing`
 
+const averageSource = 'on average, from FOV Atlas measures of the model; not part of the measured figures'
+const averagedValue =
+  (name: RenderedValueName) =>
+  (row: CompareRow): number | undefined =>
+    renderedMean(row.averaged, name)
+/** The model's average minus the measured figure: above zero while the measure stays inside it. */
+const averagedGap =
+  (name: RenderedValueName, measured: Column['value']) =>
+  (row: CompareRow): number | undefined => {
+    const average = renderedMean(row.averaged, name)
+    const value = measured(row)
+    return average === undefined || value === undefined ? undefined : average - value
+  }
+
+const formatValue = (value: number | undefined): string => (value === undefined ? '—' : `${value.toFixed(1)}°`)
+
+/**
+ * Both eyes' figure in one cell, left then right, which keeps per-eye tables narrow. It sorts by
+ * the mean of the two, or by the one present.
+ */
+function eyePairColumn(id: CompareColumnId, label: string, title: string, left: Column['value'], right: Column['value']): Column {
+  return {
+    id,
+    label: `${label} L / R`,
+    title: `${title}; left eye / right eye, sorted by the mean of both`,
+    unit: '°',
+    value: (row) => {
+      const present = [left(row), right(row)].filter((value) => value !== undefined)
+      return present.length === 0 ? undefined : present.reduce((total, value) => total + value, 0) / present.length
+    },
+    display: (row) => {
+      const [leftValue, rightValue] = [left(row), right(row)]
+      return leftValue === undefined && rightValue === undefined ? '—' : `${formatValue(leftValue)} / ${formatValue(rightValue)}`
+    },
+  }
+}
+
 const allColumns: readonly Column[] = [
   degreeColumn(
     'highestHorizontal',
@@ -105,10 +148,8 @@ const allColumns: readonly Column[] = [
     summaryValue('horizontal', highest),
   ),
   degreeColumn('highestVertical', 'Highest vertical', 'Tallest measure, top to bottom, of the taller eye', summaryValue('vertical', highest)),
-  degreeColumn('highestLeftWidth', 'Highest width, left eye', 'Widest measure of the left eye alone, left edge to right edge', summaryValue('leftWidth', highest)),
-  degreeColumn('highestRightWidth', 'Highest width, right eye', 'Widest measure of the right eye alone, left edge to right edge', summaryValue('rightWidth', highest)),
-  degreeColumn('highestLeftHeight', 'Highest height, left eye', 'Tallest measure of the left eye alone, top to bottom', summaryValue('leftHeight', highest)),
-  degreeColumn('highestRightHeight', 'Highest height, right eye', 'Tallest measure of the right eye alone, top to bottom', summaryValue('rightHeight', highest)),
+  eyePairColumn('highestWidth', 'Highest width', 'Widest measure of each eye alone, left edge to right edge', summaryValue('leftWidth', highest), summaryValue('rightWidth', highest)),
+  eyePairColumn('highestHeight', 'Highest height', 'Tallest measure of each eye alone, top to bottom', summaryValue('leftHeight', highest), summaryValue('rightHeight', highest)),
   degreeColumn('diagonal', 'Diagonal (outer)', 'Highest angle toward an outer corner, away from the nose, of either eye', (row) => row.figures?.diagonal),
   degreeColumn('highestOverlap', 'Overlap °', 'Highest width both eyes see at once', summaryValue('overlap', highest)),
   {
@@ -125,10 +166,8 @@ const allColumns: readonly Column[] = [
   degreeColumn('sigmaVertical', 'σ vertical', 'Spread (standard deviation) of the vertical measures', summaryValue('vertical', sigma)),
   degreeColumn('meanOverlap', 'Mean overlap', 'Mean overlap', summaryValue('overlap', mean)),
   degreeColumn('sigmaOverlap', 'σ overlap', 'Spread (standard deviation) of the overlap measures', summaryValue('overlap', sigma)),
-  degreeColumn('meanLeftWidth', 'Mean width, left eye', 'Mean width of the left eye', summaryValue('leftWidth', mean)),
-  degreeColumn('meanRightWidth', 'Mean width, right eye', 'Mean width of the right eye', summaryValue('rightWidth', mean)),
-  degreeColumn('meanLeftHeight', 'Mean height, left eye', 'Mean height of the left eye', summaryValue('leftHeight', mean)),
-  degreeColumn('meanRightHeight', 'Mean height, right eye', 'Mean height of the right eye', summaryValue('rightHeight', mean)),
+  eyePairColumn('meanWidth', 'Mean width', 'Mean width of each eye', summaryValue('leftWidth', mean), summaryValue('rightWidth', mean)),
+  eyePairColumn('meanHeight', 'Mean height', 'Mean height of each eye', summaryValue('leftHeight', mean), summaryValue('rightHeight', mean)),
   degreeColumn(
     'renderedHorizontal',
     'Rendered horizontal',
@@ -136,34 +175,22 @@ const allColumns: readonly Column[] = [
     summaryValue('renderedHorizontal', highest),
   ),
   degreeColumn('renderedGap', 'Gap to rendered', gapTitle('horizontal'), smallestGap('horizontalPastRendered')),
-  degreeColumn(
-    'renderedLeftWidth',
-    'Rendered width, left eye',
-    'Width of the left eye’s picture, as the link reports it (the highest of the measures)',
+  eyePairColumn(
+    'renderedWidth',
+    'Rendered width',
+    'Width of each eye’s picture, as the link reports it (the highest of the measures)',
     summaryValue('renderedLeftWidth', highest),
-  ),
-  degreeColumn(
-    'renderedRightWidth',
-    'Rendered width, right eye',
-    'Width of the right eye’s picture, as the link reports it (the highest of the measures)',
     summaryValue('renderedRightWidth', highest),
   ),
-  degreeColumn(
-    'renderedLeftHeight',
-    'Rendered height, left eye',
-    'Height of the left eye’s picture, as the link reports it (the highest of the measures)',
+  eyePairColumn(
+    'renderedHeight',
+    'Rendered height',
+    'Height of each eye’s picture, as the link reports it (the highest of the measures)',
     summaryValue('renderedLeftHeight', highest),
-  ),
-  degreeColumn(
-    'renderedRightHeight',
-    'Rendered height, right eye',
-    'Height of the right eye’s picture, as the link reports it (the highest of the measures)',
     summaryValue('renderedRightHeight', highest),
   ),
-  degreeColumn('leftWidthGap', 'Width gap, left eye', gapTitle('left eye width'), smallestGap('leftWidthPastRendered')),
-  degreeColumn('rightWidthGap', 'Width gap, right eye', gapTitle('right eye width'), smallestGap('rightWidthPastRendered')),
-  degreeColumn('leftHeightGap', 'Height gap, left eye', gapTitle('left eye height'), smallestGap('leftHeightPastRendered')),
-  degreeColumn('rightHeightGap', 'Height gap, right eye', gapTitle('right eye height'), smallestGap('rightHeightPastRendered')),
+  eyePairColumn('widthGap', 'Width gap', gapTitle('width'), smallestGap('leftWidthPastRendered'), smallestGap('rightWidthPastRendered')),
+  eyePairColumn('heightGap', 'Height gap', gapTitle('height'), smallestGap('leftHeightPastRendered'), smallestGap('rightHeightPastRendered')),
   degreeColumn(
     'linkHorizontal',
     'Rendered horizontal (link)',
@@ -175,6 +202,46 @@ const allColumns: readonly Column[] = [
     'Rendered overlap (link)',
     'Width both eyes’ pictures share, exactly as the link reports it (the highest of the measures)',
     summaryValue('renderedOverlap', highest),
+  ),
+  degreeColumn(
+    'averagedHorizontal',
+    'Rendered horizontal (model average)',
+    `Both eyes together, edge to edge, as headsets of this model report drawing it ${averageSource}`,
+    averagedValue('horizontal'),
+  ),
+  degreeColumn(
+    'averagedGap',
+    'Gap to model average',
+    'How far the widest horizontal measure stays inside the model’s averaged rendered horizontal',
+    averagedGap('horizontal', summaryValue('horizontal', highest)),
+  ),
+  eyePairColumn(
+    'averagedWidth',
+    'Rendered width (model average)',
+    `Width of each eye’s picture as headsets of this model report drawing it ${averageSource}`,
+    averagedValue('leftWidth'),
+    averagedValue('rightWidth'),
+  ),
+  eyePairColumn(
+    'averagedHeight',
+    'Rendered height (model average)',
+    `Height of each eye’s picture as headsets of this model report drawing it ${averageSource}`,
+    averagedValue('leftHeight'),
+    averagedValue('rightHeight'),
+  ),
+  eyePairColumn(
+    'averagedWidthGap',
+    'Width gap to model average',
+    'How far the widest measure of each eye stays inside the model’s averaged rendered width',
+    averagedGap('leftWidth', summaryValue('leftWidth', highest)),
+    averagedGap('rightWidth', summaryValue('rightWidth', highest)),
+  ),
+  eyePairColumn(
+    'averagedHeightGap',
+    'Height gap to model average',
+    'How far the tallest measure of each eye stays inside the model’s averaged rendered height',
+    averagedGap('leftHeight', summaryValue('leftHeight', highest)),
+    averagedGap('rightHeight', summaryValue('rightHeight', highest)),
   ),
 ]
 
@@ -202,7 +269,7 @@ const toolColumns: ReadonlyMap<Tool, ToolColumns> = new Map([
   [
     'atlas',
     {
-      available: [...bothEyeColumns, 'renderedHorizontal', 'renderedGap'],
+      available: [...bothEyeColumns, 'renderedHorizontal', 'renderedGap', 'averagedHorizontal', 'averagedGap'],
       shown: ['highestHorizontal', 'highestVertical', 'diagonal', 'highestOverlap', 'count', 'renderedHorizontal', 'renderedGap'],
     },
   ],
@@ -210,36 +277,42 @@ const toolColumns: ReadonlyMap<Tool, ToolColumns> = new Map([
     'vrhp',
     {
       available: [
-        'highestLeftWidth',
-        'highestRightWidth',
-        'highestLeftHeight',
-        'highestRightHeight',
+        'highestWidth',
+        'highestHeight',
         'diagonal',
         'count',
-        'meanLeftWidth',
-        'meanRightWidth',
-        'meanLeftHeight',
-        'meanRightHeight',
-        'renderedLeftWidth',
-        'renderedRightWidth',
-        'renderedLeftHeight',
-        'renderedRightHeight',
-        'leftWidthGap',
-        'rightWidthGap',
-        'leftHeightGap',
-        'rightHeightGap',
+        'meanWidth',
+        'meanHeight',
+        'renderedWidth',
+        'renderedHeight',
+        'widthGap',
+        'heightGap',
         'linkHorizontal',
         'linkOverlap',
+        'averagedWidth',
+        'averagedHeight',
+        'averagedWidthGap',
+        'averagedHeightGap',
       ],
-      shown: ['highestLeftWidth', 'highestRightWidth', 'highestLeftHeight', 'highestRightHeight', 'diagonal', 'count', 'leftWidthGap', 'rightWidthGap'],
+      shown: ['highestWidth', 'highestHeight', 'diagonal', 'count', 'widthGap'],
     },
   ],
   ['wimfov', { available: bothEyeColumns, shown: ['highestHorizontal', 'highestVertical', 'diagonal', 'highestOverlap', 'overlapShare', 'count'] }],
   [
     'testhmd',
     {
-      available: ['highestHorizontal', 'highestVertical', 'count', 'meanHorizontal', 'sigmaHorizontal', 'meanVertical', 'sigmaVertical'],
-      shown: ['highestHorizontal', 'highestVertical', 'count'],
+      available: [
+        'highestHorizontal',
+        'highestVertical',
+        'count',
+        'meanHorizontal',
+        'sigmaHorizontal',
+        'meanVertical',
+        'sigmaVertical',
+        'averagedHorizontal',
+        'averagedGap',
+      ],
+      shown: ['highestHorizontal', 'highestVertical', 'count', 'averagedHorizontal'],
     },
   ],
 ])
@@ -256,9 +329,9 @@ export const columnsFor = (tool: Tool): Column[] => columnsOf(toolColumns.get(to
 
 const headlineIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
   ['atlas', ['highestHorizontal', 'meanHorizontal', 'renderedHorizontal', 'renderedGap']],
-  ['vrhp', ['highestLeftWidth', 'highestRightWidth', 'leftWidthGap', 'rightWidthGap']],
+  ['vrhp', ['highestWidth', 'widthGap', 'highestHeight', 'heightGap']],
   ['wimfov', ['highestHorizontal', 'meanHorizontal', 'highestVertical']],
-  ['testhmd', ['highestHorizontal', 'meanHorizontal', 'highestVertical']],
+  ['testhmd', ['highestHorizontal', 'meanHorizontal', 'highestVertical', 'averagedHorizontal']],
 ])
 
 /** The few figures a headset page leads with for the tool. */
@@ -268,6 +341,7 @@ export const headlineColumnsFor = (tool: Tool): Column[] => columnsOf(headlineId
 export const defaultColumnsFor = (tool: Tool): CompareColumnId[] => [...(toolColumns.get(tool)?.shown ?? [])]
 
 export function formatCell(column: Column, row: CompareRow): string {
+  if (column.display !== undefined) return column.display(row)
   const value = column.value(row)
   if (value === undefined) return '—'
   return column.unit === '' ? String(value) : `${value.toFixed(1)}${column.unit === '%' ? ' %' : '°'}`

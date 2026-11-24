@@ -17,7 +17,9 @@ import { aggregateSeries, keptSeries, type RadarSeries } from '../components/rad
 import SegmentedControl from '../components/SegmentedControl.vue'
 import { combineCells, figuresOfCombined, figuresOfMeasure, type Combined } from '../lib/fovStats.ts'
 import { routeHref, type CompareView } from '../lib/hashRoute.ts'
-import { headsetsOf, loadAggregate, loadIndex, type Loaded } from '../lib/siteData.ts'
+import { drawsRenderedOutline } from '../lib/ceiling.ts'
+import type { RenderedAverage } from '../lib/renderedAverage.ts'
+import { hasRenderedAverage, headsetsOf, loadAggregate, loadIndex, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
 import { toolNameOf, tools, type Tool } from '../lib/submission.ts'
 import type { Aggregate, DataIndex } from '../lib/submissionStore.ts'
 
@@ -49,12 +51,25 @@ const publishedAnything = computed(
 /** The tool whose aggregates are loaded, which lags the chosen tool while they load. */
 const loadedTool = ref<Tool | null>(null)
 const aggregates = shallowRef(new Map<string, Loaded<Aggregate>>())
+/** Each model's averaged rendered field of view, for the tools that follow hmdq's definition; null when it has none. */
+const averages = shallowRef(new Map<string, RenderedAverage | null>())
+
+async function averageOf(headset: string, dataIndex: DataIndex): Promise<RenderedAverage | null> {
+  if (!hasRenderedAverage(dataIndex, headset)) return null
+  const loaded = await loadRenderedAverage(headset)
+  return loaded.ok ? loaded.value : null
+}
 
 async function loadTool(tool: Tool, dataIndex: DataIndex): Promise<void> {
   const headsets = [...headsetsOf(dataIndex, tool).keys()]
-  const loaded = await Promise.all(headsets.map(async (headset) => [headset, await loadAggregate(tool, headset)] as const))
+  const usesAverage = drawsRenderedOutline(tool)
+  const [loaded, loadedAverages] = await Promise.all([
+    Promise.all(headsets.map(async (headset) => [headset, await loadAggregate(tool, headset)] as const)),
+    Promise.all(headsets.map(async (headset) => [headset, usesAverage ? await averageOf(headset, dataIndex) : null] as const)),
+  ])
   if (compareState.tool !== tool) return
   aggregates.value = new Map(loaded)
+  averages.value = new Map(loadedAverages)
   loadedTool.value = tool
   compareState.picks = compareState.picks.filter((pick) => headsets.includes(pick.key))
   pickWidestWhenEmpty()
@@ -87,6 +102,7 @@ const rows = computed<CompareRow[]>(() =>
       name: headsetName({ headset }),
       figures: headsetCombined === null ? null : figuresOfCombined(headsetCombined),
       total: loaded?.ok === true ? loaded.value.count : 0,
+      averaged: averages.value.get(headset) ?? null,
     }
   }),
 )
@@ -104,6 +120,7 @@ const keptRow = computed<CompareRow | null>(() => {
     name: headsetName(kept),
     figures: figuresOfMeasure(kept),
     total: 1,
+    averaged: averages.value.get(kept.headset) ?? null,
   }
 })
 
@@ -140,6 +157,8 @@ watch(() => props.view, pickWidestWhenEmpty)
 
 const radarSeries = computed<RadarSeries[]>(() => {
   const { statistic } = compareState.radar
+  const tool = compareState.tool
+  if (tool === null) return []
   const series = compareState.picks.map((pick) => {
     const name = headsetName({ headset: pick.key })
     return aggregateSeries({
@@ -149,6 +168,8 @@ const radarSeries = computed<RadarSeries[]>(() => {
       combined: combined.value.get(pick.key) ?? null,
       statistic,
       seeText: `the ${statistic} shape measured on the ${name}`,
+      tool,
+      average: averages.value.get(pick.key) ?? null,
     })
   })
   const kept = keptSameTool.value

@@ -24,6 +24,7 @@ import {
   withEntry,
   withLocation,
   withoutEntry,
+  withRendered,
   withSummary,
   type Page,
 } from '../../src/lib/submissionStore'
@@ -186,7 +187,6 @@ describe('aggregatePages', () => {
     expect(fixed?.right.right).toEqual({ count: 2, sum: 107.6, sumsq: 5788.88, max: 53.8 })
     expect(fixed?.figures.horizontal?.count).toBe(2)
     expect(fixed?.figures.horizontalPastRendered).toEqual({ count: 2, sum: -3.2, sumsq: 5.12, max: -1.6 })
-    expect(fixed?.renderedLeft.left).toEqual({ count: 2, sum: 110, sumsq: 6050, max: 55 })
     expect(fixed?.left['up-up-left']).toBeUndefined()
   })
 
@@ -296,6 +296,15 @@ describe('index', () => {
   it('reads an index it wrote', () => {
     const index = withSummary(emptyIndex(), 'wimfov', 'pimax-crystal-light', { count: 3, pages: 1 })
     expect(parseIndex(serialize(index))).toEqual(index)
+    const withAverages = withRendered(withRendered(index, 'valve-index', 2), 'bigscreen-beyond-2', 1)
+    expect(parseIndex(serialize(withAverages))).toEqual(withAverages)
+  })
+
+  it('lists the headsets with an averaged rendered field of view, leaving the list out once empty', () => {
+    const index = withRendered(withRendered(emptyIndex(), 'valve-index', 2), 'bigscreen-beyond-2', 1)
+    expect(index.rendered).toEqual({ 'bigscreen-beyond-2': 1, 'valve-index': 2 })
+    expect(Object.keys(index.rendered ?? {})).toEqual(['bigscreen-beyond-2', 'valve-index'])
+    expect(withRendered(withRendered(index, 'valve-index', null), 'bigscreen-beyond-2', null)).toEqual(emptyIndex())
   })
 
   const withHeadsets = (headsets: unknown): string => JSON.stringify({ version: 1, headsets })
@@ -315,6 +324,9 @@ describe('index', () => {
     ['a fractional count', withHeadsets({ atlas: { 'valve-index': { ...summary, count: 1.5 } } })],
     ['no pages', withHeadsets({ atlas: { 'valve-index': { ...summary, pages: 0 } } })],
     ['pages in text', withHeadsets({ atlas: { 'valve-index': { ...summary, pages: '1' } } })],
+    ['averages in a list', '{"version":1,"headsets":{},"rendered":[]}'],
+    ['an average of a headset that is not an id', '{"version":1,"headsets":{},"rendered":{"../x":1}}'],
+    ['an average of no measure', '{"version":1,"headsets":{},"rendered":{"valve-index":0}}'],
   ])('rejects %s', (_description, text) => {
     expect(parseIndex(text)).toBeNull()
   })

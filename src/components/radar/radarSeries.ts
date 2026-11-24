@@ -2,8 +2,9 @@
 
 import { headsetName } from '../measureLabels.ts'
 import { renderedFrameOf, type OutlinePoint, type RenderedFrame } from '../../lib/ceiling.ts'
-import { renderedFrameOfCombined, shapeOf, type Combined, type Statistic } from '../../lib/fovStats.ts'
-import type { EyeMeasure, EyeMeasures, Submission } from '../../lib/submission.ts'
+import { shapeOf, type Combined, type Statistic } from '../../lib/fovStats.ts'
+import { averagedHeadFrame, averagedPictureFrame, unitDifference, unitDifferenceWords, type RenderedAverage } from '../../lib/renderedAverage.ts'
+import type { EyeMeasure, EyeMeasures, Submission, Tool } from '../../lib/submission.ts'
 
 export interface RadarSeries {
   readonly key: string
@@ -15,10 +16,14 @@ export interface RadarSeries {
   readonly colour: number | 'kept'
   /** Null when no measure matches the filters. */
   readonly measures: EyeMeasures | null
+  /** A group's mean shape, which the radar can draw beside its main one; null for a single measure. */
+  readonly meanMeasures: EyeMeasures | null
   /** The rendered field of view of the series' own headsets, drawn as an outline per eye. */
   readonly rendered: RenderedFrame | undefined
   /** Where the outline comes from, for the note under the chart. */
   readonly renderedNote: string
+  /** Said next to the note when units of the series' model report drawing noticeably different pictures. */
+  readonly renderedWarning: string | null
   /** Completes "Clear: inside …" under "What you see". */
   readonly seeText: string
 }
@@ -34,35 +39,60 @@ interface AggregateSeriesOptions {
   readonly combined: Combined | null
   readonly statistic: Statistic
   readonly seeText: string
+  readonly tool: Tool
+  /** The model's averaged rendered field of view; null when it has none, undefined while unknown. */
+  readonly average?: RenderedAverage | null
 }
 
-/** Everyone measured on a headset who passes the filters, with what their own headsets draw. */
-export function aggregateSeries({ key, name, colour, combined, statistic, seeText }: AggregateSeriesOptions): RadarSeries {
+const warningOf = (average: RenderedAverage | null | undefined): string | null => {
+  const difference = average === null || average === undefined ? null : unitDifference(average)
+  return difference === null ? null : unitDifferenceWords(difference)
+}
+
+/**
+ * A group's outline: its model's averaged pictures, from the FOV Atlas measures that read their
+ * edges, in the tool's own terms. VR Headset Picker measures each picture from its own centre;
+ * FOV Atlas and TestHMD measure from straight ahead of the head.
+ */
+function averagedOutline(name: string, tool: Tool, average: RenderedAverage | null | undefined): Pick<RadarSeries, 'rendered' | 'renderedNote'> {
+  const rendered = tool === 'vrhp' ? averagedPictureFrame(average) : averagedHeadFrame(average)
+  const headsets = average?.count ?? 0
+  return {
+    rendered,
+    renderedNote:
+      rendered === undefined
+        ? `${name}: no FOV Atlas measure of this model has read what it draws yet`
+        : `${name}: average of ${String(headsets)} ${headsets === 1 ? 'headset' : 'headsets'} of this model, as they report drawing it`,
+  }
+}
+
+/**
+ * Everyone measured on a headset who passes the filters, with the average of what the model's
+ * headsets report drawing. The mean shape goes along for the radar to draw beside the highest.
+ */
+export function aggregateSeries({ key, name, colour, combined, statistic, seeText, tool, average }: AggregateSeriesOptions): RadarSeries {
   const matching = combined !== null && combined.count > 0 ? combined : null
   let label = `${name} · couldn't load`
   if (matching !== null) label = `${name} · ${statistic} (n=${String(matching.count)})`
   else if (combined !== null) label = `${name} · no matching measure`
-  const rendered = matching === null ? undefined : renderedFrameOfCombined(matching, statistic)
   return {
     key,
     label,
     name,
     colour,
     measures: matching === null ? null : shapeOf(matching.stats, statistic),
-    rendered,
-    renderedNote:
-      rendered === undefined
-        ? `${name}: no headset reported what it draws`
-        : `${name}: what the measurers' own headsets report drawing (${statistic} of each edge)`,
+    meanMeasures: matching === null ? null : shapeOf(matching.stats, 'mean'),
+    ...averagedOutline(name, tool, average),
+    renderedWarning: warningOf(average),
     seeText,
   }
 }
 
 /** Words for where a single measure's outline comes from. */
 export function measureRenderedNote(who: string, submission: Submission): string {
-  return submission.ceiling.source === 'measured'
-    ? `${who}: what the headset reported drawing while measuring`
-    : `${who}: the headset's report wasn't read`
+  if (submission.ceiling.source === 'measured') return `${who}: what the headset reported drawing while measuring`
+  if (submission.ceiling.source === 'link') return `${who}: its link gives only totals, set against its own figures`
+  return `${who}: the headset's report wasn't read`
 }
 
 /** A kept measure: dashed, with its own headset's outline, never part of any group. */
@@ -73,8 +103,10 @@ export function keptSeries(kept: Submission): RadarSeries {
     name: 'Kept measure',
     colour: 'kept',
     measures: kept.measures,
+    meanMeasures: null,
     rendered: renderedFrameOf(kept),
     renderedNote: measureRenderedNote('Kept measure', kept),
+    renderedWarning: null,
     seeText: 'the kept measure',
   }
 }
@@ -88,6 +120,8 @@ export interface ChartCurve {
   readonly filled: boolean
   readonly dashed: boolean
   readonly emphasised: boolean
+  /** A group's mean drawn beside its highest: thinner and dash-dotted. */
+  readonly mean: boolean
 }
 
 /** The outlines of a series' rendered pictures, one per eye shown. */

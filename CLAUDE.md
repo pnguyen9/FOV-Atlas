@@ -15,6 +15,14 @@ Node version in `.nvmrc` (`nvm use`).
 - **Measuring tools are a hard partition.** Every stat, ranking and aggregate is per tool. Nothing
   is ever averaged, overlaid or converted across tools. Other attributes (face fit, tuning, gaze,
   IPD, cushion) are soft filters.
+  - **One reference crosses the partition:** the averaged rendered field of view per headset model
+    (`src/lib/renderedAverage.ts`). It is not a measure but what the headsets report they draw
+    (hmdq's definition), averaged over FOV Atlas measures only, driver-tuned ones left out. The
+    tools following hmdq's definition (FOV Atlas, VR Headset Picker, TestHMD) may show it as a
+    reference, converted to the tool's own starting point (radar outline, reference and gap
+    columns, headset page). It never enters another tool's figures, WIMFOV never shows it, and
+    a VR Headset Picker link's own rendered totals stay that measure's own reference, never
+    averaged.
 - **Security:** the site opens WebXR sessions on visitors' hardware. Keep the CSP in
   `src/contentSecurityPolicy.ts` strict (its test lists the forbidden sources); no inline
   scripts/styles, no `v-html`, no third-party hosts. Every parser of untrusted input (pasted links,

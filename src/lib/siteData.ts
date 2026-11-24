@@ -10,7 +10,6 @@
 import {
   aggregatePath,
   dataRoot,
-  edgeNames,
   emptyIndex,
   figureNames,
   indexPath,
@@ -26,6 +25,7 @@ import {
   type Page,
   type Stat,
 } from './submissionStore.ts'
+import { parseRenderedAverage, renderedPath, type RenderedAverage } from './renderedAverage.ts'
 import { directions, eyeDepths, gazes, isHeadsetId, noseBridges, tools, type Tool } from './submission.ts'
 
 /** The part of a fetch Response this module reads, so tests can stand in for the network. */
@@ -91,6 +91,16 @@ export function headsetsOf(index: DataIndex, tool: Tool): ReadonlyMap<string, He
 
 const badRequest = { ok: false, error: 'bad-request' } as const
 
+/** Whether the index lists an averaged rendered field of view for the headset. */
+export const hasRenderedAverage = (index: DataIndex, headset: string): boolean =>
+  new Map(Object.entries(index.rendered ?? {})).has(headset)
+
+/** A headset model's averaged rendered field of view (see `renderedAverage.ts`), checked in full. */
+export async function loadRenderedAverage(headset: string, options: LoadOptions = {}): Promise<Loaded<RenderedAverage>> {
+  if (!isHeadsetId(headset)) return badRequest
+  return checked(await loadText(renderedPath(headset), options), (json) => parseRenderedAverage(json, headset))
+}
+
 /** The list of headsets with measures, per tool; empty while nothing is published. */
 export async function loadIndex(options: LoadOptions = {}): Promise<Loaded<DataIndex>> {
   const loaded = await loadText(indexPath, options)
@@ -134,16 +144,14 @@ function isStatGroup(value: unknown, keys: readonly string[], signedKeys: readon
   )
 }
 
-const cellGroups = ['left', 'right', 'figures', 'renderedLeft', 'renderedRight'] as const
+const cellGroups = ['left', 'right', 'figures'] as const
 
 function isCell(value: unknown): value is CellStats {
   if (!isPlainObject(value) || Object.keys(value).length !== cellGroups.length) return false
   return (
     isStatGroup(value.left, directions) &&
     isStatGroup(value.right, directions) &&
-    isStatGroup(value.figures, figureNames, signedFigures) &&
-    isStatGroup(value.renderedLeft, edgeNames) &&
-    isStatGroup(value.renderedRight, edgeNames)
+    isStatGroup(value.figures, figureNames, signedFigures)
   )
 }
 

@@ -195,14 +195,21 @@ const ariaSort = (id: CompareColumnId): 'ascending' | 'descending' | undefined =
     v-if="tool === 'vrhp'"
     class="small muted"
   >
-    VR Headset Picker measures each eye from the centre of that eye's picture, so its widths and heights are per eye,
-    each set against the same eye's picture as the link reports it. The rendered horizontal and overlap of both eyes are
-    shown exactly as the link reports them.
+    VR Headset Picker measures each eye from the centre of that eye's picture, so its widths and heights are per eye
+    (L / R: left eye / right eye), each set against the same eye's picture as the link reports it. The rendered
+    horizontal and overlap of both eyes are shown exactly as the link reports them.
   </p>
   <p
-    v-else-if="drawsRenderedOutline(tool)"
+    v-else-if="tool === 'atlas'"
     class="small muted"
   >
     Rendered figures are what each measurer's own headset reported drawing while they measured.
+  </p>
+  <p
+    v-if="drawsRenderedOutline(tool)"
+    class="small muted"
+  >
+    “Model average” columns give what headsets of the model report drawing, averaged over its FOV Atlas measures: a
+    reference that never counts in the measured figures.
   </p>
 </template>

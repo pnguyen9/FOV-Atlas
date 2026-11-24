@@ -6,8 +6,8 @@
  * other headsets.
  *
  * An aggregate is split into cells, one per combination of the soft filters with a closed set of
- * values (face fit, tuning, gaze). Each cell keeps count, sum, sum of squares and max per direction,
- * per figure (`figuresOf`) and per rendered edge, so the site combines any selection of cells into
+ * values (face fit, tuning, gaze). Each cell keeps count, sum, sum of squares and max per direction
+ * and per figure (`figuresOf`), so the site combines any selection of cells into
  * a mean, a spread and a maximum without the raw values. Tools never share a file, so nothing
  * combines across tools.
  */
@@ -16,7 +16,6 @@ import {
   isHeadsetId,
   tools,
   type Direction,
-  type EdgeAngles,
   type EyeMeasures,
   type Submission,
   type Tool,
@@ -107,7 +106,7 @@ export interface Stat {
  * - `…PastRendered`: the measured figure minus the rendered one, worked out per measure, so the
  *   gap always sets a measure against its own headset. Below zero for every measure that stays
  *   inside what is drawn; the highest is the smallest gap.
- * - `canting`: how far each eye's picture is turned outward, kept to draw the rendered outline.
+ * - `canting`: how far each eye's picture is turned outward.
  */
 export const figureNames = [
   'horizontal',
@@ -136,16 +135,11 @@ export const signedFigures: readonly FigureName[] = figureNames.filter(
   (figure) => figure.endsWith('PastRendered') || figure === 'canting',
 )
 
-export const edgeNames = ['left', 'right', 'up', 'down'] as const satisfies readonly (keyof EdgeAngles)[]
-export type EdgeName = (typeof edgeNames)[number]
 
 export interface CellStats {
   readonly left: Partial<Record<Direction, Stat>>
   readonly right: Partial<Record<Direction, Stat>>
   readonly figures: Partial<Record<FigureName, Stat>>
-  /** Each eye's rendered edges, from the measures that read them (FOV Atlas). */
-  readonly renderedLeft: Partial<Record<EdgeName, Stat>>
-  readonly renderedRight: Partial<Record<EdgeName, Stat>>
 }
 
 export interface Aggregate {
@@ -167,6 +161,11 @@ export interface DataIndex {
   readonly version: typeof formatVersion
   /** Per tool and headset; only headsets with stored submissions are listed. */
   readonly headsets: Readonly<Partial<Record<Tool, Readonly<Record<string, HeadsetSummary>>>>>
+  /**
+   * The headsets with an averaged rendered field of view (see `renderedAverage.ts`) and how many
+   * measures it pools. Left out while there is none.
+   */
+  readonly rendered?: Readonly<Record<string, number>>
 }
 
 export const tunings = ['stock', 'modded', 'tuned', 'both'] as const
@@ -253,11 +252,20 @@ export function parseLookup(json: string, lookupNumber: number): IssueLookup | n
   return issuesValid ? (lookup as IssueLookup) : null
 }
 
+const isPositiveCount = (value: unknown): boolean => Number.isSafeInteger(value) && (value as number) > 0
+
 /** The index names the headset files to read, so its ids and numbers are checked in full. */
 export function parseIndex(json: string): DataIndex | null {
   const index = parseJson(json) as Partial<DataIndex> | null
   const headsets: unknown = index?.headsets
   if (index?.version !== formatVersion || !isPlainObject(headsets)) return null
+  const rendered: unknown = index.rendered
+  if (
+    rendered !== undefined &&
+    !(isPlainObject(rendered) && Object.entries(rendered).every(([headset, count]) => isHeadsetId(headset) && isPositiveCount(count)))
+  ) {
+    return null
+  }
   const headsetsValid = Object.entries(headsets).every(
     ([tool, summaries]) =>
       tools.includes(tool as Tool) &&
@@ -266,10 +274,8 @@ export function parseIndex(json: string): DataIndex | null {
         ([headset, summary]) =>
           isHeadsetId(headset) &&
           isPlainObject(summary) &&
-          Number.isSafeInteger(summary.count) &&
-          (summary.count as number) > 0 &&
-          Number.isSafeInteger(summary.pages) &&
-          (summary.pages as number) > 0,
+          isPositiveCount(summary.count) &&
+          isPositiveCount(summary.pages),
       ),
   )
   return headsetsValid ? (index as DataIndex) : null
@@ -283,6 +289,16 @@ export function withSummary(index: DataIndex, tool: Tool, headset: string, summa
   if (summaries.size > 0) byTool.set(tool, Object.fromEntries([...summaries].sort(([first], [second]) => first.localeCompare(second))))
   else byTool.delete(tool)
   return { ...index, headsets: Object.fromEntries(byTool) }
+}
+
+/** Lists a headset's averaged rendered field of view with the measures it pools, or drops it for null. */
+export function withRendered(index: DataIndex, headset: string, measures: number | null): DataIndex {
+  const rendered = new Map(Object.entries(index.rendered ?? {}))
+  if (measures === null) rendered.delete(headset)
+  else rendered.set(headset, measures)
+  const { headsets, version } = index
+  if (rendered.size === 0) return { version, headsets }
+  return { version, headsets, rendered: Object.fromEntries([...rendered].sort(([first], [second]) => first.localeCompare(second))) }
 }
 
 /** Hundredths of a degree, so that sums stay exact. */
@@ -391,17 +407,11 @@ function cellOf(submissions: readonly Submission[]): CellStats {
     add('left:', submission.measures.left)
     add('right:', submission.measures.right)
     add('figure:', figuresOf(submission))
-    if (submission.ceiling.source === 'measured') {
-      add('renderedLeft:', { ...submission.ceiling.left })
-      add('renderedRight:', { ...submission.ceiling.right })
-    }
   }
   return {
     left: statsOf(accumulators, 'left:'),
     right: statsOf(accumulators, 'right:'),
     figures: statsOf(accumulators, 'figure:'),
-    renderedLeft: statsOf(accumulators, 'renderedLeft:'),
-    renderedRight: statsOf(accumulators, 'renderedRight:'),
   }
 }
 

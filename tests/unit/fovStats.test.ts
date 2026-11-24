@@ -8,7 +8,6 @@ import {
   figuresOfCombined,
   figuresOfMeasure,
   largestAngle,
-  renderedFrameOfCombined,
   shapeOf,
   submissionMatches,
   summarize,
@@ -56,7 +55,9 @@ describe('combineCells', () => {
   it('adds up every matching cell', () => {
     const combined = combineCells(aggregate, anyFilters)
     expect(combined.count).toBe(3)
-    expect(combined.stats.left.left).toEqual({ count: 3, sum: 159, sumsq: 55 * 55 + 51 * 51 + 53 * 53, max: 55 })
+    expect(combined.stats.left.left).toMatchObject({ count: 3, max: 54.98 })
+    expect(combined.stats.left.left?.sum).toBeCloseTo(158.98)
+    expect(combined.stats.left.left?.sumsq).toBeCloseTo(54.98 * 54.98 + 51 * 51 + 53 * 53)
     expect(combined.stats.figures.leftWidth?.count).toBe(3)
   })
   it('keeps only cells passing the filters', () => {
@@ -67,7 +68,7 @@ describe('combineCells', () => {
   it('is empty when nothing matches', () => {
     expect(combineCells(aggregate, { ...anyFilters, gaze: ['free'], tuning: ['stock'] })).toEqual({
       count: 0,
-      stats: { left: {}, right: {}, figures: {}, renderedLeft: {}, renderedRight: {} },
+      stats: { left: {}, right: {}, figures: {} },
     })
   })
 })
@@ -87,8 +88,8 @@ describe('summarize', () => {
 describe('shapes', () => {
   const combined = combineCells(aggregate, anyFilters)
   it('takes the highest or the mean per direction', () => {
-    expect(eyeShape(combined.stats.left, 'highest').left).toBe(55)
-    expect(eyeShape(combined.stats.left, 'mean').left).toBe(53)
+    expect(eyeShape(combined.stats.left, 'highest').left).toBe(54.98)
+    expect(eyeShape(combined.stats.left, 'mean').left).toBeCloseTo(52.99)
     expect(Object.keys(shapeOf(combined.stats, 'highest').right)).toEqual(['up', 'left', 'down', 'right', 'up-right'])
   })
 })
@@ -115,10 +116,10 @@ describe('figures', () => {
   it('reads an aggregate’s figures and outer diagonal, per eye for VR Headset Picker', () => {
     const figures = figuresOfCombined(combineCells(aggregate, anyFilters))
     expect(figures.count).toBe(3)
-    expect(figures.summaries.leftWidth?.highest).toBe(97)
-    expect(figures.summaries.leftWidth?.mean).toBe(94)
+    expect(figures.summaries.leftWidth?.highest).toBe(96.95)
+    expect(figures.summaries.leftWidth?.mean).toBeCloseTo(93.98)
     expect(figures.summaries.horizontal).toBeUndefined()
-    expect(figures.diagonal).toBe(59)
+    expect(figures.diagonal).toBe(59.04)
     expect(figures.overlapShare).toBeUndefined()
   })
   it('reads a single measure, its values standing as highest and mean', () => {
@@ -126,39 +127,15 @@ describe('figures', () => {
     expect(figures.summaries.horizontal).toEqual({ count: 1, mean: 106, sigma: 0, highest: 106 })
     expect(figures.summaries.renderedHorizontal?.mean).toBe(110)
     expect(figures.overlapShare).toBeCloseTo((81 / 106) * 100)
-    expect(figuresOfMeasure(vrhpBeyond).diagonal).toBe(59)
+    expect(figuresOfMeasure(vrhpBeyond).diagonal).toBe(59.04)
   })
   it('leaves out what a tool doesn’t measure', () => {
     const figures = figuresOfMeasure(testHmdQuest)
     expect(figures.summaries.overlap).toBeUndefined()
     expect(figures.overlapShare).toBeUndefined()
     expect(figures.diagonal).toBeUndefined()
-    const empty = { left: {}, right: {}, figures: {}, renderedLeft: {}, renderedRight: {} }
+    const empty = { left: {}, right: {}, figures: {} }
     expect(figuresOfCombined({ count: 0, stats: empty }).summaries.horizontal).toBeUndefined()
-  })
-})
-
-describe('renderedFrameOfCombined', () => {
-  const atlasPage = [atlasBeyond, { ...atlasBeyond, ceiling: { ...atlasBeyond.ceiling, left: { left: 53, right: 42, up: 44.2, down: 54 } } }].reduce(
-    (page, submission, entryIndex) => withEntry(page, entryIndex + 1, { author: 'someone', submission }),
-    emptyPage('atlas', 'bigscreen-beyond-2', 0),
-  )
-  const combined = combineCells(aggregatePages('atlas', 'bigscreen-beyond-2', [atlasPage]), anyFilters)
-  it('takes the chosen statistic of each edge and the mean turn', () => {
-    expect(renderedFrameOfCombined(combined, 'highest')?.left.left).toBe(55)
-    expect(renderedFrameOfCombined(combined, 'mean')).toEqual({
-      left: { left: 54, right: 42, up: 44.2, down: 54 },
-      right: { left: 42, right: 55, up: 44.2, down: 54 },
-      canting: 0,
-    })
-  })
-  it('has none without every edge of both eyes', () => {
-    expect(renderedFrameOfCombined(combineCells(aggregate, anyFilters), 'highest')).toBeUndefined()
-    const leftOnly = { ...combined, stats: { ...combined.stats, renderedRight: {} } }
-    expect(renderedFrameOfCombined(leftOnly, 'highest')).toBeUndefined()
-    const withoutLeftEdge = Object.fromEntries(Object.entries(combined.stats.renderedLeft).filter(([edge]) => edge !== 'left'))
-    const partial = { ...combined, stats: { ...combined.stats, renderedLeft: withoutLeftEdge } }
-    expect(renderedFrameOfCombined(partial, 'highest')).toBeUndefined()
   })
 })
 

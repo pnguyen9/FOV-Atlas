@@ -18,8 +18,8 @@ function pointNear(points: readonly OutlinePoint[], turn: number): OutlinePoint 
 }
 
 describe('drawsRenderedOutline', () => {
-  it('draws an outline for FOV Atlas only', () => {
-    expect(tools.filter(drawsRenderedOutline)).toEqual(['atlas'])
+  it('draws an outline for every tool following hmdq’s definition, never WIMFOV', () => {
+    expect(tools.filter(drawsRenderedOutline)).toEqual(['atlas', 'vrhp', 'testhmd'])
   })
 })
 

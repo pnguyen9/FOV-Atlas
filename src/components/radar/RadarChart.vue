@@ -181,7 +181,7 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
       v-for="curve in drawnCurves"
       :key="curve.key"
       class="curve"
-      :class="[curve.colourClass, { filled: curve.filled, dashed: curve.dashed, emphasised: curve.emphasised }]"
+      :class="[curve.colourClass, { filled: curve.filled, dashed: curve.dashed, emphasised: curve.emphasised, mean: curve.mean }]"
     >
       <path :d="curve.path" />
       <circle
@@ -257,6 +257,14 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
 .curve.dashed path {
   stroke-dasharray: 7 4;
   stroke-width: 2.4;
+}
+.curve.mean path {
+  stroke-width: 1.5;
+  stroke-dasharray: 9 3 2 3;
+  opacity: 0.8;
+}
+.curve.mean circle {
+  display: none;
 }
 .curve.emphasised path {
   stroke-width: 3;

@@ -45,7 +45,9 @@ Claude Code, and the whole design and navigation of the site were its suggestion
 The headset catalog follows [VR Headset Picker](https://vrheadsetpicker.com)'s model ids, so its
 share links can preselect the headset. The rendered field of view, what a headset itself reports
 it draws for each eye, is defined as in [hmdq](https://github.com/risa2000/hmdq) by Richard Musil;
-each measure is set against the rendered field of view of the headset it was taken with.
+each measure is set against the rendered field of view of the headset it was taken with. What
+FOV Atlas measures read from their headsets is also averaged per model, as a reference for the
+tools that follow hmdq's definition.
 
 ## License
 

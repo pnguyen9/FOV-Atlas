@@ -5,14 +5,26 @@
  * who adds the model, sets the issue's headset to its id, and the edit or a `/recheck` comment
  * from a maintainer processes it again.
  *
+ * Every change to a FOV Atlas measure also rebuilds the model's averaged
+ * rendered field of view (`renderedAverage.ts`). A new measure whose headset reports drawing far
+ * from that average is still stored; the issue is flagged for a maintainer to look at.
+ *
  * The event payload is attacker-controlled (issue body, comment, logins), so it is read field by
  * field here. Comments posted back are fixed sentences: nothing from the issue is echoed except
- * the validated headset id.
+ * the validated headset id and numbers worked out from validated values.
  */
 
 import { otherHeadset } from './headsets.ts'
 import { parseIssueBody, type IssueError, type ParseOptions } from './issueForm.ts'
 import type { PlainTextProblem } from './plainText.ts'
+import {
+  differsFromAverageDegrees,
+  renderedAverageOf,
+  renderedDifferences,
+  renderedPath,
+  renderedValueLabelOf,
+  type RenderedDifference,
+} from './renderedAverage.ts'
 import { toolNameOf, type Submission, type TextField, type Tool } from './submission.ts'
 import {
   aggregatePages,
@@ -34,6 +46,7 @@ import {
   withEntry,
   withLocation,
   withoutEntry,
+  withRendered,
   withSummary,
   type DataIndex,
   type IssueLookup,
@@ -65,6 +78,8 @@ export interface ActionResult {
   /** The comment posted on the issue. */
   readonly message: string
   readonly commitMessage: string
+  /** An accepted measure whose rendered field of view differs from its model's average. */
+  readonly renderedDiffers: boolean
 }
 
 const loginPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/
@@ -255,7 +270,27 @@ function savePages(files: DataFiles, index: DataIndex, pages: readonly Page[], c
   if (count === 0) files.remove(aggregatePath(tool, headset))
   else files.write(aggregatePath(tool, headset), serialize(aggregatePages(tool, headset, updated)))
   const summary = count === 0 ? null : { count, pages: updated.length }
-  files.write(indexPath, serialize(withSummary(index, tool, headset, summary)))
+  const updatedIndex = withSummary(index, tool, headset, summary)
+  files.write(indexPath, serialize(tool === renderedSource ? saveRendered(files, updatedIndex, headset, updated) : updatedIndex))
+}
+
+/** The only tool whose measures read what their headset draws edge by edge, and so the only one averaged. */
+const renderedSource: Tool = 'atlas'
+
+const submissionsOf = (pages: readonly Page[], leftOut: number | null = null): Submission[] =>
+  pages.flatMap((page) =>
+    Object.entries(page.entries).flatMap(([issue, { submission }]) => (issue === String(leftOut) ? [] : [submission])),
+  )
+
+/** Rewrites or removes a headset's averaged rendered field of view; returns the index listing it. */
+function saveRendered(files: DataFiles, index: DataIndex, headset: string, pages: readonly Page[]): DataIndex {
+  const average = renderedAverageOf(headset, submissionsOf(pages))
+  if (average === null) {
+    files.remove(renderedPath(headset))
+    return withRendered(index, headset, null)
+  }
+  files.write(renderedPath(headset), serialize(average))
+  return withRendered(index, headset, average.count)
 }
 
 function pageHolding(pages: readonly Page[], location: Location, issue: number): Page {
@@ -276,20 +311,39 @@ function removeIssue(files: DataFiles, issue: number): boolean {
   return true
 }
 
-/** Replaces the entry in place when the issue stays on its headset; otherwise moves it to the last page of its new one. */
-function store(files: DataFiles, issue: number, author: string, submission: Submission): void {
+/**
+ * Replaces the entry in place when the issue stays on its headset; otherwise moves it to the last
+ * page of its new one. Returns how the measure's rendered field of view differs from the average
+ * of the model's other measures.
+ */
+function store(files: DataFiles, issue: number, author: string, submission: Submission): RenderedDifference[] {
   const { tool, headset } = submission
   const location = locationOf(files, issue)
   const staysOnHeadset = location?.tool === tool && location.headset === headset
   if (location !== null && !staysOnHeadset) removeIssue(files, issue)
   const index = readIndex(files)
   const pages = readPages(files, index, tool, headset)
+  const differences =
+    tool === renderedSource ? renderedDifferences(submission, renderedAverageOf(headset, submissionsOf(pages, issue))) : []
   const last = pages[pages.length - 1]
   const hasRoom = last !== undefined && entryCount(last) < entriesPerPage
   const target = staysOnHeadset ? pageHolding(pages, location, issue) : hasRoom ? last : emptyPage(tool, headset, pages.length)
   savePages(files, index, pages, withEntry(target, issue, { author, submission }))
   saveLocation(files, issue, { tool, headset, page: target.page })
+  return differences
 }
+
+const degrees = (value: number): string => `${value.toFixed(1)}°`
+
+function differenceSentence({ name, value, mean, count }: RenderedDifference): string {
+  const others = count === 1 ? 'the 1 other measure' : `the ${String(count)} other measures`
+  return `${renderedValueLabelOf(name).toLowerCase()}: ${degrees(value)}, against ${degrees(mean)} on average over ${others} (${degrees(Math.abs(value - mean))} apart)`
+}
+
+const differencesNote = (differences: readonly RenderedDifference[]): string =>
+  differences.length === 0
+    ? ''
+    : ` Note for the maintainers: what this headset reports drawing differs by more than ${String(differsFromAverageDegrees)}° from the average of this model's other measures, which may be a different version of the model or a mistake. ${differences.map(differenceSentence).join('; ')}. The measure is published anyway.`
 
 const keptNote = ' The version accepted earlier stays published until a valid edit replaces it.'
 
@@ -300,8 +354,9 @@ export function runAction(event: ActionEvent, files: DataFiles, options: ParseOp
           outcome: 'withdrawn',
           message: 'Your measure has been removed from FOV Atlas. It disappears from the site with the next deploy.',
           commitMessage: `Withdraw submission #${String(event.issue)}`,
+          renderedDiffers: false,
         }
-      : { outcome: 'not-found', message: 'There is no stored measure for this issue.', commitMessage: '' }
+      : { outcome: 'not-found', message: 'There is no stored measure for this issue.', commitMessage: '', renderedDiffers: false }
   }
   const parsed = parseIssueBody(event.body, options)
   if (!parsed.ok) {
@@ -309,6 +364,7 @@ export function runAction(event: ActionEvent, files: DataFiles, options: ParseOp
       outcome: 'invalid',
       message: `This submission could not be accepted: ${messageFor(parsed.error)} Edit the issue to fix it; it is checked again after every edit.${locationOf(files, event.issue) === null ? '' : keptNote}`,
       commitMessage: '',
+      renderedDiffers: false,
     }
   }
   const { submission } = parsed
@@ -317,12 +373,14 @@ export function runAction(event: ActionEvent, files: DataFiles, options: ParseOp
       outcome: 'new-headset',
       message: `Thanks! Everything else in this submission is valid, but its headset is not in the FOV Atlas catalog yet. A maintainer will check the model by hand and add it to the catalog; until then this issue stays open and the measure is not published.${locationOf(files, event.issue) === null ? '' : keptNote}`,
       commitMessage: '',
+      renderedDiffers: false,
     }
   }
-  store(files, event.issue, event.author, submission)
+  const differences = store(files, event.issue, event.author, submission)
   return {
     outcome: 'accepted',
-    message: `Thanks! Your ${toolNameOf(submission.tool)} measure of \`${submission.headset}\` is stored and appears on the site with the next deploy. Comment \`${withdrawCommand}\` here at any time to remove it.`,
+    message: `Thanks! Your ${toolNameOf(submission.tool)} measure of \`${submission.headset}\` is stored and appears on the site with the next deploy. Comment \`${withdrawCommand}\` here at any time to remove it.${differencesNote(differences)}`,
     commitMessage: `Store submission #${String(event.issue)} (${submission.tool}/${submission.headset})`,
+    renderedDiffers: differences.length > 0,
   }
 }

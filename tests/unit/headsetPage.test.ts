@@ -67,7 +67,7 @@ describe('HeadsetPage', () => {
       'WIMFOV',
     ])
     await clickButton(wrapper, 'FOV Atlas')
-    expect(authors(wrapper)).toEqual(['delta-pilot'])
+    expect(authors(wrapper)).toEqual(['amber-kite', 'quiet-owl', 'delta-pilot'])
     expect(wrapper.text()).toContain('Read while measuring')
     expect(wrapper.text()).toContain('corner mask detected')
   })
@@ -76,17 +76,17 @@ describe('HeadsetPage', () => {
     const wrapper = await mountPage('bigscreen-beyond-2')
     await clickButton(wrapper, 'VR Headset Picker')
     expect(wrapper.findAll('.kpi-label').map((label) => label.text())).toEqual([
-      'Highest width, left eye',
-      'Highest width, right eye',
-      'Width gap, left eye',
-      'Width gap, right eye',
+      'Highest width L / R',
+      'Width gap L / R',
+      'Highest height L / R',
+      'Height gap L / R',
       'Measures (filtered / all)',
     ])
     expect(wrapper.findAll('.kpi-value').map((value) => value.text().replace(/\s+/g, ' '))).toEqual([
-      '97.0°',
-      '97.0°',
-      '-0.1°',
-      '-0.4°',
+      '97.0° / 95.8°',
+      '0.0° / 0.9°',
+      '96.9° / 96.7°',
+      '0.0° / 0.0°',
       '3 / 3',
     ])
     expect(wrapper.text()).toContain('VR Headset Picker figures')
@@ -109,7 +109,7 @@ describe('HeadsetPage', () => {
       'right',
       'up-right',
     ])
-    expect(wrapper.text()).not.toContain('Horizontal')
+    expect(wrapper.find('[aria-labelledby="figures-heading"]').text()).not.toContain('Horizontal')
     expect(authors(wrapper)).toEqual(['nova-wren'])
     await clickButton(wrapper, 'Show older measures')
     expect(authors(wrapper)).toEqual(['nova-wren', 'quiet-owl', 'lens-fox'])
@@ -149,8 +149,9 @@ describe('HeadsetPage', () => {
       'series-2',
       'series-3',
     ])
-    expect(wrapper.find('.rendered-notes').exists()).toBe(false)
-    expect(wrapper.findAll('.rendered path')).toHaveLength(0)
+    expect(wrapper.findAll('.rendered path')).toHaveLength(2)
+    expect(wrapper.find('.rendered-notes').text()).toContain('Everyone: average of 2 headsets of this model, as they report drawing it')
+    expect(wrapper.find('.rendered-notes').text()).toContain('lens-fox #3: its link gives only totals, set against its own figures')
     await clickButton(wrapper, 'What you see')
     expect(wrapper.text()).toContain('Clear: inside the highest shape of everyone who matches the filters')
     await wrapper.findAll('.radar-panel button').find((button) => button.text() === 'lens-fox #3')?.trigger('click')
@@ -231,22 +232,57 @@ describe('HeadsetPage', () => {
     expect(wrapper.findAll('.kpi-value').map((value) => value.text().replace(/\s+/g, ' '))).toEqual([
       '106.0°',
       '106.0°',
-      '110.0°',
+      '120.0°',
       '4.0°',
-      '1 / 1',
+      '3 / 3',
     ])
     expect(wrapper.findAll('.rendered path')).toHaveLength(2)
+    expect(wrapper.find('.rendered-notes').text()).toContain('Everyone: average of 2 headsets of this model')
     await wrapper.findAll('tbody tr.clickable')[0]?.trigger('click')
     expect(wrapper.findAll('.rendered path')).toHaveLength(4)
-    expect(wrapper.find('.rendered-notes').text()).toContain('delta-pilot #9: what the headset reported drawing while measuring')
+    expect(wrapper.find('.rendered-notes').text()).toContain('amber-kite #11: what the headset reported drawing while measuring')
     expect(wrapper.findAll('thead th').map((header) => header.text())).toContain('Gap')
   })
 
   it('lists the model by brand and name only', async () => {
+    compareState.tool = 'vrhp'
     const wrapper = await mountPage('valve-index')
     const catalog = wrapper.find('[aria-labelledby="catalog-heading"]')
     expect(catalog.text().replace(/\s+/g, ' ')).toBe('About this model BrandValveModelValve Index')
     expect(wrapper.text()).toContain('Not reported')
     expect(wrapper.findAll('a').some((link) => link.attributes('href')?.includes('hmdgdb') === true)).toBe(false)
+  })
+
+  it('shows the model’s averaged rendered field of view, mean ± spread and count per value', async () => {
+    const wrapper = await mountPage('bigscreen-beyond-2')
+    const section = wrapper.find('.rendered-average')
+    expect(section.text()).toContain('averaged over 2 FOV Atlas measures without driver tuning')
+    const rows = section.findAll('tbody tr').map((row) => row.findAll('td').map((cell) => cell.text()))
+    expect(rows[0]).toEqual(['Width, left eye', '97.0° ± 0.0°', '2', '97.0°'])
+    expect(rows[4]).toEqual(['Horizontal, both eyes', '110.4° ± 0.4°', '2', '110.0° to 110.8°'])
+    expect(rows).toHaveLength(15)
+    expect(section.find('.unit-warning').exists()).toBe(false)
+  })
+
+  it('warns when units of the model differ by more than a little', async () => {
+    const wrapper = await mountPage('valve-index')
+    expect(wrapper.find('.rendered-average .unit-warning').text()).toContain('Units of this model differ by up to 10.0°')
+  })
+
+  it('says in plain words when the model has no average, or it fails to load', async () => {
+    const wrapper = await mountPage('htc-vive-pro')
+    expect(wrapper.find('.rendered-average').text()).toContain('No FOV Atlas measure of this model has recorded what the headset draws yet')
+    site.failing.add('data/rendered/valve-index.json')
+    await wrapper.setProps({ headset: 'valve-index' })
+    expect(wrapper.find('.rendered-average').text()).toContain('Loading…')
+    await flushPromises()
+    expect(wrapper.find('.rendered-average .problem').text()).toContain("couldn't be loaded")
+  })
+
+  it('leads TestHMD figures with the model’s averaged rendered horizontal', async () => {
+    const wrapper = await mountPage('meta-quest-2')
+    expect(wrapper.findAll('.kpi-label').map((label) => label.text())).toContain('Rendered horizontal (model average)')
+    expect(wrapper.findAll('.kpi-value').at(3)?.text()).toBe('—')
+    expect(wrapper.find('.rendered-notes').text()).toContain('Everyone: no FOV Atlas measure of this model has read what it draws yet')
   })
 })

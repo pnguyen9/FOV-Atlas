@@ -9,6 +9,9 @@ name: Submission
 # issue's headset field to its id and empties the name field; that edit, an edit by the author,
 # or a `/recheck` comment from someone with write access (the script checks the comment's
 # author_association) processes the issue again.
+#
+# An accepted measure whose headset reports drawing far from its model's average gets the
+# `rendered-differs` label for a maintainer to look at; the measure is published all the same.
 on:
   issues:
     types: [opened, edited]
@@ -37,6 +40,7 @@ jobs:
     outputs:
       outcome: ${{ steps.process.outputs.outcome }}
       message: ${{ steps.process.outputs.message }}
+      rendered_differs: ${{ steps.process.outputs.rendered_differs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -93,6 +97,8 @@ jobs:
       MESSAGE: ${{ needs.process.outputs.message }}
       MARKED_INVALID: ${{ contains(github.event.issue.labels.*.name, 'invalid') }}
       MARKED_NEW_HEADSET: ${{ contains(github.event.issue.labels.*.name, 'new-headset') }}
+      RENDERED_DIFFERS: ${{ needs.process.outputs.rendered_differs }}
+      MARKED_RENDERED_DIFFERS: ${{ contains(github.event.issue.labels.*.name, 'rendered-differs') }}
       WAS_CLOSED: ${{ github.event.issue.state == 'closed' }}
     steps:
       - run: |
@@ -102,6 +108,13 @@ jobs:
             accepted)
               if [ "$MARKED_INVALID" = true ]; then gh issue edit "$ISSUE" --remove-label invalid; fi
               if [ "$MARKED_NEW_HEADSET" = true ]; then gh issue edit "$ISSUE" --remove-label new-headset; fi
+              # A missing label must not lose the rest of the report: the comment already says it all.
+              if [ "$RENDERED_DIFFERS" = true ]; then
+                gh issue edit "$ISSUE" --add-label rendered-differs ||
+                  echo '::warning::Could not add the rendered-differs label. Create it in the repository.'
+              elif [ "$MARKED_RENDERED_DIFFERS" = true ]; then
+                gh issue edit "$ISSUE" --remove-label rendered-differs
+              fi
               gh issue close "$ISSUE" --reason completed
               ;;
             invalid)

@@ -3,7 +3,8 @@ import { columnsFor, defaultColumnsFor, formatCell, headlineColumnsFor, sortRows
 import { figuresOfMeasure } from '../../src/lib/fovStats'
 import { tools, type Submission } from '../../src/lib/submission'
 import { formatDegrees, gazeLabelOf, headsetName, tuningLabelOf } from '../../src/components/measureLabels'
-import { atlasBeyond, testHmdQuest, vrhpBeyond, vrhpIndex, wimfovBeyond } from './siteFixtures'
+import { renderedAverageOf } from '../../src/lib/renderedAverage'
+import { atlasBeyond, atlasBeyondSecond, testHmdQuest, vrhpBeyond, vrhpIndex, wimfovBeyond } from './siteFixtures'
 
 const rowOf = (key: string, submission: Submission): CompareRow => ({
   key,
@@ -19,22 +20,52 @@ const cellsOf = (row: CompareRow, tool: typeof tools[number]): Record<string, st
   Object.fromEntries(columnsFor(tool).map((column) => [column.id, formatCell(column, row)]))
 
 describe('Compare columns', () => {
-  it('gives VR Headset Picker per-eye figures, each against the same eye of its link', () => {
+  const averaged = renderedAverageOf('bigscreen-beyond-2', [atlasBeyond, atlasBeyondSecond])
+
+  it('gives VR Headset Picker per-eye figures, left / right, each against the same eye of its link', () => {
     expect(cellsOf(beyond, 'vrhp')).toMatchObject({
-      highestLeftWidth: '97.0°',
-      highestRightWidth: '97.0°',
-      highestLeftHeight: '96.9°',
+      highestWidth: '97.0° / 95.8°',
+      highestHeight: '96.9° / 96.7°',
       count: '1',
-      renderedLeftWidth: '97.0°',
-      leftWidthGap: '-0.1°',
-      rightWidthGap: '-0.4°',
-      leftHeightGap: '0.0°',
+      renderedWidth: '97.0° / 96.6°',
+      widthGap: '0.0° / 0.9°',
+      heightGap: '0.0° / 0.0°',
       linkHorizontal: '109.2°',
       linkOverlap: '84.3°',
+      averagedWidth: '—',
     })
     expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestHorizontal')
     expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestOverlap')
-    expect(cellsOf(index, 'vrhp').leftWidthGap).toBe('—')
+    expect(cellsOf(index, 'vrhp').widthGap).toBe('—')
+    expect(cellsOf({ ...index, figures: { ...figuresOfMeasure(vrhpIndex), summaries: {} } }, 'vrhp').highestWidth).toBe('—')
+  })
+
+  it('sets VR Headset Picker figures against the model’s averaged pictures, per eye', () => {
+    expect(cellsOf({ ...beyond, averaged }, 'vrhp')).toMatchObject({
+      averagedWidth: '97.0° / 97.0°',
+      averagedHeight: '98.3° / 98.3°',
+      averagedWidthGap: '0.0° / 1.3°',
+    })
+  })
+
+  it('shows one eye’s figure when only it exists, sorting by it', () => {
+    const [width] = columnsFor('vrhp')
+    const leftOnly: CompareRow = {
+      ...beyond,
+      figures: { ...figuresOfMeasure(vrhpBeyond), summaries: { leftWidth: { count: 1, mean: 90, sigma: 0, highest: 90 } } },
+    }
+    expect(width === undefined ? '' : formatCell(width, leftOnly)).toBe('90.0° / —')
+    expect(width?.value(leftOnly)).toBe(90)
+  })
+
+  it('gives TestHMD and FOV Atlas the model’s averaged rendered horizontal and the gap to it', () => {
+    expect(cellsOf({ ...rowOf('Quest', testHmdQuest), averaged }, 'testhmd')).toMatchObject({
+      averagedHorizontal: '110.4°',
+      averagedGap: '10.4°',
+    })
+    expect(cellsOf(rowOf('Quest', testHmdQuest), 'testhmd').averagedHorizontal).toBe('—')
+    expect(cellsOf({ ...rowOf('Atlas', atlasBeyond), averaged }, 'atlas').averagedGap).toBe('4.4°')
+    expect(defaultColumnsFor('testhmd')).toContain('averagedHorizontal')
   })
 
   it('gives FOV Atlas its own headset’s rendered horizontal and the gap to it', () => {
@@ -45,10 +76,13 @@ describe('Compare columns', () => {
     })
   })
 
-  it('gives WIMFOV and TestHMD no rendered columns', () => {
-    for (const tool of ['wimfov', 'testhmd'] as const) {
-      expect(columnsFor(tool).map((column) => column.id).filter((id) => id.includes('rendered') || id.includes('Gap'))).toEqual([])
-    }
+  it('gives WIMFOV no rendered columns, and TestHMD only the model’s average', () => {
+    const renderedIds = (tool: typeof tools[number]): string[] =>
+      columnsFor(tool)
+        .map((column) => column.id)
+        .filter((id) => id.includes('rendered') || id.includes('Gap') || id.includes('averaged'))
+    expect(renderedIds('wimfov')).toEqual([])
+    expect(renderedIds('testhmd')).toEqual(['averagedHorizontal', 'averagedGap'])
     expect(cellsOf(rowOf('WIMFOV', wimfovBeyond), 'wimfov').overlapShare).toBe('76.4 %')
   })
 
@@ -62,7 +96,7 @@ describe('Compare columns', () => {
   })
 
   it('sorts either way, rows without the figure last, ties by name', () => {
-    const [gap] = columnsFor('vrhp').filter((column) => column.id === 'rightWidthGap')
+    const [gap] = columnsFor('vrhp').filter((column) => column.id === 'widthGap')
     if (gap === undefined) throw new Error('no column')
     const quest = rowOf('Quest', testHmdQuest)
     expect(sortRows([quest, beyond, index], gap, true).map((row) => row.name)).toEqual(['Beyond', 'Index', 'Quest'])

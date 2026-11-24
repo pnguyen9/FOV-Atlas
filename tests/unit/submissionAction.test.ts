@@ -13,6 +13,7 @@ import {
   serializePage,
   withEntry,
 } from '../../src/lib/submissionStore'
+import { parseRenderedAverage, renderedPath } from '../../src/lib/renderedAverage'
 import { wimfovResultLink } from '../../src/lib/wimfov'
 import type { Tool } from '../../src/lib/submission'
 import { atlasSubmission, testHmdSubmission, wimfovPage, wimfovResultId } from './fixtures'
@@ -288,6 +289,75 @@ describe('runAction', () => {
     expect(result).toMatchObject({ outcome: 'withdrawn', commitMessage: 'Withdraw submission #42' })
     expect([...files.contents.keys()]).toEqual([indexPath])
     expect(json(files, indexPath)).toEqual({ version: 1, headsets: {} })
+  })
+
+  describe('averaged rendered field of view', () => {
+    const stock = { ...atlasSubmission, tuning: { physicallyModded: false, driverTuned: false, details: '' } }
+    const bodyOf = (submission: typeof atlasSubmission): string => renderIssueBody(issueFieldsOf(submission))
+    const widened = (degrees: number): typeof atlasSubmission => {
+      const { ceiling } = atlasSubmission
+      if (ceiling.source !== 'measured') throw new Error('no edges')
+      return {
+        ...stock,
+        ceiling: { ...ceiling, left: { ...ceiling.left, left: ceiling.left.left + degrees }, right: { ...ceiling.right, right: ceiling.right.right + degrees } },
+      }
+    }
+    const averagePath = renderedPath('bigscreen-beyond-2')
+
+    it('rebuilds the model’s average with each FOV Atlas measure, leaving driver-tuned ones out', () => {
+      const files = memoryFiles()
+      expect(runAction(submissionEvent(atlasBody, 1), files).renderedDiffers).toBe(false)
+      expect(files.contents.has(averagePath)).toBe(false)
+      expect(runAction(submissionEvent(bodyOf(stock), 2), files)).toMatchObject({ outcome: 'accepted', renderedDiffers: false })
+      expect(parseRenderedAverage(files.contents.get(averagePath) ?? '', 'bigscreen-beyond-2')?.count).toBe(1)
+      expect(json(files, indexPath)).toMatchObject({ rendered: { 'bigscreen-beyond-2': 1 } })
+      runAction(submissionEvent(bodyOf(widened(2)), 3), files)
+      expect(parseRenderedAverage(files.contents.get(averagePath) ?? '', 'bigscreen-beyond-2')?.values.horizontal).toMatchObject({
+        count: 2,
+        min: 110,
+        max: 114,
+      })
+    })
+
+    it('stores a measure far from the average anyway, saying which values differ and by how much', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock), 1), files)
+      const result = runAction(submissionEvent(bodyOf(widened(3)), 2), files)
+      expect(result).toMatchObject({ outcome: 'accepted', renderedDiffers: true })
+      expect(result.message).toContain('differs by more than 4° from the average of this model\'s other measures')
+      expect(result.message).toContain('horizontal, both eyes: 116.0°, against 110.0° on average over the 1 other measure (6.0° apart)')
+      expect(result.message).not.toContain('left eye, left edge')
+      expect(result.message).not.toMatch(/[\r\n]/)
+      expect(files.contents.get(averagePath)).toContain('"count": 2')
+    })
+
+    it('leaves the measure itself out of the average it is checked against, on an edit too', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock), 1), files)
+      runAction(submissionEvent(bodyOf(stock), 2), files)
+      expect(runAction(submissionEvent(bodyOf(widened(1)), 2), files).renderedDiffers).toBe(false)
+      const edited = runAction(submissionEvent(bodyOf(widened(5)), 2), files)
+      expect(edited.message).toContain('average over the 1 other measure')
+      expect(edited.message).toContain('(10.0° apart)')
+      expect(runAction(submissionEvent(bodyOf(widened(5)), 3), files).message).toContain('over the 2 other measures')
+    })
+
+    it('drops the average and its listing once its last measure is withdrawn', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock)), files)
+      runAction(withdrawEvent(), files)
+      expect(files.contents.has(averagePath)).toBe(false)
+      expect(json(files, indexPath)).toEqual({ version: 1, headsets: {} })
+    })
+
+    it('leaves the average alone for other tools', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock), 1), files)
+      const before = files.contents.get(averagePath)
+      const testHmd = { ...testHmdSubmission, tuning: stock.tuning, headset: 'bigscreen-beyond-2' }
+      expect(runAction(submissionEvent(bodyOf(testHmd), 2), files)).toMatchObject({ outcome: 'accepted', renderedDiffers: false })
+      expect(files.contents.get(averagePath)).toBe(before)
+    })
   })
 
   it('says so when there is nothing to withdraw', () => {

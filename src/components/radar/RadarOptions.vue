@@ -54,6 +54,16 @@ const renderedOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
       label="Statistic"
       :options="statisticOptions"
     />
+    <label
+      v-if="compareState.radar.statistic === 'highest'"
+      class="also-mean"
+    >
+      <input
+        v-model="compareState.radar.alsoMean"
+        type="checkbox"
+      >
+      Also show the average
+    </label>
   </div>
   <div
     v-if="drawsRenderedOutline(tool)"
@@ -69,8 +79,22 @@ const renderedOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
       @update:model-value="(choice) => (compareState.radar.showRendered = choice === 'show')"
     />
     <p class="small muted hint">
-      A dotted outline around each eye's picture, where the measurers' own headsets report they stop drawing: nobody
-      sees past it.
+      A dotted outline around each eye's picture, where headsets report they stop drawing: nobody sees past it. For a
+      headset model, it's the average its FOV Atlas measures read{{
+        tool === 'vrhp' ? ', seen from the centre of each picture as VR Headset Picker measures' : ''
+      }}.<template v-if="tool === 'atlas'">
+        A single measure shows what its own headset reported.
+      </template>
     </p>
   </div>
 </template>
+
+<style scoped>
+.also-mean {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+</style>

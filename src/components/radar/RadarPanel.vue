@@ -29,16 +29,31 @@ const withShapes = computed(() =>
 const seeing = computed(() => compareState.radar.view === 'see' && withShapes.value.length > 0)
 const through = computed(() => withShapes.value.find((item) => item.key === compareState.radar.through) ?? withShapes.value[0])
 
+const showsMeans = computed(() => compareState.radar.alsoMean && compareState.radar.statistic === 'highest' && !seeing.value)
+
 const curves = computed<ChartCurve[]>(() =>
-  withShapes.value.map((item) => ({
-    key: item.key,
-    colourClass: colourClass(item.colour),
-    label: item.label,
-    shape: combineEyes(item.measures, eyeMode.value),
-    filled: !seeing.value,
-    dashed: item.colour === 'kept',
-    emphasised: seeing.value && item.key === through.value?.key,
-  })),
+  withShapes.value.flatMap((item) => {
+    const main: ChartCurve = {
+      key: item.key,
+      colourClass: colourClass(item.colour),
+      label: item.label,
+      shape: combineEyes(item.measures, eyeMode.value),
+      filled: !seeing.value,
+      dashed: item.colour === 'kept',
+      emphasised: seeing.value && item.key === through.value?.key,
+      mean: false,
+    }
+    if (!showsMeans.value || item.meanMeasures === null) return [main]
+    const meanCurve: ChartCurve = {
+      ...main,
+      key: `${item.key}:mean`,
+      label: `${item.name} · mean`,
+      shape: combineEyes(item.meanMeasures, eyeMode.value),
+      filled: false,
+      mean: true,
+    }
+    return [main, meanCurve]
+  }),
 )
 const showsOutlines = computed(() => drawsRenderedOutline(props.tool) && compareState.radar.showRendered)
 /** Union and overlap show both eyes' pictures: their union and overlap are then plain to see. */
@@ -46,9 +61,11 @@ const eyesShown = computed<readonly ('left' | 'right')[]>(() => {
   if (eyeMode.value === 'left' || eyeMode.value === 'right') return [eyeMode.value]
   return ['left', 'right']
 })
+/** An outline is drawn only next to a shape: a group with no matching measure has none. */
+const outlined = computed(() => (showsOutlines.value ? props.series.filter((item) => item.measures !== null) : []))
 const outlines = computed<ChartOutline[]>(() =>
   showsOutlines.value
-    ? props.series.flatMap(({ key, colour, rendered }) => {
+    ? outlined.value.flatMap(({ key, colour, rendered }) => {
         if (rendered === undefined) return []
         const pictures = eyesShown.value.flatMap((eye) => {
           const points = pictureOutline(eye === 'left' ? rendered.left : rendered.right, rendered.canting, eye)
@@ -84,7 +101,7 @@ const sceneOptions = sceneNames.map((name: SceneName) => ({ value: name, label: 
 const throughOptions = computed(() => withShapes.value.map((item) => ({ value: item.key, label: item.name })))
 
 const renderedNotes = computed(() =>
-  showsOutlines.value ? props.series.map((item) => ({ key: item.key, colour: colourClass(item.colour), text: item.renderedNote })) : [],
+  outlined.value.map((item) => ({ key: item.key, colour: colourClass(item.colour), text: item.renderedNote, warning: item.renderedWarning })),
 )
 
 function closeOnEscape(event: KeyboardEvent): void {
@@ -152,7 +169,18 @@ onBeforeUnmount(() => {
           :key="curve.key"
           :class="curve.colourClass"
         >
-          <span
+          <svg
+            v-if="curve.mean"
+            class="legend-mean"
+            viewBox="0 0 24 4"
+            aria-hidden="true"
+          ><line
+            x1="0"
+            y1="2"
+            x2="24"
+            y2="2"
+          /></svg><span
+            v-else
             class="legend-line"
             :class="{ dashed: curve.dashed }"
             aria-hidden="true"
@@ -165,6 +193,14 @@ onBeforeUnmount(() => {
           />Seen by both eyes at once (3D)
         </li>
       </ul>
+      <p
+        v-if="showsMeans"
+        class="small muted line-key"
+      >
+        Solid: the highest of each direction. Dash-dot: the mean of what people measured.<template v-if="renderedNotes.length > 0">
+          Dotted: what the headsets report drawing.
+        </template>
+      </p>
       <div
         v-if="renderedNotes.length > 0"
         class="small muted rendered-notes"
@@ -179,7 +215,10 @@ onBeforeUnmount(() => {
             <span
               class="legend-line dotted"
               aria-hidden="true"
-            />{{ note.text }}
+            />{{ note.text }}<span
+              v-if="note.warning !== null"
+              class="unit-warning"
+            >. {{ note.warning }}.</span>
           </li>
         </ul>
       </div>
@@ -237,6 +276,23 @@ onBeforeUnmount(() => {
   vertical-align: middle;
   border-top: 2.5px solid var(--series);
 }
+.legend-mean {
+  display: inline-block;
+  width: 24px;
+  height: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+  overflow: visible;
+}
+.legend-mean line {
+  stroke: var(--series);
+  stroke-width: 2;
+  stroke-dasharray: 6 2.5 1.5 2.5;
+}
+.line-key {
+  text-align: center;
+  margin: 6px 0 0;
+}
 .legend-line.dashed {
   border-top-style: dashed;
 }
@@ -245,6 +301,9 @@ onBeforeUnmount(() => {
 }
 .legend-line.dotted {
   border-top: 2px dotted var(--series);
+}
+.unit-warning {
+  color: var(--warning, #b86e00);
 }
 .rendered-notes p {
   margin: 12px 0 4px;

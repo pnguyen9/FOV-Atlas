@@ -1,14 +1,15 @@
 <script setup lang="ts">
 /**
  * One headset model: its figures per tool (one tool at a time), the radar of everyone who matches
- * the filters next to measures ticked in the list, every published measure, and the model's
- * catalog entry.
+ * the filters next to measures ticked in the list, every published measure, the model's averaged
+ * rendered field of view, and its catalog entry.
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 import { formatCell, headlineColumnsFor, type CompareRow } from './compare/columns.ts'
 import { compareState, seriesSlotCount, togglePick, type SeriesPick } from './compare/compareState.ts'
 import CatalogInfo from './headset/CatalogInfo.vue'
 import DirectionStats from './headset/DirectionStats.vue'
+import RenderedAverageSection from './headset/RenderedAverageSection.vue'
 import type { ListedEntry } from './headset/listedEntry.ts'
 import SubmissionList from './headset/SubmissionList.vue'
 import FilterPanel from '../components/FilterPanel.vue'
@@ -20,7 +21,8 @@ import { renderedFrameOf } from '../lib/ceiling.ts'
 import { combineCells, figuresOfCombined, submissionMatches } from '../lib/fovStats.ts'
 import { catalogHeadset } from '../lib/headsets.ts'
 import { routeHref } from '../lib/hashRoute.ts'
-import { headsetsOf, loadAggregate, loadIndex, loadPage, type Loaded } from '../lib/siteData.ts'
+import type { RenderedAverage } from '../lib/renderedAverage.ts'
+import { hasRenderedAverage, headsetsOf, loadAggregate, loadIndex, loadPage, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
 import { toolNameOf, tools, type Tool } from '../lib/submission.ts'
 import type { Aggregate, DataIndex } from '../lib/submissionStore.ts'
 
@@ -49,6 +51,21 @@ const tool = computed<Tool | null>(() => {
   return available[0] ?? null
 })
 const toolOptions = computed(() => availableTools.value.map((available) => ({ value: available, label: toolNameOf(available) })))
+
+/** Null while loading or when the model has none; the section tells which. */
+const average = shallowRef<Loaded<RenderedAverage | null> | null>(null)
+
+watch(
+  [index, () => props.headset],
+  async ([loadedIndex, headset]) => {
+    average.value = null
+    if (loadedIndex?.ok !== true) return
+    const loaded = hasRenderedAverage(loadedIndex.value, headset) ? await loadRenderedAverage(headset) : { ok: true as const, value: null }
+    if (headset === props.headset) average.value = loaded
+  },
+  { immediate: true },
+)
+const modelAverage = computed(() => (average.value?.ok === true ? average.value.value : null))
 
 const aggregate = shallowRef<Loaded<Aggregate> | null>(null)
 const entries = shallowRef<ListedEntry[]>([])
@@ -124,6 +141,8 @@ watch(shownEntries, (shown) => {
 
 const radarSeries = computed<RadarSeries[]>(() => {
   const { statistic } = compareState.radar
+  const currentTool = tool.value
+  if (currentTool === null) return []
   const series: RadarSeries[] = [
     aggregateSeries({
       key: 'everyone',
@@ -132,6 +151,8 @@ const radarSeries = computed<RadarSeries[]>(() => {
       combined: combined.value,
       statistic,
       seeText: `the ${statistic} shape of everyone who matches the filters`,
+      tool: currentTool,
+      average: modelAverage.value,
     }),
   ]
   for (const pick of picks.value) {
@@ -144,8 +165,10 @@ const radarSeries = computed<RadarSeries[]>(() => {
       name: `${author} #${pick.key}`,
       colour: pick.slot,
       measures: submission.measures,
+      meanMeasures: null,
       rendered: renderedFrameOf(submission),
       renderedNote: measureRenderedNote(`${author} #${pick.key}`, submission),
+      renderedWarning: null,
       seeText: `the measure ${author} sent in issue #${pick.key}`,
     })
   }
@@ -158,7 +181,14 @@ const radarSeries = computed<RadarSeries[]>(() => {
 
 const headlines = computed(() => {
   if (tool.value === null || figures.value === null) return []
-  const row: CompareRow = { key: props.headset, headset: props.headset, name: '', figures: figures.value, total: totalCount.value }
+  const row: CompareRow = {
+    key: props.headset,
+    headset: props.headset,
+    name: '',
+    figures: figures.value,
+    total: totalCount.value,
+    averaged: modelAverage.value,
+  }
   return headlineColumnsFor(tool.value).map((column) => ({ id: column.id, label: column.label, title: column.title, value: formatCell(column, row) }))
 })
 
@@ -317,6 +347,10 @@ const headlines = computed(() => {
           </div>
         </div>
       </template>
+      <RenderedAverageSection
+        v-if="index?.ok === true"
+        :average="average"
+      />
       <CatalogInfo :headset="catalog" />
     </template>
   </div>

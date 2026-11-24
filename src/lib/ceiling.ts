@@ -3,9 +3,11 @@
  * most anyone could see with it. Each measure is only ever set against its own headset's report,
  * in its own tool's convention.
  *
- * Only FOV Atlas reads each eye's edges, so only its measures get an outline on the radar. A VR
- * Headset Picker link carries per-eye and both-eye totals, which the figures compare (see
- * `figuresOf` in `submissionStore.ts`); WIMFOV and TestHMD carry none.
+ * Only FOV Atlas reads each eye's edges, so only its measures get an outline of their own on the
+ * radar. A VR Headset Picker link carries per-eye and both-eye totals, which the figures compare
+ * (see `figuresOf` in `submissionStore.ts`). On the radar, groups of FOV Atlas, VR Headset
+ * Picker and TestHMD measures are outlined with their model's averaged pictures
+ * (`renderedAverage.ts`). WIMFOV has its own standard and gets none.
  *
  * The corner mask some headsets apply hides corners, never these edges, so the outline is that of
  * the full picture.
@@ -20,8 +22,8 @@ export interface RenderedFrame {
   readonly canting: number
 }
 
-/** Whether the radar draws a rendered outline for the tool's measures. */
-export const drawsRenderedOutline = (tool: Tool): boolean => tool === 'atlas'
+/** Whether the radar draws a rendered outline for the tool's measures or groups: every tool following hmdq's definition. */
+export const drawsRenderedOutline = (tool: Tool): boolean => tool !== 'wimfov'
 
 export function renderedFrameOf({ ceiling }: Submission): RenderedFrame | undefined {
   return ceiling.source === 'measured' ? { left: ceiling.left, right: ceiling.right, canting: ceiling.canting } : undefined

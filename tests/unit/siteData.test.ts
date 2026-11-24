@@ -1,16 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   dataUrl,
+  hasRenderedAverage,
   headsetsOf,
   loadAggregate,
   loadIndex,
   loadPage,
+  loadRenderedAverage,
   maximumFileLength,
   parseAggregate,
   type Fetcher,
   type FetchedResponse,
 } from '../../src/lib/siteData'
 import { aggregatePages, emptyIndex, emptyPage, serialize, serializePage, withEntry } from '../../src/lib/submissionStore'
+import { renderedAverageOf } from '../../src/lib/renderedAverage'
 import type { Tool } from '../../src/lib/submission'
 import { atlasSubmission } from './fixtures'
 
@@ -107,6 +110,28 @@ describe('loadAggregate', () => {
   })
 })
 
+describe('loadRenderedAverage', () => {
+  const average = renderedAverageOf('bigscreen-beyond-2', [{ ...atlasSubmission, tuning: { ...atlasSubmission.tuning, driverTuned: false } }])
+
+  it('reads a model’s averaged rendered field of view, when the index lists one', async () => {
+    const fetcher = fakeFetcher({ '/FOV-Atlas/data/rendered/bigscreen-beyond-2.json': serialize(average) })
+    expect(await loadRenderedAverage('bigscreen-beyond-2', { baseUrl, fetcher })).toEqual({ ok: true, value: average })
+    expect(hasRenderedAverage({ ...emptyIndex(), rendered: { 'bigscreen-beyond-2': 1 } }, 'bigscreen-beyond-2')).toBe(true)
+    expect(hasRenderedAverage(emptyIndex(), 'bigscreen-beyond-2')).toBe(false)
+  })
+
+  it('refuses another headset’s average', async () => {
+    const fetcher = fakeFetcher({ '/FOV-Atlas/data/rendered/htc-vive.json': serialize(average) })
+    expect(await loadRenderedAverage('htc-vive', { baseUrl, fetcher })).toEqual({ ok: false, error: 'invalid' })
+  })
+
+  it('fetches nothing for a malformed headset id', async () => {
+    const fetcher = fakeFetcher({})
+    expect(await loadRenderedAverage('../index', { baseUrl, fetcher })).toEqual({ ok: false, error: 'bad-request' })
+    expect(fetcher.calls).toEqual([])
+  })
+})
+
 describe('loadPage', () => {
   it('reads a page of submissions', async () => {
     const fetcher = fakeFetcher({ '/FOV-Atlas/data/submissions/atlas/bigscreen-beyond-2/0.json': serializePage(page) })
@@ -136,8 +161,6 @@ describe('parseAggregate', () => {
     left: { up: stat },
     right: { 'up-right': stat },
     figures: { horizontal: { count: 2, sum: 200, sumsq: 20000, max: 101 }, leftWidthPastRendered: { count: 2, sum: -3, sumsq: 5, max: -1 } },
-    renderedLeft: { left: stat },
-    renderedRight: {},
   }
   const withFigures = (figures: unknown): unknown => ({ ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, figures } } })
   const valid = { version: 1, tool: 'vrhp', headset: 'htc-vive', count: 2, cells: { 'deep-set|low|stock|fixed': cell } }
@@ -165,12 +188,11 @@ describe('parseAggregate', () => {
     ['a cell key with an unknown value', { ...valid, cells: { 'deep-set|flat|stock|fixed': cell } }],
     ['a cell that is not an object', { ...valid, cells: { 'deep-set|low|stock|fixed': null } }],
     ['a cell with an extra group', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, extra: {} } } }],
-    ['a cell missing a group', { ...valid, cells: { 'deep-set|low|stock|fixed': { left: {}, right: {}, figures: {}, renderedLeft: {}, other: {} } } }],
+    ['a cell missing a group', { ...valid, cells: { 'deep-set|low|stock|fixed': { left: {}, right: {}, other: {} } } }],
     ['an unknown direction', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { sideways: stat } } } }],
     ['an unknown figure', withFigures({ diagonal: stat })],
     ['a negative figure that is never below zero', withFigures({ horizontal: { ...stat, sum: -1 } })],
     ['a gap past a full turn below zero', withFigures({ leftWidthPastRendered: { ...stat, max: -400 } })],
-    ['an unknown rendered edge', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, renderedRight: { 'up-left': stat } } } }],
     ['a stat with an extra field', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, mean: 50 } } } } }],
     ['a stat that is not an object', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: 5 } } } }],
     ['a zero count', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, count: 0 } } } } }],

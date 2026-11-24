@@ -90,18 +90,19 @@ describe('ComparePage data', () => {
     ])
     expect(rowNames(wrapper)).toEqual(['Valve Index', 'Bigscreen Beyond 2', "HTC Vivecouldn't load"])
     expect(wrapper.findAll('th button').map((button) => button.text())).toEqual([
-      'Highest width, left eye ▾',
-      'Highest width, right eye',
-      'Highest height, left eye',
-      'Highest height, right eye',
+      'Highest width L / R ▾',
+      'Highest height L / R',
       'Diagonal (outer)',
       'Measures',
-      'Width gap, left eye',
-      'Width gap, right eye',
+      'Width gap L / R',
     ])
-    expect(cellsOf(wrapper, 0)).toEqual(['103.0°', '103.0°', '102.0°', '102.0°', '62.0°', '1', '—', '—'])
-    expect(cellsOf(wrapper, 1)).toEqual(['97.0°', '97.0°', '96.9°', '96.9°', '59.0°', '3', '-0.1°', '-0.4°'])
-    expect(cellsOf(wrapper, 2)).toEqual(['—', '—', '—', '—', '—', '—', '—', '—'])
+    expect(cellsOf(wrapper, 0)).toEqual(['103.0° / 103.0°', '102.0° / 102.0°', '62.0°', '1', '—'])
+    expect(cellsOf(wrapper, 1)).toEqual(['97.0° / 95.8°', '96.9° / 96.7°', '59.0°', '3', '0.0° / 0.9°'])
+    expect(cellsOf(wrapper, 2)).toEqual(['—', '—', '—', '—', '—'])
+    expect(site.requested.filter((path) => path.startsWith('data/rendered/'))).toEqual([
+      'data/rendered/bigscreen-beyond-2.json',
+      'data/rendered/valve-index.json',
+    ])
     expect(wrapper.text()).toContain('VR Headset Picker measures each eye from the centre of that eye')
     expect(wrapper.find('.match-count').text().replace(/\s+/g, ' ')).toBe('4 of 4 VR Headset Picker measures match')
   })
@@ -148,10 +149,10 @@ describe('ComparePage table', () => {
     await pickTool(wrapper, 'VR Headset Picker')
     const header = (): ReturnType<VueWrapper['find']> => wrapper.findAll('th button')[1] as ReturnType<VueWrapper['find']>
     await header().trigger('click')
-    expect(header().text()).toBe('Highest width, right eye ▾')
+    expect(header().text()).toBe('Highest height L / R ▾')
     expect(wrapper.findAll('th')[3]?.attributes('aria-sort')).toBe('descending')
     await header().trigger('click')
-    expect(header().text()).toBe('Highest width, right eye ▴')
+    expect(header().text()).toBe('Highest height L / R ▴')
     expect(rowNames(wrapper)[0]).toBe('Bigscreen Beyond 2')
     expect(rowNames(wrapper)[2]).toBe("HTC Vivecouldn't load")
   })
@@ -182,7 +183,9 @@ describe('ComparePage table', () => {
       'Rendered horizontal',
       'Gap to rendered',
     ])
-    expect(cellsOf(wrapper, 0)).toEqual(['106.0°', '93.0°', '62.0°', '81.0°', '1', '110.0°', '4.0°'])
+    expect(cellsOf(wrapper, 0)).toEqual(['113.4°', '97.7°', '65.1°', '85.0°', '2', '134.0°', '10.6°'])
+    await clickButton(wrapper, 'Rendered horizontal (model average)')
+    expect(cellsOf(wrapper, 0).at(-1)).toBe('129.0°')
     await pickTool(wrapper, 'WIMFOV')
     expect(wrapper.findAll('.chip').map((chip) => chip.text()).filter((label) => label.includes('endered') || label.includes('Gap'))).toEqual([])
   })
@@ -229,7 +232,7 @@ describe('ComparePage table', () => {
 })
 
 describe('ComparePage radar', () => {
-  it('shows the ticked headsets, with no rendered outline for VR Headset Picker', async () => {
+  it('shows the ticked headsets, outlined by the model’s averaged pictures, warning when units differ', async () => {
     const wrapper = await mountPage()
     await pickTool(wrapper, 'VR Headset Picker')
     await wrapper.findAll('tbody input[type="checkbox"]')[0]?.trigger('change')
@@ -239,19 +242,32 @@ describe('ComparePage radar', () => {
     expect(wrapper.find('.radar-chart').exists()).toBe(true)
     expect(wrapper.findAll('.curve')).toHaveLength(1)
     expect(wrapper.find('.legend').text()).toBe('Valve Index · highest (n=1)')
-    expect(wrapper.findAll('.rendered path')).toHaveLength(0)
-    expect(wrapper.find('.rendered-notes').exists()).toBe(false)
-    expect(wrapper.text()).not.toContain('Rendered field of view')
-  })
-
-  it('outlines each eye’s picture for FOV Atlas, as the measurers’ headsets report it', async () => {
-    const wrapper = await mountPage(null, 'radar')
-    await pickTool(wrapper, 'FOV Atlas')
-    expect(compareState.picks.map((pick) => pick.key)).toEqual(['bigscreen-beyond-2'])
     expect(wrapper.findAll('.rendered path')).toHaveLength(2)
     expect(wrapper.find('.rendered-notes').text()).toContain(
-      'Bigscreen Beyond 2: what the measurers\' own headsets report drawing (highest of each edge)',
+      'Valve Index: average of 2 headsets of this model, as they report drawing it. Units of this model differ by up to 10.0°.',
     )
+    expect(wrapper.text()).toContain('seen from the centre of each picture as VR Headset Picker measures')
+  })
+
+  it('says when a VR Headset Picker model has no averaged pictures', async () => {
+    const index = JSON.parse(site.files.get('data/index.json') ?? '{}') as { rendered: Record<string, number> }
+    site.files.set('data/index.json', JSON.stringify({ ...index, rendered: { 'bigscreen-beyond-2': 2 } }))
+    const wrapper = await mountPage(null, 'radar')
+    await pickTool(wrapper, 'VR Headset Picker')
+    compareState.picks = [{ key: 'valve-index', slot: 1 }]
+    await flushPromises()
+    expect(wrapper.findAll('.rendered path')).toHaveLength(0)
+    expect(wrapper.find('.rendered-notes').text()).toContain('Valve Index: no FOV Atlas measure of this model has read what it draws yet')
+  })
+
+  it('outlines each eye’s picture for FOV Atlas by the model’s average', async () => {
+    const wrapper = await mountPage(null, 'radar')
+    await pickTool(wrapper, 'FOV Atlas')
+    compareState.picks = [{ key: 'bigscreen-beyond-2', slot: 1 }]
+    await flushPromises()
+    expect(wrapper.findAll('.rendered path')).toHaveLength(2)
+    expect(wrapper.find('.rendered-notes').text()).toContain('Bigscreen Beyond 2: average of 2 headsets of this model, as they report drawing it')
+    expect(wrapper.find('.rendered-notes').text()).not.toContain('Units of this model differ')
     await clickButton(wrapper, 'Left')
     expect(wrapper.findAll('.rendered path')).toHaveLength(1)
     await clickButton(wrapper, 'Hide')
@@ -274,7 +290,7 @@ describe('ComparePage radar', () => {
   it('draws nothing for headsets with no matching measure', async () => {
     const wrapper = await mountPage(null, 'radar')
     await pickTool(wrapper, 'FOV Atlas')
-    compareState.filters.gaze = ['free']
+    compareState.filters.eyeDepth = ['deep-set']
     await flushPromises()
     expect(wrapper.find('.empty').text()).toContain('Nothing to draw')
     expect(wrapper.find('.radar-panel').text()).not.toContain('Bigscreen Beyond 2 · no matching')
@@ -291,6 +307,28 @@ describe('ComparePage radar', () => {
     expect(points()).toBe(10)
     await clickButton(wrapper, 'Mean')
     expect(wrapper.find('.legend').text()).toContain('Bigscreen Beyond 2 · mean (n=3)')
+  })
+
+  it('also shows each headset’s mean beside its highest when asked, saying which line is which', async () => {
+    const wrapper = await mountPage(null, 'radar')
+    await pickTool(wrapper, 'VR Headset Picker')
+    expect(compareState.radar.alsoMean).toBe(false)
+    expect(wrapper.findAll('.curve.mean')).toHaveLength(0)
+    await wrapper.find('.also-mean input').setValue(true)
+    expect(wrapper.findAll('.curve.mean')).toHaveLength(2)
+    expect(wrapper.findAll('.curve.mean.filled')).toHaveLength(0)
+    expect(wrapper.findAll('.legend .legend-mean')).toHaveLength(2)
+    expect(wrapper.find('.legend').text()).toContain('Bigscreen Beyond 2 · mean')
+    expect(wrapper.find('.line-key').text()).toContain('Dash-dot: the mean of what people measured.')
+    expect(wrapper.find('.line-key').text()).toContain('Dotted: what the headsets report drawing.')
+    await clickButton(wrapper, 'Hide')
+    expect(wrapper.find('.line-key').text()).not.toContain('Dotted')
+    await clickButton(wrapper, 'What you see')
+    expect(wrapper.findAll('.curve.mean')).toHaveLength(0)
+    await clickButton(wrapper, 'Shape')
+    await clickButton(wrapper, 'Mean')
+    expect(wrapper.find('.also-mean').exists()).toBe(false)
+    expect(wrapper.findAll('.curve.mean')).toHaveLength(0)
   })
 
   it('shows what you see through one headset at a time', async () => {
@@ -354,7 +392,7 @@ describe('ComparePage kept measure', () => {
     const wrapper = await mountPage(encodeMeasureParameter(vrhpBeyond))
     expect(compareState.tool).toBe('vrhp')
     expect(wrapper.find('.kept-row .text-cell').text()).toBe('Kept measure · Bigscreen Beyond 2not published')
-    expect(cellsOf(wrapper, 0)).toEqual(['97.0°', '97.0°', '96.9°', '96.9°', '59.0°', '1', '-0.1°', '-0.4°'])
+    expect(cellsOf(wrapper, 0)).toEqual(['97.0° / 95.8°', '96.9° / 96.7°', '59.0°', '1', '0.0° / 0.9°'])
     expect(wrapper.find('.kept-card').text()).toContain('never counted in their figures')
     expect(wrapper.find('.match-count').text()).toContain('4 of 4')
     await pickTool(wrapper, 'WIMFOV')
@@ -370,7 +408,7 @@ describe('ComparePage kept measure', () => {
     await paste(wrapper, measureLink(vrhpIndex, 'https://example.org/FOV-Atlas/'))
     expect(wrapper.find('.curve.dashed').classes()).toContain('series-kept')
     expect(wrapper.find('.legend').text()).toContain('Kept measure · Valve Index (not published)')
-    expect(wrapper.find('.rendered-notes').exists()).toBe(false)
+    expect(wrapper.find('.rendered-notes').text()).toContain('Kept measure: the headset\'s report wasn\'t read')
     await wrapper.setProps({ view: 'table' })
     await wrapper.find('.kept-row input').setValue(false)
     await wrapper.setProps({ view: 'radar' })

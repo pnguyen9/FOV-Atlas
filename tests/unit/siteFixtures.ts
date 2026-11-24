@@ -13,6 +13,7 @@ import {
   type Page,
   type StoredEntry,
 } from '../../src/lib/submissionStore.ts'
+import { renderedAverageOf } from '../../src/lib/renderedAverage.ts'
 import type { EyeMeasure, Submission, Tool } from '../../src/lib/submission.ts'
 
 const vrhpEye = (temporal: number, nasal: number, up: number, down: number, diagonal: number): Submission['measures'] => ({
@@ -20,11 +21,20 @@ const vrhpEye = (temporal: number, nasal: number, up: number, down: number, diag
   right: { left: nasal, right: temporal, up, down, 'up-right': diagonal - 4 },
 })
 
+/**
+ * The real Bigscreen Beyond 2 link: VR Headset Picker stops each angle at the edge it draws, so
+ * each eye's width and height stay within the link's totals (the left eye's width equals them).
+ */
+const realBeyondMeasures: Submission['measures'] = {
+  left: { left: 54.98, right: 41.97, up: 43.04, down: 53.89, 'down-left': 59.04 },
+  right: { left: 41.49, right: 54.26, up: 44.17, down: 52.5, 'up-right': 52.03 },
+}
+
 const base: Submission = {
   tool: 'vrhp',
   headset: 'bigscreen-beyond-2',
   otherHeadsetName: '',
-  measures: vrhpEye(55, 42, 43, 53.9, 59),
+  measures: realBeyondMeasures,
   ceiling: {
     source: 'link',
     totals: {
@@ -50,7 +60,7 @@ const base: Submission = {
   note: '',
 }
 
-export const vrhpBeyond: Submission = { ...base, measures: vrhpEye(55, 42, 43, 53.9, 59) }
+export const vrhpBeyond: Submission = base
 export const vrhpBeyondDeepSet: Submission = {
   ...base,
   measures: vrhpEye(51, 40, 41, 50, 55),
@@ -105,6 +115,54 @@ export const atlasBeyond: Submission = {
   provenance: { input: 'measured', linkData: null },
 }
 
+/** Read a little differently by another unit of the same model. */
+export const atlasBeyondSecond: Submission = {
+  ...atlasBeyond,
+  ceiling: {
+    source: 'measured',
+    left: { left: 55.4, right: 41.6, up: 44, down: 54.3 },
+    right: { left: 41.6, right: 55.4, up: 44, down: 54.3 },
+    canting: 0,
+  },
+  face: { eyeDepth: 'in-between', noseBridge: 'low' },
+}
+
+/** Driver tuning widened what this one drew, so it stays out of the model's average. */
+export const atlasBeyondTuned: Submission = {
+  ...atlasBeyond,
+  ceiling: {
+    source: 'measured',
+    left: { left: 60, right: 45, up: 47, down: 57 },
+    right: { left: 45, right: 60, up: 47, down: 57 },
+    canting: 0,
+  },
+  tuning: { physicallyModded: false, driverTuned: true, details: 'Wide mode' },
+}
+
+/** Two Valve Index units whose pictures differ by several degrees, each turned outward. */
+export const atlasIndex: Submission = {
+  ...atlasBeyond,
+  headset: 'valve-index',
+  reportedHeadset: '',
+  measures: { left: wimfovEye(1.05), right: { ...wimfovEye(1.05), left: 43, right: 56.7 } },
+  ceiling: {
+    source: 'measured',
+    left: { left: 62, right: 48, up: 50, down: 52 },
+    right: { left: 48, right: 62, up: 50, down: 52 },
+    canting: 5,
+  },
+}
+export const atlasIndexWider: Submission = {
+  ...atlasIndex,
+  ceiling: {
+    source: 'measured',
+    left: { left: 67, right: 51, up: 53, down: 55 },
+    right: { left: 51, right: 67, up: 53, down: 55 },
+    canting: 5,
+  },
+  gaze: 'free',
+}
+
 function pageOf(tool: Tool, headset: string, pageNumber: number, entries: readonly (readonly [number, StoredEntry])[]): Page {
   return entries.reduce((page, [issue, entry]) => withEntry(page, issue, entry), emptyPage(tool, headset, pageNumber))
 }
@@ -134,7 +192,27 @@ const headsetData: readonly HeadsetData[] = [
     pages: [pageOf('wimfov', 'bigscreen-beyond-2', 0, [[6, { author: 'lens-fox', submission: wimfovBeyond }]])],
   },
   { tool: 'testhmd', headset: 'meta-quest-2', pages: [pageOf('testhmd', 'meta-quest-2', 0, [[7, { author: 'fern-moth', submission: testHmdQuest }]])] },
-  { tool: 'atlas', headset: 'bigscreen-beyond-2', pages: [pageOf('atlas', 'bigscreen-beyond-2', 0, [[9, { author: 'delta-pilot', submission: atlasBeyond }]])] },
+  {
+    tool: 'atlas',
+    headset: 'bigscreen-beyond-2',
+    pages: [
+      pageOf('atlas', 'bigscreen-beyond-2', 0, [
+        [9, { author: 'delta-pilot', submission: atlasBeyond }],
+        [10, { author: 'quiet-owl', submission: atlasBeyondSecond }],
+        [11, { author: 'amber-kite', submission: atlasBeyondTuned }],
+      ]),
+    ],
+  },
+  {
+    tool: 'atlas',
+    headset: 'valve-index',
+    pages: [
+      pageOf('atlas', 'valve-index', 0, [
+        [13, { author: 'amber-kite', submission: atlasIndex }],
+        [14, { author: 'fern-moth', submission: atlasIndexWider }],
+      ]),
+    ],
+  },
 ]
 
 /**
@@ -144,7 +222,14 @@ const headsetData: readonly HeadsetData[] = [
 export function siteFiles(): Map<string, string> {
   const files = new Map<string, string>()
   const headsets = new Map<Tool, Map<string, { count: number; pages: number }>>()
+  const rendered = new Map<string, number>()
   for (const { tool, headset, pages } of headsetData) {
+    const average =
+      tool === 'atlas' ? renderedAverageOf(headset, pages.flatMap((page) => Object.values(page.entries).map((entry) => entry.submission))) : null
+    if (average !== null) {
+      files.set(`data/rendered/${headset}.json`, serialize(average))
+      rendered.set(headset, average.count)
+    }
     const aggregate = aggregatePages(tool, headset, pages)
     files.set(`data/aggregates/${tool}/${headset}.json`, serialize(aggregate))
     for (const page of pages) files.set(`data/submissions/${tool}/${headset}/${String(page.page)}.json`, serializePage(page))
@@ -153,7 +238,11 @@ export function siteFiles(): Map<string, string> {
     headsets.set(tool, byHeadset)
   }
   headsets.get('vrhp')?.set('htc-vive', { count: 1, pages: 1 })
-  const index = { version: 1, headsets: Object.fromEntries([...headsets].map(([tool, byHeadset]) => [tool, Object.fromEntries(byHeadset)])) }
+  const index = {
+    version: 1,
+    headsets: Object.fromEntries([...headsets].map(([tool, byHeadset]) => [tool, Object.fromEntries(byHeadset)])),
+    rendered: Object.fromEntries(rendered),
+  }
   files.set('data/index.json', serialize(index))
   return files
 }
