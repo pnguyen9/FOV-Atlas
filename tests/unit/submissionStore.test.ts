@@ -3,7 +3,8 @@ import type { Submission } from '../../src/lib/submission'
 import {
   aggregatePages,
   aggregatePath,
-  binocularOf,
+  bothEyeFiguresOf,
+  figuresOf,
   cellKey,
   emptyIndex,
   emptyLookup,
@@ -97,17 +98,69 @@ describe('entries', () => {
   })
 })
 
-describe('binocularOf', () => {
+describe('bothEyeFiguresOf', () => {
   it('adds the outer edges, takes the taller eye and adds the inner edges', () => {
-    expect(binocularOf(atlasSubmission.measures)).toEqual({ horizontal: 108.4, vertical: 95.8, overlap: 82.8 })
+    expect(bothEyeFiguresOf(atlasSubmission.measures)).toEqual({ horizontal: 108.4, vertical: 95.8, overlap: 82.8 })
   })
 
   it('has no overlap without inner edges', () => {
-    expect(binocularOf(testHmdSubmission.measures)).toEqual({ horizontal: 104.5, vertical: 95 })
+    expect(bothEyeFiguresOf(testHmdSubmission.measures)).toEqual({ horizontal: 104.5, vertical: 95 })
   })
 
   it('has no vertical figure when an eye lacks one', () => {
-    expect(binocularOf({ left: { left: 50 }, right: { right: 50 } })).toEqual({ horizontal: 100 })
+    expect(bothEyeFiguresOf({ left: { left: 50 }, right: { right: 50 } })).toEqual({ horizontal: 100 })
+  })
+})
+
+describe('figuresOf', () => {
+  it('sets a FOV Atlas measure against the edges its own headset reported', () => {
+    expect(figuresOf(atlasSubmission)).toEqual({
+      horizontal: 108.4,
+      vertical: 95.8,
+      overlap: 82.8,
+      renderedHorizontal: 110,
+      renderedOverlap: 84,
+      horizontalPastRendered: -1.6,
+      canting: 0,
+    })
+  })
+
+  it('has only measured figures without a report', () => {
+    expect(figuresOf(testHmdSubmission)).toEqual({ horizontal: 104.5, vertical: 95 })
+  })
+
+  it('keeps VR Headset Picker figures per eye, each against the same eye of the link', () => {
+    const measures = {
+      left: { 'left': 55, 'right': 42, 'up': 43, 'down': 53.9, 'down-left': 59 },
+      right: { 'left': 41.5, 'right': 54.3, 'up': 44.2, 'down': 52.5, 'up-right': 52 },
+    }
+    const typed: Submission = { ...atlasSubmission, tool: 'vrhp', measures, ceiling: { source: 'none' }, cornerMask: 'unknown' }
+    const perEye = { leftWidth: 97, leftHeight: 96.9, rightWidth: 95.8, rightHeight: 96.7 }
+    expect(figuresOf(typed)).toEqual(perEye)
+    const totals = {
+      leftHorizontal: 96.95,
+      leftVertical: 96.93,
+      rightHorizontal: 96.62,
+      rightVertical: 96.67,
+      binocularHorizontal: 109.24,
+      binocularHorizontalOverlap: 84.33,
+      binocularVertical: 98.06,
+      binocularVerticalOverlap: 95.54,
+      binocularDiagonal: 122.66,
+    }
+    expect(figuresOf({ ...typed, ceiling: { source: 'link', totals } })).toEqual({
+      ...perEye,
+      renderedHorizontal: 109.24,
+      renderedOverlap: 84.33,
+      renderedLeftWidth: 96.95,
+      renderedLeftHeight: 96.93,
+      renderedRightWidth: 96.62,
+      renderedRightHeight: 96.67,
+      leftWidthPastRendered: 0.05,
+      leftHeightPastRendered: -0.03,
+      rightWidthPastRendered: -0.82,
+      rightHeightPastRendered: 0.03,
+    })
   })
 })
 
@@ -131,7 +184,9 @@ describe('aggregatePages', () => {
     const fixed = aggregate.cells['in-between|low|tuned|fixed']
     expect(fixed?.left.up).toEqual({ count: 2, sum: 82.8, sumsq: 3431.3, max: 42.7 })
     expect(fixed?.right.right).toEqual({ count: 2, sum: 107.6, sumsq: 5788.88, max: 53.8 })
-    expect(fixed?.binocular.horizontal?.count).toBe(2)
+    expect(fixed?.figures.horizontal?.count).toBe(2)
+    expect(fixed?.figures.horizontalPastRendered).toEqual({ count: 2, sum: -3.2, sumsq: 5.12, max: -1.6 })
+    expect(fixed?.renderedLeft.left).toEqual({ count: 2, sum: 110, sumsq: 6050, max: 55 })
     expect(fixed?.left['up-up-left']).toBeUndefined()
   })
 

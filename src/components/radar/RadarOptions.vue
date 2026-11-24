@@ -1,7 +1,8 @@
 <script setup lang="ts">
-/** How the radar draws its shapes: which eye, which statistic, and the rendered ceiling. */
+/** How the radar draws its shapes: which eye, which statistic, and the rendered outline when the tool has one. */
 import SegmentedControl from '../SegmentedControl.vue'
 import { compareState } from '../../pages/compare/compareState.ts'
+import { drawsRenderedOutline } from '../../lib/ceiling.ts'
 import { measuresBothEyesAtOnce, type EyeMode, type Statistic } from '../../lib/fovStats.ts'
 import { toolNameOf, type Tool } from '../../lib/submission.ts'
 
@@ -17,7 +18,7 @@ const statisticOptions: readonly { value: Statistic; label: string }[] = [
   { value: 'highest', label: 'Highest' },
   { value: 'mean', label: 'Mean' },
 ]
-const ceilingOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
+const renderedOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
   { value: 'show', label: 'Show' },
   { value: 'hide', label: 'Hide' },
 ]
@@ -54,18 +55,22 @@ const ceilingOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
       :options="statisticOptions"
     />
   </div>
-  <div class="control-group">
+  <div
+    v-if="drawsRenderedOutline(tool)"
+    class="control-group"
+  >
     <div class="field-label">
-      Rendered ceiling
+      Rendered field of view
     </div>
     <SegmentedControl
-      :model-value="compareState.radar.showCeiling ? 'show' : 'hide'"
-      label="Rendered ceiling"
-      :options="ceilingOptions"
-      @update:model-value="(choice) => (compareState.radar.showCeiling = choice === 'show')"
+      :model-value="compareState.radar.showRendered ? 'show' : 'hide'"
+      label="Rendered field of view"
+      :options="renderedOptions"
+      @update:model-value="(choice) => (compareState.radar.showRendered = choice === 'show')"
     />
     <p class="small muted hint">
-      Marks where the headset stops drawing its picture on each edge: nobody sees past them.
+      A dotted outline around each eye's picture, where the measurers' own headsets report they stop drawing: nobody
+      sees past it.
     </p>
   </div>
 </template>

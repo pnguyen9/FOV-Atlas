@@ -75,15 +75,41 @@ describe('HeadsetPage', () => {
   it('shows the figures, then older measures page by page, newest first', async () => {
     const wrapper = await mountPage('bigscreen-beyond-2')
     await clickButton(wrapper, 'VR Headset Picker')
+    expect(wrapper.findAll('.kpi-label').map((label) => label.text())).toEqual([
+      'Highest width, left eye',
+      'Highest width, right eye',
+      'Width gap, left eye',
+      'Width gap, right eye',
+      'Measures (filtered / all)',
+    ])
     expect(wrapper.findAll('.kpi-value').map((value) => value.text().replace(/\s+/g, ' '))).toEqual([
-      '110.0°',
-      '106.0° ± 3.3°',
-      '109.2°',
+      '97.0°',
+      '97.0°',
+      '-0.1°',
+      '-0.4°',
       '3 / 3',
     ])
     expect(wrapper.text()).toContain('VR Headset Picker figures')
     const directions = wrapper.findAll('tbody th').map((header) => header.text())
-    expect(directions).toEqual(['Horizontal', 'Vertical', 'Overlap', 'up', 'left', 'down-left', 'down', 'right', 'up-right'])
+    expect(directions).toEqual([
+      'Width, left eye',
+      'Width, right eye',
+      'Height, left eye',
+      'Height, right eye',
+      'Rendered horizontal',
+      'Rendered overlap',
+      'Rendered width, left eye',
+      'Rendered width, right eye',
+      'Rendered height, left eye',
+      'Rendered height, right eye',
+      'up',
+      'left',
+      'down-left',
+      'down',
+      'right',
+      'up-right',
+    ])
+    expect(wrapper.text()).not.toContain('Horizontal')
     expect(authors(wrapper)).toEqual(['nova-wren'])
     await clickButton(wrapper, 'Show older measures')
     expect(authors(wrapper)).toEqual(['nova-wren', 'quiet-owl', 'lens-fox'])
@@ -104,10 +130,10 @@ describe('HeadsetPage', () => {
     expect(wrapper.text()).toContain('No measure matches the filters.')
     expect(wrapper.text()).toContain('No loaded measure matches the filters.')
     expect(wrapper.findAll('.curve')).toHaveLength(0)
-    expect(wrapper.find('.legend').text()).toBe('')
+    expect(wrapper.find('.radar-panel .empty').text()).toContain('no measure matches the filters')
   })
 
-  it('puts ticked measures on the radar, each with its own colour and ceiling', async () => {
+  it('puts ticked measures on the radar, each with its own colour', async () => {
     compareState.tool = 'vrhp'
     const wrapper = await mountPage('bigscreen-beyond-2')
     await clickButton(wrapper, 'Show older measures')
@@ -123,8 +149,8 @@ describe('HeadsetPage', () => {
       'series-2',
       'series-3',
     ])
-    expect(wrapper.find('.ceiling-notes').text()).toContain('lens-fox #3: From the tool’s link')
-    expect(wrapper.find('.ceiling-notes').text()).toContain('Everyone: hmdq model reference from the Beyond 2e (same lenses and panels), full frame')
+    expect(wrapper.find('.rendered-notes').exists()).toBe(false)
+    expect(wrapper.findAll('.rendered path')).toHaveLength(0)
     await clickButton(wrapper, 'What you see')
     expect(wrapper.text()).toContain('Clear: inside the highest shape of everyone who matches the filters')
     await wrapper.findAll('.radar-panel button').find((button) => button.text() === 'lens-fox #3')?.trigger('click')
@@ -199,26 +225,28 @@ describe('HeadsetPage', () => {
     expect(authors(wrapper)).toEqual(['amber-kite'])
   })
 
-  it('lists the model’s rendered reference, credited', async () => {
-    const wrapper = await mountPage('valve-index')
-    const catalog = wrapper.find('[aria-labelledby="catalog-heading"]')
-    expect(catalog.text()).toContain('Valve')
-    expect(catalog.findAll('tbody tr').map((row) => row.text().replace(/\s+/g, ' '))).toEqual([
-      'Native+R144reference108.1°109.2° 114.4° with corner mask85.9°',
-      'PP+R144109.3°108.5° unreliable114.2° with corner mask84.1°',
+  it('outlines a ticked FOV Atlas measure by what its own headset reported', async () => {
+    compareState.tool = 'atlas'
+    const wrapper = await mountPage('bigscreen-beyond-2')
+    expect(wrapper.findAll('.kpi-value').map((value) => value.text().replace(/\s+/g, ' '))).toEqual([
+      '106.0°',
+      '106.0°',
+      '110.0°',
+      '4.0°',
+      '1 / 1',
     ])
-    expect(catalog.find('a[href="https://creativecommons.org/licenses/by-sa/4.0/"]').exists()).toBe(true)
-    expect(wrapper.findAll('.kpi-value')[2]?.text()).toBe('108.1°')
-    expect(wrapper.text()).toContain('Model reference, full frame')
-    const unmasked = await mountPage('bigscreen-beyond-2e')
-    expect(unmasked.text()).toContain('full frame')
-    expect(unmasked.find('.borrowed').exists()).toBe(false)
+    expect(wrapper.findAll('.rendered path')).toHaveLength(2)
+    await wrapper.findAll('tbody tr.clickable')[0]?.trigger('click')
+    expect(wrapper.findAll('.rendered path')).toHaveLength(4)
+    expect(wrapper.find('.rendered-notes').text()).toContain('delta-pilot #9: what the headset reported drawing while measuring')
+    expect(wrapper.findAll('thead th').map((header) => header.text())).toContain('Gap')
   })
 
-  it('says when the model’s reference is borrowed from another model', async () => {
-    const wrapper = await mountPage('bigscreen-beyond-2')
-    expect(wrapper.find('.borrowed').text()).toBe('hmdq has no record of this model: these figures are from the Beyond 2e (same lenses and panels).')
-    expect(wrapper.find('[aria-labelledby="catalog-heading"] tbody').text()).toContain('Native+R90')
-    expect(wrapper.findAll('.kpi-label')[2]?.text()).toBe('Rendered horizontal (hmdq, from the Beyond 2e (same lenses and panels))')
+  it('lists the model by brand and name only', async () => {
+    const wrapper = await mountPage('valve-index')
+    const catalog = wrapper.find('[aria-labelledby="catalog-heading"]')
+    expect(catalog.text().replace(/\s+/g, ' ')).toBe('About this model BrandValveModelValve Index')
+    expect(wrapper.text()).toContain('Not reported')
+    expect(wrapper.findAll('a').some((link) => link.attributes('href')?.includes('hmdgdb') === true)).toBe(false)
   })
 })

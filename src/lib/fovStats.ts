@@ -4,9 +4,11 @@
  * data at a time; nothing here combines measures of different tools.
  */
 
+import type { RenderedFrame } from './ceiling.ts'
 import {
   directions,
   type Direction,
+  type EdgeAngles,
   type EyeDepth,
   type EyeMeasure,
   type EyeMeasures,
@@ -16,11 +18,13 @@ import {
   type Tool,
 } from './submission.ts'
 import {
-  binocularOf,
   cellKey,
+  edgeNames,
+  figuresOf,
   type Aggregate,
-  type BinocularFigure,
   type CellStats,
+  type EdgeName,
+  type FigureName,
   type Stat,
   type Tuning,
 } from './submissionStore.ts'
@@ -71,9 +75,11 @@ function addGroup<Key extends string>(
 
 /** Every submission adds to each direction its tool requires, so the largest count is the cell's. */
 function cellCount(cell: CellStats): number {
-  const stats = [...Object.values(cell.left), ...Object.values(cell.right), ...Object.values(cell.binocular)]
+  const stats = [...Object.values(cell.left), ...Object.values(cell.right)]
   return Math.max(0, ...stats.map((stat) => stat.count))
 }
+
+const emptyStats = (): CellStats => ({ left: {}, right: {}, figures: {}, renderedLeft: {}, renderedRight: {} })
 
 export interface Combined {
   readonly count: number
@@ -82,7 +88,7 @@ export interface Combined {
 
 /** The cells of one aggregate that pass the filters, added up. */
 export function combineCells(aggregate: Aggregate, filters: Filters): Combined {
-  let stats: CellStats = { left: {}, right: {}, binocular: {} }
+  let stats = emptyStats()
   let count = 0
   for (const [key, cell] of Object.entries(aggregate.cells)) {
     if (!cellMatches(key, filters)) continue
@@ -90,7 +96,9 @@ export function combineCells(aggregate: Aggregate, filters: Filters): Combined {
     stats = {
       left: addGroup(stats.left, cell.left),
       right: addGroup(stats.right, cell.right),
-      binocular: addGroup(stats.binocular, cell.binocular),
+      figures: addGroup(stats.figures, cell.figures),
+      renderedLeft: addGroup(stats.renderedLeft, cell.renderedLeft),
+      renderedRight: addGroup(stats.renderedRight, cell.renderedRight),
     }
   }
   return { count, stats }
@@ -172,9 +180,8 @@ function highestOf(values: readonly (number | undefined)[]): number | undefined 
 
 export interface Figures {
   readonly count: number
-  readonly horizontal: Summary | undefined
-  readonly vertical: Summary | undefined
-  readonly overlap: Summary | undefined
+  /** The figures the measures' tool has, as `figuresOf` in `submissionStore.ts` works them out. */
+  readonly summaries: Readonly<Partial<Record<FigureName, Summary>>>
   /** The highest outer diagonal of either eye. */
   readonly diagonal: number | undefined
   /** Mean overlap as a share of mean horizontal, in percent. */
@@ -183,46 +190,54 @@ export interface Figures {
 
 function figuresFrom(
   count: number,
-  binocular: Readonly<Record<BinocularFigure, Summary | undefined>>,
+  summaries: Readonly<Partial<Record<FigureName, Summary>>>,
   diagonal: number | undefined,
 ): Figures {
-  const { horizontal, vertical, overlap } = binocular
+  const { horizontal, overlap } = summaries
   const overlapShare = horizontal === undefined || overlap === undefined ? undefined : (overlap.mean / horizontal.mean) * 100
-  return { count, horizontal, vertical, overlap, diagonal, overlapShare }
+  return { count, summaries, diagonal, overlapShare }
+}
+
+function outerDiagonalOf(left: EyeMeasure, right: EyeMeasure): number | undefined {
+  const leftAngles = new Map(Object.entries(left))
+  const rightAngles = new Map(Object.entries(right))
+  return highestOf([
+    ...outerDiagonals.left.map((direction) => leftAngles.get(direction)),
+    ...outerDiagonals.right.map((direction) => rightAngles.get(direction)),
+  ])
 }
 
 export function figuresOfCombined({ count, stats }: Combined): Figures {
-  const summary = (stat: Stat | undefined): Summary | undefined => (stat === undefined ? undefined : summarize(stat))
-  const left = new Map(Object.entries(stats.left))
-  const right = new Map(Object.entries(stats.right))
-  const diagonal = highestOf([
-    ...outerDiagonals.left.map((direction) => left.get(direction)?.max),
-    ...outerDiagonals.right.map((direction) => right.get(direction)?.max),
-  ])
-  const binocular = {
-    horizontal: summary(stats.binocular.horizontal),
-    vertical: summary(stats.binocular.vertical),
-    overlap: summary(stats.binocular.overlap),
-  }
-  return figuresFrom(count, binocular, diagonal)
+  const summaries = Object.fromEntries(Object.entries(stats.figures).map(([figure, stat]) => [figure, summarize(stat)]))
+  return figuresFrom(count, summaries, outerDiagonalOf(eyeShape(stats.left, 'highest'), eyeShape(stats.right, 'highest')))
 }
 
 /** The same figures for one measure, its own values standing as highest and mean. */
-export function figuresOfMeasure(measures: EyeMeasures): Figures {
-  const single = (value: number | undefined): Summary | undefined =>
-    value === undefined ? undefined : { count: 1, mean: value, sigma: 0, highest: value }
-  const binocular = binocularOf(measures)
-  const left = new Map(Object.entries(measures.left))
-  const right = new Map(Object.entries(measures.right))
-  const diagonal = highestOf([
-    ...outerDiagonals.left.map((direction) => left.get(direction)),
-    ...outerDiagonals.right.map((direction) => right.get(direction)),
-  ])
-  return figuresFrom(
-    1,
-    { horizontal: single(binocular.horizontal), vertical: single(binocular.vertical), overlap: single(binocular.overlap) },
-    diagonal,
+export function figuresOfMeasure(submission: Submission): Figures {
+  const summaries = Object.fromEntries(
+    Object.entries(figuresOf(submission)).map(([figure, value]) => [figure, { count: 1, mean: value, sigma: 0, highest: value }]),
   )
+  return figuresFrom(1, summaries, outerDiagonalOf(submission.measures.left, submission.measures.right))
+}
+
+/**
+ * The rendered frame of a group's own headsets, for its outline: each edge's highest or mean, and
+ * the mean turn of the pictures. Undefined unless every edge of both eyes was read.
+ */
+export function renderedFrameOfCombined({ stats }: Combined, statistic: Statistic): RenderedFrame | undefined {
+  const edgesOf = (group: Partial<Record<EdgeName, Stat>>): EdgeAngles | undefined => {
+    const byEdge = new Map(Object.entries(group))
+    const values = edgeNames.map((edge) => {
+      const stat = byEdge.get(edge)
+      return stat === undefined ? undefined : summarize(stat)[statistic === 'highest' ? 'highest' : 'mean']
+    })
+    const [left, right, up, down] = values
+    return left === undefined || right === undefined || up === undefined || down === undefined ? undefined : { left, right, up, down }
+  }
+  const left = edgesOf(stats.renderedLeft)
+  const right = edgesOf(stats.renderedRight)
+  const canting = stats.figures.canting
+  return left === undefined || right === undefined || canting === undefined ? undefined : { left, right, canting: summarize(canting).mean }
 }
 
 /** The largest angle in a set of shapes, to size the chart that draws them. */

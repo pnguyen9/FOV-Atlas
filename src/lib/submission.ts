@@ -39,8 +39,9 @@ export interface EyeMeasures {
 }
 
 /**
- * One eye's rendered frustum edges, read from the browser while measuring with FOV Atlas, as
- * angles from straight ahead of the head like the measures, that eye's canting included.
+ * How far one eye's picture reaches, as the headset reports it to the browser while measuring
+ * with FOV Atlas: angles from straight ahead of the head along each principal direction, like the
+ * measures, so the turn of the eye's picture is included.
  */
 export interface EdgeAngles {
   readonly left: number
@@ -49,20 +50,28 @@ export interface EdgeAngles {
   readonly down: number
 }
 
-/** What the headset renders, the most anyone could see: the measure's own figures when known. */
+/**
+ * The rendered field of view of the headset the measure was taken with: what that headset itself
+ * reports it draws, the most anyone could see with it. FOV Atlas reads each eye's edges while
+ * measuring; a VR Headset Picker link carries the totals VR Headset Picker read. Other tools and
+ * typed values carry none.
+ */
 export type Ceiling =
   | {
       readonly source: 'measured'
       readonly left: EdgeAngles
       readonly right: EdgeAngles
-      /** Each view's rotation from straight ahead, kept for reference; the edges already include it. */
+      /**
+       * How far each eye's picture is turned away from the nose, in degrees. The edges already
+       * include it; the outline of each picture is drawn from both.
+       */
       readonly canting: number
     }
   | { readonly source: 'link'; readonly totals: RenderedTotals }
-  | { readonly source: 'model' }
+  | { readonly source: 'none' }
 
-/** Never asked: read from the browser (FOV Atlas) or inferred from a link's diagonal total. */
-export const cornerMaskStates = ['on', 'off-probably', 'unknown'] as const
+/** Never asked: read from the browser while measuring with FOV Atlas, unknown otherwise. */
+export const cornerMaskStates = ['on', 'unknown'] as const
 export type CornerMask = (typeof cornerMaskStates)[number]
 
 export const eyeDepths = ['deep-set', 'in-between', 'almost-flush'] as const
@@ -153,16 +162,16 @@ export const directionRules: ReadonlyMap<Tool, EyeRules> = new Map([
 ])
 
 const allowedCeilings: ReadonlyMap<Tool, readonly Ceiling['source'][]> = new Map([
-  ['atlas', ['measured', 'model']],
-  ['vrhp', ['link', 'model']],
-  ['wimfov', ['model']],
-  ['testhmd', ['model']],
+  ['atlas', ['measured', 'none']],
+  ['vrhp', ['link', 'none']],
+  ['wimfov', ['none']],
+  ['testhmd', ['none']],
 ])
 
 const allowedCornerMasks: ReadonlyMap<Ceiling['source'], readonly CornerMask[]> = new Map([
   ['measured', ['on', 'unknown']],
-  ['link', ['off-probably', 'unknown']],
-  ['model', ['unknown']],
+  ['link', ['unknown']],
+  ['none', ['unknown']],
 ])
 
 const allowedInputs: ReadonlyMap<Tool, readonly InputKind[]> = new Map([
@@ -283,14 +292,4 @@ export function submissionProblem(submission: Submission): SubmissionError | nul
     textProblem('facial-interface', submission.facialInterface, textLimits.facialInterface) ??
     textProblem('note', submission.note, textLimits.note, true)
   )
-}
-
-/**
- * A link's binocular diagonal clearly above the model's corner-masked figure means the corners
- * were drawn. Each tool defines the diagonal slightly differently, hence the margin.
- */
-const cornerMaskMarginDegrees = 3
-export function cornerMaskFromLinkTotals(totals: RenderedTotals, maskedDiagonal: number | undefined): CornerMask {
-  if (maskedDiagonal === undefined) return 'unknown'
-  return totals.binocularDiagonal > maskedDiagonal + cornerMaskMarginDegrees ? 'off-probably' : 'unknown'
 }

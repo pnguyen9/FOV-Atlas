@@ -9,13 +9,15 @@
 
 import {
   aggregatePath,
-  binocularFigures,
   dataRoot,
+  edgeNames,
   emptyIndex,
+  figureNames,
   indexPath,
   pagePath,
   parseIndex,
   parsePage,
+  signedFigures,
   tunings,
   type Aggregate,
   type CellStats,
@@ -46,7 +48,7 @@ export type Loaded<Value> = { readonly ok: true; readonly value: Value } | { rea
 /** Far above any file the store writes (a full page is about 100 kB); caps what is parsed. */
 export const maximumFileLength = 2_000_000
 const formatVersion = 1
-/** Every stored angle is at most a full turn, and binocular figures add two of them. */
+/** Every stored angle is at most a half turn, and figures add two of them. */
 const maximumStatDegrees = 360
 
 /** `public/`, which the build copies to the site's root. */
@@ -109,31 +111,39 @@ export async function loadPage(tool: Tool, headset: string, page: number, option
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const isDegrees = (value: unknown, limit: number): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= limit
+/** Within `limit` of zero, on both sides when `signed`. */
+const isDegrees = (value: unknown, limit: number, signed = false): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= (signed ? -limit : 0) && value <= limit
 
-function isStat(value: unknown): value is Stat {
+function isStat(value: unknown, signed: boolean): value is Stat {
   if (!isPlainObject(value) || Object.keys(value).length !== 4) return false
   const { count, sum, sumsq, max } = value
   if (!Number.isSafeInteger(count) || (count as number) <= 0) return false
   const total = count as number
   return (
-    isDegrees(max, maximumStatDegrees) &&
-    isDegrees(sum, maximumStatDegrees * total) &&
+    isDegrees(max, maximumStatDegrees, signed) &&
+    isDegrees(sum, maximumStatDegrees * total, signed) &&
     isDegrees(sumsq, maximumStatDegrees * maximumStatDegrees * total)
   )
 }
 
-function isStatGroup(value: unknown, keys: readonly string[]): boolean {
-  return isPlainObject(value) && Object.entries(value).every(([key, stat]) => keys.includes(key) && isStat(stat))
+function isStatGroup(value: unknown, keys: readonly string[], signedKeys: readonly string[] = []): boolean {
+  return (
+    isPlainObject(value) &&
+    Object.entries(value).every(([key, stat]) => keys.includes(key) && isStat(stat, signedKeys.includes(key)))
+  )
 }
 
+const cellGroups = ['left', 'right', 'figures', 'renderedLeft', 'renderedRight'] as const
+
 function isCell(value: unknown): value is CellStats {
-  if (!isPlainObject(value) || Object.keys(value).length !== 3) return false
+  if (!isPlainObject(value) || Object.keys(value).length !== cellGroups.length) return false
   return (
     isStatGroup(value.left, directions) &&
     isStatGroup(value.right, directions) &&
-    isStatGroup(value.binocular, binocularFigures)
+    isStatGroup(value.figures, figureNames, signedFigures) &&
+    isStatGroup(value.renderedLeft, edgeNames) &&
+    isStatGroup(value.renderedRight, edgeNames)
   )
 }
 

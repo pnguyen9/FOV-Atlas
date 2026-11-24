@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ceilingTicks,
+  outlinePath,
   plotRadius,
   radialScale,
   reachOf,
@@ -41,11 +41,17 @@ describe('positions', () => {
     expect(path).toContain('C')
   })
 
-  it('marks the ceiling across its spoke', () => {
-    const [tick] = ceilingTicks({ right: 70 }, scale)
-    expect(tick?.start.screenX).toBeCloseTo(plotRadius)
-    expect(tick?.end.screenX).toBeCloseTo(plotRadius)
-    expect(Math.abs((tick?.start.screenY ?? 0) - (tick?.end.screenY ?? 0))).toBeGreaterThan(10)
+  it('draws a straight-sided closed outline through turns and angles', () => {
+    expect(outlinePath([{ turn: 0, degrees: 40 }], scale)).toBe('')
+    const path = outlinePath(
+      [
+        { turn: 0, degrees: 70 },
+        { turn: Math.PI / 2, degrees: 70 },
+        { turn: Math.PI, degrees: 70 },
+      ],
+      scale,
+    )
+    expect(path).toMatch(/^M0,-210L-210,0L0,210Z$/)
   })
 
   it('draws a ring every 10° and labels every third', () => {

@@ -7,8 +7,9 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import RadarChart from './RadarChart.vue'
 import SegmentedControl from '../SegmentedControl.vue'
-import { colourClass, type ChartCeiling, type ChartCurve, type RadarSeries } from './radarSeries.ts'
+import { colourClass, type ChartCurve, type ChartOutline, type RadarSeries } from './radarSeries.ts'
 import { compareState } from '../../pages/compare/compareState.ts'
+import { drawsRenderedOutline, pictureOutline } from '../../lib/ceiling.ts'
 import { combineEyes, eyeModeFor, measuresBothEyesAtOnce, type EyeMode } from '../../lib/fovStats.ts'
 import { sceneNames, sceneOf, type SceneName } from '../../lib/scene.ts'
 import type { EyeMeasures, Tool } from '../../lib/submission.ts'
@@ -39,13 +40,22 @@ const curves = computed<ChartCurve[]>(() =>
     emphasised: seeing.value && item.key === through.value?.key,
   })),
 )
-const ceilings = computed<ChartCeiling[]>(() =>
-  compareState.radar.showCeiling
-    ? props.series.flatMap((item) =>
-        item.ceiling === undefined
-          ? []
-          : [{ key: item.key, colourClass: colourClass(item.colour), edges: combineEyes(item.ceiling.edges, eyeMode.value) }],
-      )
+const showsOutlines = computed(() => drawsRenderedOutline(props.tool) && compareState.radar.showRendered)
+/** Union and overlap show both eyes' pictures: their union and overlap are then plain to see. */
+const eyesShown = computed<readonly ('left' | 'right')[]>(() => {
+  if (eyeMode.value === 'left' || eyeMode.value === 'right') return [eyeMode.value]
+  return ['left', 'right']
+})
+const outlines = computed<ChartOutline[]>(() =>
+  showsOutlines.value
+    ? props.series.flatMap(({ key, colour, rendered }) => {
+        if (rendered === undefined) return []
+        const pictures = eyesShown.value.flatMap((eye) => {
+          const points = pictureOutline(eye === 'left' ? rendered.left : rendered.right, rendered.canting, eye)
+          return points === null ? [] : [points]
+        })
+        return pictures.length === 0 ? [] : [{ key, colourClass: colourClass(colour), outlines: pictures }]
+      })
     : [],
 )
 
@@ -73,8 +83,8 @@ const viewOptions = [
 const sceneOptions = sceneNames.map((name: SceneName) => ({ value: name, label: sceneOf(name).name }))
 const throughOptions = computed(() => withShapes.value.map((item) => ({ value: item.key, label: item.name })))
 
-const ceilingNotes = computed(() =>
-  compareState.radar.showCeiling ? props.series.map((item) => ({ key: item.key, colour: colourClass(item.colour), text: item.ceilingNote })) : [],
+const renderedNotes = computed(() =>
+  showsOutlines.value ? props.series.map((item) => ({ key: item.key, colour: colourClass(item.colour), text: item.renderedNote })) : [],
 )
 
 function closeOnEscape(event: KeyboardEvent): void {
@@ -130,10 +140,10 @@ onBeforeUnmount(() => {
         @update:model-value="(key) => (compareState.radar.through = key)"
       />
     </div>
-    <template v-if="curves.length > 0 || ceilings.length > 0">
+    <template v-if="curves.length > 0 || outlines.length > 0">
       <RadarChart
         :curves="curves"
-        :ceilings="ceilings"
+        :outlines="outlines"
         v-bind="sceneProps"
       />
       <ul class="legend">
@@ -156,18 +166,18 @@ onBeforeUnmount(() => {
         </li>
       </ul>
       <div
-        v-if="ceilingNotes.length > 0"
-        class="small muted ceiling-notes"
+        v-if="renderedNotes.length > 0"
+        class="small muted rendered-notes"
       >
-        <p>Rendered ceiling, marked across each edge:</p>
+        <p>Rendered field of view, dotted around each eye's picture:</p>
         <ul>
           <li
-            v-for="note in ceilingNotes"
+            v-for="note in renderedNotes"
             :key="note.key"
             :class="note.colour"
           >
             <span
-              class="legend-tick"
+              class="legend-line dotted"
               aria-hidden="true"
             />{{ note.text }}
           </li>
@@ -233,21 +243,15 @@ onBeforeUnmount(() => {
 .legend-line.both-eyes {
   border-top: 2px dashed #f5c542;
 }
-.ceiling-notes p {
+.legend-line.dotted {
+  border-top: 2px dotted var(--series);
+}
+.rendered-notes p {
   margin: 12px 0 4px;
 }
-.ceiling-notes ul {
+.rendered-notes ul {
   list-style: none;
   padding: 0;
   margin: 0;
-}
-.legend-tick {
-  display: inline-block;
-  width: 3px;
-  height: 12px;
-  margin-right: 8px;
-  vertical-align: middle;
-  border-radius: 2px;
-  background: var(--series);
 }
 </style>

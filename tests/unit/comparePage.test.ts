@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import ComparePage from '../../src/pages/ComparePage.vue'
 import { compareState, resetCompareState } from '../../src/pages/compare/compareState'
 import { encodeMeasureParameter, encodeMeasureText, maximumMeasureTextLength, measureLink } from '../../src/lib/measureFile'
@@ -8,6 +8,8 @@ import { serveSite, type ServedSite } from './serveSite'
 import { siteFiles, testHmdQuest, vrhpBeyond, vrhpIndex, wimfovBeyond } from './siteFixtures'
 
 let site: ServedSite
+
+enableAutoUnmount(afterEach)
 
 beforeEach(() => {
   site = serveSite(siteFiles())
@@ -87,8 +89,20 @@ describe('ComparePage data', () => {
       'data/aggregates/vrhp/htc-vive.json',
     ])
     expect(rowNames(wrapper)).toEqual(['Valve Index', 'Bigscreen Beyond 2', "HTC Vivecouldn't load"])
-    expect(cellsOf(wrapper, 0)).toEqual(['116.0°', '102.0°', '62.0°', '90.0°', '77.6 %', '1'])
-    expect(cellsOf(wrapper, 2)).toEqual(['—', '—', '—', '—', '—', '—'])
+    expect(wrapper.findAll('th button').map((button) => button.text())).toEqual([
+      'Highest width, left eye ▾',
+      'Highest width, right eye',
+      'Highest height, left eye',
+      'Highest height, right eye',
+      'Diagonal (outer)',
+      'Measures',
+      'Width gap, left eye',
+      'Width gap, right eye',
+    ])
+    expect(cellsOf(wrapper, 0)).toEqual(['103.0°', '103.0°', '102.0°', '102.0°', '62.0°', '1', '—', '—'])
+    expect(cellsOf(wrapper, 1)).toEqual(['97.0°', '97.0°', '96.9°', '96.9°', '59.0°', '3', '-0.1°', '-0.4°'])
+    expect(cellsOf(wrapper, 2)).toEqual(['—', '—', '—', '—', '—', '—', '—', '—'])
+    expect(wrapper.text()).toContain('VR Headset Picker measures each eye from the centre of that eye')
     expect(wrapper.find('.match-count').text().replace(/\s+/g, ' ')).toBe('4 of 4 VR Headset Picker measures match')
   })
 
@@ -134,10 +148,10 @@ describe('ComparePage table', () => {
     await pickTool(wrapper, 'VR Headset Picker')
     const header = (): ReturnType<VueWrapper['find']> => wrapper.findAll('th button')[1] as ReturnType<VueWrapper['find']>
     await header().trigger('click')
-    expect(header().text()).toBe('Highest vertical ▾')
+    expect(header().text()).toBe('Highest width, right eye ▾')
     expect(wrapper.findAll('th')[3]?.attributes('aria-sort')).toBe('descending')
     await header().trigger('click')
-    expect(header().text()).toBe('Highest vertical ▴')
+    expect(header().text()).toBe('Highest width, right eye ▴')
     expect(rowNames(wrapper)[0]).toBe('Bigscreen Beyond 2')
     expect(rowNames(wrapper)[2]).toBe("HTC Vivecouldn't load")
   })
@@ -145,17 +159,32 @@ describe('ComparePage table', () => {
   it('adds and removes columns, keeping at least one', async () => {
     const wrapper = await mountPage()
     await pickTool(wrapper, 'VR Headset Picker')
-    await clickButton(wrapper, 'Rendered horizontal')
-    await clickButton(wrapper, 'Gap to rendered')
-    expect(wrapper.findAll('th button').map((button) => button.text()).slice(-2)).toEqual(['Rendered horizontal', 'Gap to rendered'])
-    expect(cellsOf(wrapper, 0).slice(-2)).toEqual(['108.1°', '-7.9°'])
-    expect(cellsOf(wrapper, 1).slice(-2)).toEqual(['109.2°', '-0.8°'])
-    expect(wrapper.find('.borrowed-notes').text()).toBe('Bigscreen Beyond 2: rendered figures from the Beyond 2e (same lenses and panels).')
-    expect(cellsOf(wrapper, 2).slice(-2)).toEqual(['108.8°', '—'])
-    compareState.columns = ['count']
+    await clickButton(wrapper, 'Rendered horizontal (link)')
+    await clickButton(wrapper, 'Rendered overlap (link)')
+    expect(wrapper.findAll('th button').map((button) => button.text()).slice(-2)).toEqual([
+      'Rendered horizontal (link)',
+      'Rendered overlap (link)',
+    ])
+    expect(cellsOf(wrapper, 0).slice(-2)).toEqual(['—', '—'])
+    expect(cellsOf(wrapper, 1).slice(-2)).toEqual(['109.2°', '84.3°'])
+    expect(wrapper.text()).not.toContain('Highest horizontal')
+    compareState.columns.vrhp = ['count']
     await flushPromises()
     await clickButton(wrapper, 'Measures')
-    expect(compareState.columns).toEqual(['count'])
+    expect(compareState.columns.vrhp).toEqual(['count'])
+    await pickTool(wrapper, 'FOV Atlas')
+    expect(wrapper.findAll('th button').map((button) => button.text())).toEqual([
+      'Highest horizontal ▾',
+      'Highest vertical',
+      'Diagonal (outer)',
+      'Overlap °',
+      'Measures',
+      'Rendered horizontal',
+      'Gap to rendered',
+    ])
+    expect(cellsOf(wrapper, 0)).toEqual(['106.0°', '93.0°', '62.0°', '81.0°', '1', '110.0°', '4.0°'])
+    await pickTool(wrapper, 'WIMFOV')
+    expect(wrapper.findAll('.chip').map((chip) => chip.text()).filter((label) => label.includes('endered') || label.includes('Gap'))).toEqual([])
   })
 
   it('filters by any ticked choice within a group, and every group', async () => {
@@ -200,7 +229,7 @@ describe('ComparePage table', () => {
 })
 
 describe('ComparePage radar', () => {
-  it('shows the ticked headsets with their ceilings', async () => {
+  it('shows the ticked headsets, with no rendered outline for VR Headset Picker', async () => {
     const wrapper = await mountPage()
     await pickTool(wrapper, 'VR Headset Picker')
     await wrapper.findAll('tbody input[type="checkbox"]')[0]?.trigger('change')
@@ -210,8 +239,24 @@ describe('ComparePage radar', () => {
     expect(wrapper.find('.radar-chart').exists()).toBe(true)
     expect(wrapper.findAll('.curve')).toHaveLength(1)
     expect(wrapper.find('.legend').text()).toBe('Valve Index · highest (n=1)')
-    expect(wrapper.findAll('.ceiling line')).toHaveLength(2)
-    expect(wrapper.find('.ceiling-notes').text()).toContain('Valve Index: hmdq model reference, full frame')
+    expect(wrapper.findAll('.rendered path')).toHaveLength(0)
+    expect(wrapper.find('.rendered-notes').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Rendered field of view')
+  })
+
+  it('outlines each eye’s picture for FOV Atlas, as the measurers’ headsets report it', async () => {
+    const wrapper = await mountPage(null, 'radar')
+    await pickTool(wrapper, 'FOV Atlas')
+    expect(compareState.picks.map((pick) => pick.key)).toEqual(['bigscreen-beyond-2'])
+    expect(wrapper.findAll('.rendered path')).toHaveLength(2)
+    expect(wrapper.find('.rendered-notes').text()).toContain(
+      'Bigscreen Beyond 2: what the measurers\' own headsets report drawing (highest of each edge)',
+    )
+    await clickButton(wrapper, 'Left')
+    expect(wrapper.findAll('.rendered path')).toHaveLength(1)
+    await clickButton(wrapper, 'Hide')
+    expect(wrapper.findAll('.rendered path')).toHaveLength(0)
+    expect(wrapper.find('.rendered-notes').exists()).toBe(false)
   })
 
   it('picks the two widest headsets when opened with none ticked', async () => {
@@ -222,22 +267,17 @@ describe('ComparePage radar', () => {
     expect(compareState.picks).toEqual([])
     await wrapper.setProps({ view: 'radar' })
     expect(compareState.picks.map((pick) => pick.key)).toEqual(['valve-index', 'bigscreen-beyond-2'])
-    expect(wrapper.find('.ceiling-notes').text()).toContain('Bigscreen Beyond 2: hmdq model reference from the Beyond 2e (same lenses and panels), full frame')
     await clickButton(wrapper, 'Valve Index')
     expect(compareState.picks.map((pick) => pick.key)).toEqual(['bigscreen-beyond-2'])
   })
 
-  it('draws headsets with no matching measure by their ceiling only, or nothing', async () => {
+  it('draws nothing for headsets with no matching measure', async () => {
     const wrapper = await mountPage(null, 'radar')
-    await pickTool(wrapper, 'VR Headset Picker')
+    await pickTool(wrapper, 'FOV Atlas')
     compareState.filters.gaze = ['free']
-    compareState.filters.tuning = ['stock']
     await flushPromises()
-    expect(wrapper.find('.legend').text()).toBe('')
-    expect(wrapper.findAll('.ceiling line')).toHaveLength(4)
-    await clickButton(wrapper, 'Hide')
     expect(wrapper.find('.empty').text()).toContain('Nothing to draw')
-    expect(wrapper.find('.radar-panel').text()).not.toContain('Valve Index · no matching')
+    expect(wrapper.find('.radar-panel').text()).not.toContain('Bigscreen Beyond 2 · no matching')
   })
 
   it('switches eye and statistic', async () => {
@@ -314,7 +354,7 @@ describe('ComparePage kept measure', () => {
     const wrapper = await mountPage(encodeMeasureParameter(vrhpBeyond))
     expect(compareState.tool).toBe('vrhp')
     expect(wrapper.find('.kept-row .text-cell').text()).toBe('Kept measure · Bigscreen Beyond 2not published')
-    expect(cellsOf(wrapper, 0)).toEqual(['110.0°', '96.9°', '59.0°', '84.0°', '76.4 %', '1'])
+    expect(cellsOf(wrapper, 0)).toEqual(['97.0°', '97.0°', '96.9°', '96.9°', '59.0°', '1', '-0.1°', '-0.4°'])
     expect(wrapper.find('.kept-card').text()).toContain('never counted in their figures')
     expect(wrapper.find('.match-count').text()).toContain('4 of 4')
     await pickTool(wrapper, 'WIMFOV')
@@ -324,13 +364,13 @@ describe('ComparePage kept measure', () => {
     expect(compareState.tool).toBe('vrhp')
   })
 
-  it('draws it dashed on the radar with its own ceiling, and can leave it off', async () => {
+  it('draws it dashed on the radar, and can leave it off', async () => {
     const wrapper = await mountPage(null, 'radar')
     await pickTool(wrapper, 'VR Headset Picker')
     await paste(wrapper, measureLink(vrhpIndex, 'https://example.org/FOV-Atlas/'))
     expect(wrapper.find('.curve.dashed').classes()).toContain('series-kept')
     expect(wrapper.find('.legend').text()).toContain('Kept measure · Valve Index (not published)')
-    expect(wrapper.find('.ceiling-notes').text()).toContain('Kept measure: Model reference, full frame')
+    expect(wrapper.find('.rendered-notes').exists()).toBe(false)
     await wrapper.setProps({ view: 'table' })
     await wrapper.find('.kept-row input').setValue(false)
     await wrapper.setProps({ view: 'radar' })

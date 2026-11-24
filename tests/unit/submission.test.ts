@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   toolNameOf,
   angleConventionOf,
-  cornerMaskFromLinkTotals,
   directions,
   principalDirections,
   submissionProblem,
@@ -24,7 +23,7 @@ const vrhpSubmission: Submission = {
     left: { 'left': 55, 'right': 42, 'up': 43, 'down': 53.9, 'down-left': 59 },
     right: { 'left': 41.5, 'right': 54.3, 'up': 44.2, 'down': 52.5, 'up-right': 52 },
   },
-  ceiling: { source: 'model' },
+  ceiling: { source: 'none' },
   cornerMask: 'unknown',
   provenance: { input: 'typed', linkData: null },
 }
@@ -113,7 +112,7 @@ describe('submissionProblem', () => {
       ceiling: { source: 'measured', left: { left: 180.5, right: 42, up: 44, down: 54 }, right: { left: 42, right: 55, up: 44, down: 54 }, canting: 0 },
     })],
     ['corner-mask-not-allowed', { ...testHmdSubmission, cornerMask: 'on' }],
-    ['corner-mask-not-allowed', withAtlas({ cornerMask: 'off-probably' })],
+    ['corner-mask-not-allowed', { ...vrhpLinked, cornerMask: 'on' }],
     ['input-not-allowed', { ...testHmdSubmission, provenance: { input: 'link', linkData: 'abc' } }],
     ['input-not-allowed', withAtlas({ provenance: { input: 'paste', linkData: null } })],
     ['reported-headset-invalid', withAtlas({ reportedHeadset: 'Beyond\n2' })],
@@ -139,16 +138,6 @@ describe('angleConventionOf', () => {
     ['radial', 'testhmd', 'typed'],
   ] as const)('is %s for %s values from %s input', (expected, tool, input) => {
     expect(angleConventionOf(tool, input)).toBe(expected)
-  })
-})
-
-describe('cornerMaskFromLinkTotals', () => {
-  it.each([
-    ['unknown', 'without a model figure', 130, undefined],
-    ['unknown', 'within the margin of the masked figure', 117.3, 114.3],
-    ['off-probably', 'clearly above the masked figure', 120.17, 114.3],
-  ])('is %s %s', (expected, _description, diagonal, masked) => {
-    expect(cornerMaskFromLinkTotals({ ...totals, binocularDiagonal: diagonal }, masked)).toBe(expected)
   })
 })
 

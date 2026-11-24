@@ -6,16 +6,17 @@
  * other headsets.
  *
  * An aggregate is split into cells, one per combination of the soft filters with a closed set of
- * values (face fit, tuning, gaze). Each cell keeps count, sum, sum of squares and max per direction
- * and per binocular figure, so the site combines any selection of cells into a mean, a spread and
- * a maximum without the raw values. Tools never share a file, so nothing combines across tools.
+ * values (face fit, tuning, gaze). Each cell keeps count, sum, sum of squares and max per direction,
+ * per figure (`figuresOf`) and per rendered edge, so the site combines any selection of cells into
+ * a mean, a spread and a maximum without the raw values. Tools never share a file, so nothing
+ * combines across tools.
  */
 
 import {
   isHeadsetId,
   tools,
   type Direction,
-  type EyeMeasure,
+  type EdgeAngles,
   type EyeMeasures,
   type Submission,
   type Tool,
@@ -93,13 +94,58 @@ export interface Stat {
   readonly max: number
 }
 
-export const binocularFigures = ['horizontal', 'vertical', 'overlap'] as const
-export type BinocularFigure = (typeof binocularFigures)[number]
+/**
+ * Figures worked out from each measure, in degrees. Which ones a measure has depends on its tool
+ * and on whether it carries the rendered field of view of its own headset:
+ *
+ * - `horizontal`, `vertical`, `overlap`: both eyes together, for tools whose angles all start
+ *   straight ahead of the head (every tool but VR Headset Picker).
+ * - `leftWidth` … `rightHeight`: each eye on its own, for VR Headset Picker, whose angles start
+ *   at the centre of each eye's picture. Adding the left eye's left angle to the right eye's
+ *   right angle would mix two starting points on headsets that turn each eye's picture outward.
+ * - `rendered…`: what the measure's own headset reports it draws, in the tool's convention.
+ * - `…PastRendered`: the measured figure minus the rendered one, worked out per measure, so the
+ *   gap always sets a measure against its own headset. Below zero for every measure that stays
+ *   inside what is drawn; the highest is the smallest gap.
+ * - `canting`: how far each eye's picture is turned outward, kept to draw the rendered outline.
+ */
+export const figureNames = [
+  'horizontal',
+  'vertical',
+  'overlap',
+  'leftWidth',
+  'leftHeight',
+  'rightWidth',
+  'rightHeight',
+  'renderedHorizontal',
+  'renderedOverlap',
+  'renderedLeftWidth',
+  'renderedLeftHeight',
+  'renderedRightWidth',
+  'renderedRightHeight',
+  'horizontalPastRendered',
+  'leftWidthPastRendered',
+  'leftHeightPastRendered',
+  'rightWidthPastRendered',
+  'rightHeightPastRendered',
+  'canting',
+] as const
+export type FigureName = (typeof figureNames)[number]
+/** The figures that can be below zero. */
+export const signedFigures: readonly FigureName[] = figureNames.filter(
+  (figure) => figure.endsWith('PastRendered') || figure === 'canting',
+)
+
+export const edgeNames = ['left', 'right', 'up', 'down'] as const satisfies readonly (keyof EdgeAngles)[]
+export type EdgeName = (typeof edgeNames)[number]
 
 export interface CellStats {
   readonly left: Partial<Record<Direction, Stat>>
   readonly right: Partial<Record<Direction, Stat>>
-  readonly binocular: Partial<Record<BinocularFigure, Stat>>
+  readonly figures: Partial<Record<FigureName, Stat>>
+  /** Each eye's rendered edges, from the measures that read them (FOV Atlas). */
+  readonly renderedLeft: Partial<Record<EdgeName, Stat>>
+  readonly renderedRight: Partial<Record<EdgeName, Stat>>
 }
 
 export interface Aggregate {
@@ -270,33 +316,93 @@ function statsOf(accumulators: Map<string, Accumulator>, prefix: string): Record
   )
 }
 
-/** The binocular figures, as the site shows them for a single measure. */
-export function binocularOf({ left, right }: EyeMeasures): Partial<Record<BinocularFigure, number>> {
-  const sumOf = (first: number | undefined, second: number | undefined): number | undefined =>
-    first === undefined || second === undefined ? undefined : (toCenti(first) + toCenti(second)) / 100
-  const horizontal = sumOf(left.left, right.right)
+type Figures = Partial<Record<FigureName, number>>
+
+/** Sums and differences in hundredths of a degree, so that a figure carries no float residue. */
+const sumOf = (first: number | undefined, second: number | undefined): number | undefined =>
+  first === undefined || second === undefined ? undefined : (toCenti(first) + toCenti(second)) / 100
+const differenceOf = (first: number | undefined, second: number | undefined): number | undefined =>
+  first === undefined || second === undefined ? undefined : (toCenti(first) - toCenti(second)) / 100
+
+function definedOnly(figures: Readonly<Record<string, number | undefined>>): Figures {
+  return Object.fromEntries(Object.entries(figures).filter(([, value]) => value !== undefined))
+}
+
+function perEyeFigures({ measures, ceiling }: Submission): Figures {
+  const { left, right } = measures
+  const measured = {
+    leftWidth: sumOf(left.left, left.right),
+    leftHeight: sumOf(left.up, left.down),
+    rightWidth: sumOf(right.left, right.right),
+    rightHeight: sumOf(right.up, right.down),
+  }
+  if (ceiling.source !== 'link') return definedOnly(measured)
+  const { totals } = ceiling
+  return definedOnly({
+    ...measured,
+    renderedHorizontal: totals.binocularHorizontal,
+    renderedOverlap: totals.binocularHorizontalOverlap,
+    renderedLeftWidth: totals.leftHorizontal,
+    renderedLeftHeight: totals.leftVertical,
+    renderedRightWidth: totals.rightHorizontal,
+    renderedRightHeight: totals.rightVertical,
+    leftWidthPastRendered: differenceOf(measured.leftWidth, totals.leftHorizontal),
+    leftHeightPastRendered: differenceOf(measured.leftHeight, totals.leftVertical),
+    rightWidthPastRendered: differenceOf(measured.rightWidth, totals.rightHorizontal),
+    rightHeightPastRendered: differenceOf(measured.rightHeight, totals.rightVertical),
+  })
+}
+
+/** Both eyes' horizontal, vertical and overlap, for angles that all start straight ahead of the head. */
+export function bothEyeFiguresOf({ left, right }: EyeMeasures): Figures {
   const leftVertical = sumOf(left.up, left.down)
   const rightVertical = sumOf(right.up, right.down)
-  const vertical = leftVertical === undefined || rightVertical === undefined ? undefined : Math.max(leftVertical, rightVertical)
-  const overlap = sumOf(left.right, right.left)
-  return Object.fromEntries(
-    Object.entries({ horizontal, vertical, overlap }).filter(([, value]) => value !== undefined),
-  )
+  return definedOnly({
+    horizontal: sumOf(left.left, right.right),
+    vertical: leftVertical === undefined || rightVertical === undefined ? undefined : Math.max(leftVertical, rightVertical),
+    overlap: sumOf(left.right, right.left),
+  })
+}
+
+function bothEyeFigures({ measures, ceiling }: Submission): Figures {
+  const measured = bothEyeFiguresOf(measures)
+  if (ceiling.source !== 'measured') return measured
+  const renderedHorizontal = sumOf(ceiling.left.left, ceiling.right.right)
+  return definedOnly({
+    ...measured,
+    renderedHorizontal,
+    renderedOverlap: sumOf(ceiling.left.right, ceiling.right.left),
+    horizontalPastRendered: differenceOf(measured.horizontal, renderedHorizontal),
+    canting: ceiling.canting,
+  })
+}
+
+/** The figures a measure adds to its cell, and the site shows for a single measure. */
+export function figuresOf(submission: Submission): Figures {
+  return submission.tool === 'vrhp' ? perEyeFigures(submission) : bothEyeFigures(submission)
 }
 
 function cellOf(submissions: readonly Submission[]): CellStats {
   const accumulators = new Map<string, Accumulator>()
-  const addEye = (prefix: string, eye: EyeMeasure): void => {
-    for (const [direction, degrees] of Object.entries(eye)) accumulate(accumulators, `${prefix}${direction}`, degrees)
+  const add = (prefix: string, values: Readonly<Record<string, number>>): void => {
+    for (const [key, degrees] of Object.entries(values)) accumulate(accumulators, `${prefix}${key}`, degrees)
   }
   for (const submission of submissions) {
-    addEye('left:', submission.measures.left)
-    addEye('right:', submission.measures.right)
-    for (const [figure, degrees] of Object.entries(binocularOf(submission.measures))) {
-      accumulate(accumulators, `binocular:${figure}`, degrees)
+    add('left:', submission.measures.left)
+    add('right:', submission.measures.right)
+    add('figure:', figuresOf(submission))
+    if (submission.ceiling.source === 'measured') {
+      add('renderedLeft:', { ...submission.ceiling.left })
+      add('renderedRight:', { ...submission.ceiling.right })
     }
   }
-  return { left: statsOf(accumulators, 'left:'), right: statsOf(accumulators, 'right:'), binocular: statsOf(accumulators, 'binocular:') }
+  return {
+    left: statsOf(accumulators, 'left:'),
+    right: statsOf(accumulators, 'right:'),
+    figures: statsOf(accumulators, 'figure:'),
+    renderedLeft: statsOf(accumulators, 'renderedLeft:'),
+    renderedRight: statsOf(accumulators, 'renderedRight:'),
+  }
 }
 
 /** Rebuilt from all of a headset's pages on every change: a maximum cannot be taken back out. */

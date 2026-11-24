@@ -5,7 +5,7 @@
  * measure can be set beside them when it is of the same tool.
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue'
-import { columns, type CompareRow } from './compare/columns.ts'
+import { columnsFor, type CompareRow } from './compare/columns.ts'
 import CompareTable from './compare/CompareTable.vue'
 import { compareState, seriesSlotCount, slotOf, togglePick, withPick } from './compare/compareState.ts'
 import KeptMeasureCard from './compare/KeptMeasureCard.vue'
@@ -17,7 +17,6 @@ import { aggregateSeries, keptSeries, type RadarSeries } from '../components/rad
 import SegmentedControl from '../components/SegmentedControl.vue'
 import { combineCells, figuresOfCombined, figuresOfMeasure, type Combined } from '../lib/fovStats.ts'
 import { routeHref, type CompareView } from '../lib/hashRoute.ts'
-import { referenceConfigurationOf } from '../lib/headsets.ts'
 import { headsetsOf, loadAggregate, loadIndex, type Loaded } from '../lib/siteData.ts'
 import { toolNameOf, tools, type Tool } from '../lib/submission.ts'
 import type { Aggregate, DataIndex } from '../lib/submissionStore.ts'
@@ -88,7 +87,6 @@ const rows = computed<CompareRow[]>(() =>
       name: headsetName({ headset }),
       figures: headsetCombined === null ? null : figuresOfCombined(headsetCombined),
       total: loaded?.ok === true ? loaded.value.count : 0,
-      reference: referenceConfigurationOf(headset),
     }
   }),
 )
@@ -104,9 +102,8 @@ const keptRow = computed<CompareRow | null>(() => {
     key: 'kept',
     headset: kept.headset,
     name: headsetName(kept),
-    figures: figuresOfMeasure(kept.measures),
+    figures: figuresOfMeasure(kept),
     total: 1,
-    reference: referenceConfigurationOf(kept.headset),
   }
 })
 
@@ -120,13 +117,14 @@ const filterCounts = computed(() => {
   }
 })
 
-const widestColumn = columns.find((column) => column.id === 'highestHorizontal')
-
 /**
- * Opening the radar with nothing ticked shows the two widest headsets, so it never starts blank.
- * While another tool's figures load, the rows still belong to the previous tool, so it waits.
+ * Opening the radar with nothing ticked shows the two widest headsets, by the tool's first
+ * column, so it never starts blank. While another tool's figures load, the rows still belong to
+ * the previous tool, so it waits.
  */
 function pickWidestWhenEmpty(): void {
+  const tool = compareState.tool
+  const widestColumn = tool === null ? undefined : columnsFor(tool)[0]
   if (props.view !== 'radar' || !ready.value || compareState.picks.length > 0 || widestColumn === undefined) return
   const widest = rows.value
     .flatMap((row) => {
@@ -147,7 +145,6 @@ const radarSeries = computed<RadarSeries[]>(() => {
     return aggregateSeries({
       key: pick.key,
       name,
-      headset: pick.key,
       colour: pick.slot,
       combined: combined.value.get(pick.key) ?? null,
       statistic,
@@ -305,6 +302,7 @@ function togglePicked(headset: string): void {
         </p>
         <template v-else-if="view === 'table'">
           <CompareTable
+            :tool="compareState.tool"
             :rows="rows"
             :kept-row="keptRow"
           />

@@ -8,7 +8,8 @@
 import { reactive } from 'vue'
 import type { EyeMode, FilterChoices, Statistic } from '../../lib/fovStats.ts'
 import type { SceneName } from '../../lib/scene.ts'
-import type { Submission, Tool } from '../../lib/submission.ts'
+import { tools, type Submission, type Tool } from '../../lib/submission.ts'
+import { defaultColumnsFor, type CompareColumnId } from './columns.ts'
 
 /** Colours a chart can tell apart; a further series would have to repeat one. */
 export const seriesSlotCount = 8
@@ -34,43 +35,19 @@ export function togglePick(picks: readonly SeriesPick[], key: string, firstSlot 
 
 export const slotOf = (picks: readonly SeriesPick[], key: string): number | undefined => picks.find((pick) => pick.key === key)?.slot
 
-export const compareColumnIds = [
-  'highestHorizontal',
-  'highestVertical',
-  'diagonal',
-  'highestOverlap',
-  'overlapShare',
-  'count',
-  'meanHorizontal',
-  'sigmaHorizontal',
-  'meanVertical',
-  'sigmaVertical',
-  'meanOverlap',
-  'sigmaOverlap',
-  'renderedHorizontal',
-  'renderedGap',
-] as const
-export type CompareColumnId = (typeof compareColumnIds)[number]
-const defaultColumns: readonly CompareColumnId[] = [
-  'highestHorizontal',
-  'highestVertical',
-  'diagonal',
-  'highestOverlap',
-  'overlapShare',
-  'count',
-]
-
 interface CompareState {
   tool: Tool | null
   /** Headsets ticked on Compare. */
   picks: SeriesPick[]
   filters: FilterChoices
-  columns: CompareColumnId[]
+  /** Each tool has its own columns. */
+  columns: Record<Tool, CompareColumnId[]>
+  /** Falls back to the first shown column when the tool lacks this one. */
   sort: { column: CompareColumnId; descending: boolean }
   radar: {
     eye: EyeMode
     statistic: Statistic
-    showCeiling: boolean
+    showRendered: boolean
     view: 'shape' | 'see'
     scene: SceneName
     /** The series whose shape is the window in "what you see". */
@@ -89,9 +66,9 @@ function initialState(): CompareState {
     tool: null,
     picks: [],
     filters: { eyeDepth: [], noseBridge: [], tuning: [], gaze: [] },
-    columns: [...defaultColumns],
+    columns: Object.fromEntries(tools.map((tool) => [tool, defaultColumnsFor(tool)])) as Record<Tool, CompareColumnId[]>,
     sort: { column: 'highestHorizontal', descending: true },
-    radar: { eye: 'union', statistic: 'highest', showCeiling: true, view: 'shape', scene: 'room', through: null, enlarged: false },
+    radar: { eye: 'union', statistic: 'highest', showRendered: true, view: 'shape', scene: 'room', through: null, enlarged: false },
     kept: null,
     keptOnRadar: true,
     keptFromLink: null,

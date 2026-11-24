@@ -12,9 +12,8 @@
  * goes through the same checks as a fresh one.
  */
 
-import { catalogHeadset, maskedDiagonalOf, otherHeadset } from './headsets.ts'
+import { catalogHeadset, otherHeadset } from './headsets.ts'
 import {
-  cornerMaskFromLinkTotals,
   cornerMaskStates,
   directions,
   eyeDepths,
@@ -109,8 +108,6 @@ export type IssueFormResult =
 export interface ParseOptions {
   /** The fetched WIMFOV result page, when the issue gives a WIMFOV read-only link. */
   readonly wimfovPage?: string | undefined
-  /** The model's binocular diagonal with its corner mask, when known; the catalog's by default. */
-  readonly maskedDiagonalOf?: (headset: string) => number | undefined
 }
 
 const headingPattern = /^### (.*)$/
@@ -189,7 +186,7 @@ function edgesOf(value: unknown): EdgeAngles | null {
 }
 
 function ceilingOf(value: unknown): Ceiling | null {
-  if (value === null) return { source: 'model' }
+  if (value === null) return { source: 'none' }
   if (typeof value !== 'object' || Array.isArray(value)) return null
   const ceiling = new Map(Object.entries(value))
   const left = edgesOf(ceiling.get('left'))
@@ -209,12 +206,12 @@ interface DecodedMeasure {
 type MeasureResult = { readonly ok: true; readonly decoded: DecodedMeasure } | { readonly ok: false; readonly error: IssueError }
 
 const failure = (error: IssueError): MeasureResult => ({ ok: false, error })
-const modelCeiling = { ceiling: { source: 'model' }, cornerMask: 'unknown', reportedHeadset: '' } as const
+const noCeiling = { ceiling: { source: 'none' }, cornerMask: 'unknown', reportedHeadset: '' } as const
 
 function typedMeasure(object: ReadonlyMap<string, unknown>): MeasureResult {
   const measures = hasExactKeys(object, ['left', 'right']) ? eyesOf(object) : null
   if (measures === null) return failure('measure-invalid')
-  return { ok: true, decoded: { measures, ...modelCeiling, provenance: { input: 'typed', linkData: null } } }
+  return { ok: true, decoded: { measures, ...noCeiling, provenance: { input: 'typed', linkData: null } } }
 }
 
 function atlasMeasure(text: string): MeasureResult {
@@ -233,7 +230,7 @@ function atlasMeasure(text: string): MeasureResult {
   }
 }
 
-function vrhpMeasure(text: string, maskedDiagonal: number | undefined): MeasureResult {
+function vrhpMeasure(text: string): MeasureResult {
   if (text.startsWith('{')) {
     const object = jsonObject(text)
     return object === null ? failure('measure-invalid') : typedMeasure(object)
@@ -250,9 +247,8 @@ function vrhpMeasure(text: string, maskedDiagonal: number | undefined): MeasureR
     ok: true,
     decoded: {
       measures,
-      ...(rendered === null
-        ? { ceiling: { source: 'model' }, cornerMask: 'unknown' }
-        : { ceiling: { source: 'link', totals: rendered }, cornerMask: cornerMaskFromLinkTotals(rendered, maskedDiagonal) }),
+      ceiling: rendered === null ? { source: 'none' } : { source: 'link', totals: rendered },
+      cornerMask: 'unknown',
       provenance: { input: 'link', linkData: extractResultsParameter(text) },
       reportedHeadset: headsetName,
     },
@@ -265,7 +261,7 @@ function wimfovPastedMeasure(text: string): MeasureResult {
   if (object !== null && !object.has('points')) return typedMeasure(object)
   const pasted = parseWimfovPoints(text)
   if (!pasted.ok) return failure(pasted.error)
-  return { ok: true, decoded: { measures: pasted.measures, ...modelCeiling, provenance: { input: 'paste', linkData: null } } }
+  return { ok: true, decoded: { measures: pasted.measures, ...noCeiling, provenance: { input: 'paste', linkData: null } } }
 }
 
 function sameMeasures(first: EyeMeasures, second: EyeMeasures): boolean {
@@ -291,7 +287,7 @@ function wimfovMeasure(text: string, linkText: string, page: string | undefined)
     ok: true,
     decoded: {
       measures: fetched.measures,
-      ...modelCeiling,
+      ...noCeiling,
       provenance: { input: 'link', linkData: link.resultId },
       reportedHeadset: fetched.model,
     },
@@ -303,7 +299,7 @@ function testHmdMeasure(text: string): MeasureResult {
   if (object === null || !hasExactKeys(object, ['horizontal', 'vertical'])) return failure('measure-invalid')
   const result = testHmdMeasures(object.get('horizontal'), object.get('vertical'))
   if (!result.ok) return failure(result.error)
-  return { ok: true, decoded: { measures: result.measures, ...modelCeiling, provenance: { input: 'typed', linkData: null } } }
+  return { ok: true, decoded: { measures: result.measures, ...noCeiling, provenance: { input: 'typed', linkData: null } } }
 }
 
 function decodeMeasure(tool: Tool, fields: IssueFields, options: ParseOptions): MeasureResult {
@@ -313,7 +309,7 @@ function decodeMeasure(tool: Tool, fields: IssueFields, options: ParseOptions): 
   if (tool === 'wimfov') return wimfovMeasure(text, fields['wimfov-link'], options.wimfovPage)
   if (text === '') return failure('measure-missing')
   if (tool === 'atlas') return atlasMeasure(text)
-  if (tool === 'vrhp') return vrhpMeasure(text, (options.maskedDiagonalOf ?? maskedDiagonalOf)(fields.headset))
+  if (tool === 'vrhp') return vrhpMeasure(text)
   return testHmdMeasure(text)
 }
 

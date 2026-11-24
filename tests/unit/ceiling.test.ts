@@ -1,50 +1,86 @@
 import { describe, expect, it } from 'vitest'
-import { ceilingWords, cornerMaskWords, measureCeiling, modelCeiling } from '../../src/lib/ceiling'
-import { atlasBeyond, vrhpBeyond, vrhpIndex, wimfovBeyond } from './siteFixtures'
+import {
+  ceilingWords,
+  cornerMaskWords,
+  drawsRenderedOutline,
+  pictureOutline,
+  renderedFrameOf,
+  type OutlinePoint,
+} from '../../src/lib/ceiling'
+import { tools } from '../../src/lib/submission'
+import { atlasBeyond, testHmdQuest, vrhpBeyond, vrhpIndex, wimfovBeyond } from './siteFixtures'
 
-describe('modelCeiling', () => {
-  it('splits the model’s totals over both eyes as mirror images', () => {
-    expect(modelCeiling('bigscreen-beyond-2e')).toEqual({
-      source: 'model',
-      edges: { left: { left: 54.61, right: 42.27 }, right: { left: 42.27, right: 54.61 } },
-    })
-  })
-  it('has nothing for a model without a single reference', () => {
-    expect(modelCeiling('apple-vision-pro')).toBeUndefined()
-    expect(modelCeiling('pimax-5k-plus')).toBeUndefined()
+const quarterTurn = Math.PI / 2
+/** The outline point nearest a turn, as the radar would draw it on that spoke. */
+function pointNear(points: readonly OutlinePoint[], turn: number): OutlinePoint | undefined {
+  const distance = (point: OutlinePoint): number => Math.abs(Math.atan2(Math.sin(point.turn - turn), Math.cos(point.turn - turn)))
+  return [...points].sort((first, second) => distance(first) - distance(second))[0]
+}
+
+describe('drawsRenderedOutline', () => {
+  it('draws an outline for FOV Atlas only', () => {
+    expect(tools.filter(drawsRenderedOutline)).toEqual(['atlas'])
   })
 })
 
-describe('measureCeiling', () => {
-  it('uses the edges read while measuring', () => {
-    expect(measureCeiling(atlasBeyond)?.edges.left).toEqual({ left: 55, right: 42, up: 44.2, down: 54 })
-    expect(measureCeiling(atlasBeyond)?.source).toBe('measured')
-  })
-  it('splits a link’s totals', () => {
-    expect(measureCeiling(vrhpBeyond)).toEqual({
-      source: 'link',
-      edges: { left: { left: 54.62, right: 42.165 }, right: { left: 42.165, right: 54.62 } },
+describe('renderedFrameOf', () => {
+  it('takes the edges read while measuring', () => {
+    expect(renderedFrameOf(atlasBeyond)).toEqual({
+      left: { left: 55, right: 42, up: 44.2, down: 54 },
+      right: { left: 42, right: 55, up: 44.2, down: 54 },
+      canting: 0,
     })
   })
-  it('falls back to the model’s reference', () => {
-    expect(measureCeiling(vrhpIndex)?.source).toBe('model')
-    expect(measureCeiling(wimfovBeyond)?.source).toBe('model')
-    expect(measureCeiling({ ...wimfovBeyond, headset: 'apple-vision-pro' })).toBeUndefined()
+  it('has none for a link’s totals or a tool without a report', () => {
+    expect(renderedFrameOf(vrhpBeyond)).toBeUndefined()
+    expect(renderedFrameOf(wimfovBeyond)).toBeUndefined()
+  })
+})
+
+describe('pictureOutline', () => {
+  const square = { left: 45, right: 45, up: 45, down: 45 }
+
+  it('passes through each edge on its spoke and bends out toward the corners', () => {
+    const points = pictureOutline(square, 0, 'left') ?? []
+    expect(points).toHaveLength(64)
+    expect(pointNear(points, 0)?.degrees).toBeCloseTo(45)
+    expect(pointNear(points, quarterTurn)?.degrees).toBeCloseTo(45)
+    expect(pointNear(points, Math.PI)?.degrees).toBeCloseTo(45)
+    expect(pointNear(points, -quarterTurn)?.degrees).toBeCloseTo(45)
+    expect(Math.max(...points.map((point) => point.degrees))).toBeCloseTo((Math.atan(Math.SQRT2) * 180) / Math.PI)
+  })
+
+  it('keeps the stored edges of a picture turned outward', () => {
+    const edges = { left: 70, right: 30, up: 48, down: 48 }
+    const left = pictureOutline(edges, 15, 'left') ?? []
+    expect(pointNear(left, quarterTurn)?.degrees).toBeCloseTo(70)
+    expect(pointNear(left, -quarterTurn)?.degrees).toBeCloseTo(30)
+    expect(pointNear(left, 0)?.degrees).toBeCloseTo(48, 0)
+    const right = pictureOutline({ ...edges, left: 30, right: 70 }, 15, 'right') ?? []
+    expect(pointNear(right, -quarterTurn)?.degrees).toBeCloseTo(70)
+    expect(pointNear(right, quarterTurn)?.degrees).toBeCloseTo(30)
+    expect(Math.max(...right.map((point) => point.degrees))).toBeLessThan(180)
+  })
+
+  it.each([
+    ['an edge at a right angle from the picture’s centre', { ...square, up: 90 }, 0],
+    ['an outer edge past what a flat picture reaches', { ...square, left: 120 }, 10],
+    ['edges that leave no picture', { ...square, left: 10, right: -20 }, 0],
+    ['a top below the bottom', { ...square, up: -50 }, 0],
+  ])('refuses %s', (_description, edges, canting) => {
+    expect(pictureOutline(edges, canting, 'left')).toBeNull()
   })
 })
 
 describe('words', () => {
-  it('names where the ceiling comes from and its corner variant', () => {
+  it('names where the rendered field of view comes from', () => {
     expect(ceilingWords(atlasBeyond)).toBe('Read while measuring')
     expect(ceilingWords(vrhpBeyond)).toBe('From the tool’s link')
-    expect(ceilingWords({ ...wimfovBeyond, headset: 'apple-vision-pro' })).toBe('No model reference')
-    expect(ceilingWords(wimfovBeyond)).toBe('Model reference from the Beyond 2e (same lenses and panels), full frame')
-    expect(ceilingWords(vrhpIndex)).toBe('Model reference, full frame')
-    expect(ceilingWords({ ...vrhpIndex, cornerMask: 'on' })).toBe('Model reference, with corner mask')
+    expect(ceilingWords(vrhpIndex)).toBe('Not reported')
+    expect(ceilingWords(testHmdQuest)).toBe('Not reported')
   })
   it('says what is known of the corner mask, never asking', () => {
     expect(cornerMaskWords(atlasBeyond)).toBe('corner mask detected')
-    expect(cornerMaskWords({ ...vrhpBeyond, cornerMask: 'off-probably' })).toBe('corner mask probably off')
     expect(cornerMaskWords({ ...atlasBeyond, cornerMask: 'unknown' })).toBe('corner mask not reported')
     expect(cornerMaskWords(vrhpBeyond)).toBe('corner mask unknown')
   })

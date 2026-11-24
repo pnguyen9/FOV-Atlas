@@ -6,11 +6,11 @@
 import { computed, useId } from 'vue'
 import { largestAngle } from '../../lib/fovStats.ts'
 import {
-  ceilingTicks,
   plotRadius,
   radarHalfSize,
   radialScale,
   reachOf,
+  outlinePath,
   ringsOf,
   shapePath,
   shapePoints,
@@ -18,11 +18,11 @@ import {
 } from '../../lib/radarGeometry.ts'
 import { sceneOf, sceneShapes, type SceneName } from '../../lib/scene.ts'
 import type { EyeMeasure } from '../../lib/submission.ts'
-import type { ChartCeiling, ChartCurve } from './radarSeries.ts'
+import type { ChartCurve, ChartOutline } from './radarSeries.ts'
 
 const props = defineProps<{
   readonly curves: readonly ChartCurve[]
-  readonly ceilings: readonly ChartCeiling[]
+  readonly outlines: readonly ChartOutline[]
   readonly scene: SceneName | null
   /** The shape the scene is seen through; the scene is drawn only with one. */
   readonly window: EyeMeasure | null
@@ -33,9 +33,10 @@ const props = defineProps<{
 const clipId = useId()
 const skyId = useId()
 
-const reach = computed(() =>
-  reachOf(largestAngle([...props.curves.map((curve) => curve.shape), ...props.ceilings.map((ceiling) => ceiling.edges)])),
-)
+const reach = computed(() => {
+  const outlineDegrees = props.outlines.flatMap(({ outlines }) => outlines.flatMap((points) => points.map(({ degrees }) => degrees)))
+  return reachOf(Math.max(largestAngle(props.curves.map((curve) => curve.shape)), ...outlineDegrees))
+})
 const scale = computed(() => radialScale(reach.value))
 const rings = computed(() => ringsOf(reach.value, scale.value))
 const spokes = spokesOf()
@@ -43,8 +44,8 @@ const spokes = spokesOf()
 const drawnCurves = computed(() =>
   props.curves.map((curve) => ({ ...curve, path: shapePath(curve.shape, scale.value), points: shapePoints(curve.shape, scale.value) })),
 )
-const drawnCeilings = computed(() =>
-  props.ceilings.map((ceiling) => ({ ...ceiling, ticks: ceilingTicks(ceiling.edges, scale.value) })),
+const drawnOutlines = computed(() =>
+  props.outlines.map((outline) => ({ ...outline, paths: outline.outlines.map((points) => outlinePath(points, scale.value)) })),
 )
 
 const sceneView = computed(() => {
@@ -165,21 +166,16 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
       >{{ spoke.direction }}</text>
     </g>
     <g
-      v-for="ceiling in drawnCeilings"
-      :key="`ceiling-${ceiling.key}`"
-      class="ceiling"
-      :class="ceiling.colourClass"
+      v-for="outline in drawnOutlines"
+      :key="`rendered-${outline.key}`"
+      class="rendered"
+      :class="outline.colourClass"
     >
-      <line
-        v-for="tick in ceiling.ticks"
-        :key="tick.direction"
-        :x1="tick.start.screenX"
-        :y1="tick.start.screenY"
-        :x2="tick.end.screenX"
-        :y2="tick.end.screenY"
-      >
-        <title>Rendered ceiling, {{ tick.direction }}: {{ tick.degrees.toFixed(1) }}°</title>
-      </line>
+      <path
+        v-for="(path, pathIndex) in outline.paths"
+        :key="pathIndex"
+        :d="path"
+      />
     </g>
     <g
       v-for="curve in drawnCurves"
@@ -270,11 +266,13 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
   stroke: var(--surface);
   stroke-width: 2;
 }
-.ceiling line {
+.rendered path {
+  fill: none;
   stroke: var(--series);
-  stroke-width: 3;
+  stroke-width: 1.6;
+  stroke-dasharray: 1.5 4;
   stroke-linecap: round;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 .both-eyes {
   fill: none;

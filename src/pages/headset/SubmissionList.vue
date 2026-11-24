@@ -10,10 +10,45 @@ import { formatDegrees, gazeLabelOf, tuningLabelOf } from '../../components/meas
 import { ceilingWords, cornerMaskWords } from '../../lib/ceiling.ts'
 import { figuresOfMeasure } from '../../lib/fovStats.ts'
 import { issueUrl } from '../../lib/issueForm.ts'
-import { tuningOf } from '../../lib/submissionStore.ts'
+import type { Tool } from '../../lib/submission.ts'
+import { tuningOf, type FigureName } from '../../lib/submissionStore.ts'
 import type { ListedEntry } from './listedEntry.ts'
 
+interface FigureColumn {
+  readonly label: string
+  readonly title: string
+  readonly figure: FigureName
+  /** Gaps are stored as measured minus rendered and shown the other way round. */
+  readonly gap?: boolean
+}
+
+const bothEyes: readonly FigureColumn[] = [
+  { label: 'Horiz.', title: 'Horizontal, both eyes', figure: 'horizontal' },
+  { label: 'Vert.', title: 'Vertical, the taller eye', figure: 'vertical' },
+  { label: 'Overlap', title: 'Width both eyes see at once', figure: 'overlap' },
+]
+const figureColumns: ReadonlyMap<Tool, readonly FigureColumn[]> = new Map([
+  [
+    'atlas',
+    [...bothEyes, { label: 'Gap', title: 'Rendered horizontal of this headset minus the horizontal measured', figure: 'horizontalPastRendered', gap: true }],
+  ],
+  ['wimfov', bothEyes],
+  ['testhmd', bothEyes.slice(0, 2)],
+  [
+    'vrhp',
+    [
+      { label: 'Width L', title: 'Width of the left eye', figure: 'leftWidth' },
+      { label: 'Width R', title: 'Width of the right eye', figure: 'rightWidth' },
+      { label: 'Height L', title: 'Height of the left eye', figure: 'leftHeight' },
+      { label: 'Height R', title: 'Height of the right eye', figure: 'rightHeight' },
+      { label: 'Gap L', title: 'Width of the left eye’s picture, as the link reports it, minus the width measured', figure: 'leftWidthPastRendered', gap: true },
+      { label: 'Gap R', title: 'Width of the right eye’s picture, as the link reports it, minus the width measured', figure: 'rightWidthPastRendered', gap: true },
+    ],
+  ],
+])
+
 const props = defineProps<{
+  readonly tool: Tool
   readonly entries: readonly ListedEntry[]
   /** The colour slot of each ticked measure, by issue. */
   readonly slots: ReadonlyMap<number, number>
@@ -21,14 +56,22 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ toggle: [issue: number] }>()
 
+const columns = computed(() => figureColumns.get(props.tool) ?? [])
+
 const rows = computed(() =>
-  props.entries.map(({ issue, entry }) => ({
-    issue,
-    entry,
-    figures: figuresOfMeasure(entry.submission.measures),
-    eyeDepth: eyeDepthOptions.find((option) => option.value === entry.submission.face.eyeDepth),
-    noseBridge: noseBridgeOptions.find((option) => option.value === entry.submission.face.noseBridge),
-  })),
+  props.entries.map(({ issue, entry }) => {
+    const summaries = new Map(Object.entries(figuresOfMeasure(entry.submission).summaries))
+    return {
+      issue,
+      entry,
+      figures: columns.value.map(({ figure, gap }) => {
+        const value = summaries.get(figure)?.mean
+        return formatDegrees(gap === true && value !== undefined ? -value : value)
+      }),
+      eyeDepth: eyeDepthOptions.find((option) => option.value === entry.submission.face.eyeDepth),
+      noseBridge: noseBridgeOptions.find((option) => option.value === entry.submission.face.noseBridge),
+    }
+  }),
 )
 </script>
 
@@ -76,20 +119,19 @@ const rows = computed(() =>
           <th scope="col">
             IPD
           </th>
-          <th scope="col">
-            Horiz.
-          </th>
-          <th scope="col">
-            Vert.
-          </th>
-          <th scope="col">
-            Overlap
+          <th
+            v-for="column in columns"
+            :key="column.figure"
+            scope="col"
+            :title="column.title"
+          >
+            {{ column.label }}
           </th>
           <th
             class="text-cell"
             scope="col"
           >
-            Rendered ceiling
+            Rendered
           </th>
           <th
             class="text-cell"
@@ -152,9 +194,12 @@ const rows = computed(() =>
             {{ gazeLabelOf(entry.submission.gaze) }}
           </td>
           <td>{{ entry.submission.ipd === null ? '—' : `${entry.submission.ipd} mm` }}</td>
-          <td>{{ formatDegrees(figures.horizontal?.highest) }}</td>
-          <td>{{ formatDegrees(figures.vertical?.highest) }}</td>
-          <td>{{ formatDegrees(figures.overlap?.highest) }}</td>
+          <td
+            v-for="(figure, figureIndex) in figures"
+            :key="figureIndex"
+          >
+            {{ figure }}
+          </td>
           <td class="text-cell">
             {{ ceilingWords(entry.submission) }}<span class="tag">{{ cornerMaskWords(entry.submission) }}</span>
           </td>

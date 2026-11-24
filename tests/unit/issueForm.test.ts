@@ -88,7 +88,7 @@ describe('round trips through the issue body', () => {
 
   it.each([
     ['FOV Atlas, measured', atlasSubmission],
-    ['FOV Atlas, typed', { ...atlasSubmission, ceiling: { source: 'model' }, cornerMask: 'unknown', provenance: { input: 'typed', linkData: null } } as const],
+    ['FOV Atlas, typed', { ...atlasSubmission, ceiling: { source: 'none' }, cornerMask: 'unknown', provenance: { input: 'typed', linkData: null } } as const],
     ['TestHMD', testHmdSubmission],
     ['a VR Headset Picker link', vrhpFromLink],
     ['typed VR Headset Picker values', parsed(fieldsWith({ tool: 'vrhp', measure: typedEyes }))],
@@ -110,19 +110,9 @@ describe('round trips through the issue body', () => {
     expect(vrhpFromLink.cornerMask).toBe('unknown')
   })
 
-  it('infers the corner mask from the link when the model figure is known', () => {
-    const submission = parsed(fieldsWith({ tool: 'vrhp', measure: vrhpShareLink }), { maskedDiagonalOf: () => 114.3 })
-    expect(submission.cornerMask).toBe('off-probably')
-  })
-
-  it('takes the model figure from the hmdgdb records by default', () => {
-    const submission = parsed(fieldsWith({ tool: 'vrhp', headset: 'valve-index', measure: vrhpShareLink }))
-    expect(submission.cornerMask).toBe('off-probably')
-  })
-
-  it('falls back to the model ceiling when the link has no totals', () => {
-    const submission = parsed(fieldsWith({ tool: 'vrhp', measure: encodeVrhpPayload({ totals: null }) }), { maskedDiagonalOf: () => 114.3 })
-    expect([submission.ceiling, submission.cornerMask]).toEqual([{ source: 'model' }, 'unknown'])
+  it('carries no rendered field of view when the link has no totals', () => {
+    const submission = parsed(fieldsWith({ tool: 'vrhp', measure: encodeVrhpPayload({ totals: null }) }))
+    expect([submission.ceiling, submission.cornerMask]).toEqual([{ source: 'none' }, 'unknown'])
   })
 
   it('records how WIMFOV values arrived', () => {

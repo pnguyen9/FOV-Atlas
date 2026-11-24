@@ -1,12 +1,13 @@
 <script setup lang="ts">
 /**
  * The shape of one measure, both eyes drawn over each other as the wearer sees them, with the
- * binocular figures the site shows for a single measure. Angles are plotted at their distance
- * from the centre, straight ahead, up at the top and the wearer's left on the left.
+ * figures of both eyes the site shows for a single measure, for tools whose angles all start
+ * straight ahead of the head. Angles are plotted at their distance from the centre, straight
+ * ahead, up at the top and the wearer's left on the left.
  */
 import { computed } from 'vue'
 import { radialScale, shapePoints } from '../lib/radarGeometry.ts'
-import { binocularOf } from '../lib/submissionStore.ts'
+import { bothEyeFiguresOf } from '../lib/submissionStore.ts'
 import type { EyeMeasure, EyeMeasures } from '../lib/submission.ts'
 
 const props = defineProps<{ readonly measures: EyeMeasures }>()
@@ -34,7 +35,7 @@ const outline = (eye: EyeMeasure): string =>
 
 const outlines = computed(() => ({ left: outline(props.measures.left), right: outline(props.measures.right) }))
 const figures = computed(() => {
-  const binocular = binocularOf(props.measures)
+  const binocular = bothEyeFiguresOf(props.measures)
   return [
     { label: 'Horizontal', value: binocular.horizontal },
     { label: 'Vertical', value: binocular.vertical },

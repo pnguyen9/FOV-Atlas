@@ -98,7 +98,7 @@ export const testHmdSubmission: Submission = {
   ...atlasSubmission,
   tool: 'testhmd',
   measures: { left: { left: 52.25, up: 47.5, down: 47.5 }, right: { right: 52.25, up: 47.5, down: 47.5 } },
-  ceiling: { source: 'model' },
+  ceiling: { source: 'none' },
   cornerMask: 'unknown',
   provenance: { input: 'typed', linkData: null },
 }

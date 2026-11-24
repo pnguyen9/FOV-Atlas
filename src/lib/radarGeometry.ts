@@ -6,7 +6,8 @@
  */
 
 import { scaleLinear, type ScaleLinear } from 'd3-scale'
-import { curveCatmullRomClosed, lineRadial } from 'd3-shape'
+import { curveCatmullRomClosed, curveLinearClosed, lineRadial } from 'd3-shape'
+import type { OutlinePoint } from './ceiling.ts'
 import { directions, maximumRadialDegrees, principalDirections, type Direction, type EyeMeasure } from './submission.ts'
 
 export const radarHalfSize = 260
@@ -14,7 +15,6 @@ export const plotRadius = 210
 export const ringStepDegrees = 10
 /** The smallest reach drawn, so that narrow headsets still show their proportions. */
 const minimumReachDegrees = 70
-const tickHalfLength = 11
 const labelGap = 18
 
 export type RadialScale = ScaleLinear<number, number>
@@ -69,27 +69,14 @@ export function shapePoints(shape: EyeMeasure, scale: RadialScale): ShapePoint[]
   return entriesOf(shape).map(([direction, degrees]) => ({ direction, degrees, ...screenPoint(turnOf(direction), scale(degrees)) }))
 }
 
-export interface Tick {
-  readonly direction: Direction
-  readonly degrees: number
-  readonly start: ScreenPoint
-  readonly end: ScreenPoint
-}
-
-/** A short mark across the spoke at each angle given, for the rendered ceiling's edges. */
-export function ceilingTicks(edges: EyeMeasure, scale: RadialScale): Tick[] {
-  return entriesOf(edges).map(([direction, degrees]) => {
-    const turn = turnOf(direction)
-    const centre = screenPoint(turn, scale(degrees))
-    const alongX = Math.cos(turn) * tickHalfLength
-    const alongY = -Math.sin(turn) * tickHalfLength
-    return {
-      direction,
-      degrees,
-      start: { screenX: centre.screenX - alongX, screenY: centre.screenY - alongY },
-      end: { screenX: centre.screenX + alongX, screenY: centre.screenY + alongY },
-    }
-  })
+/** A closed outline through points given by turn and angle, for a rendered picture's border. */
+export function outlinePath(points: readonly OutlinePoint[], scale: RadialScale): string {
+  if (points.length < 2) return ''
+  const line = lineRadial<OutlinePoint>()
+    .angle(({ turn }) => -turn)
+    .radius(({ degrees }) => scale(degrees))
+    .curve(curveLinearClosed)
+  return line([...points]) ?? ''
 }
 
 export interface Ring {

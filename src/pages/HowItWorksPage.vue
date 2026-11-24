@@ -32,13 +32,8 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
           target="_blank"
           rel="noopener noreferrer"
         >hmdq</a> reads what a
-        headset draws (there's a
-        <a
-          href="https://risa2000.github.io/hmdgdb/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >database</a> of its
-        results). Nobody sees more than that, and what reaches the eyes is usually less.
+        headset reports it draws: its rendered field of view. Nobody sees more than that, and what reaches the eyes is
+        usually less.
       </li>
       <li>
         <b>The tools disagree.</b> Each measuring tool decides differently when you've reached the edge, so the same
@@ -118,18 +113,32 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
       <li><b>Horizontal</b>: from the far left the left eye sees to the far right the right eye sees.</li>
       <li><b>Vertical</b>: from top to bottom, for the eye that sees more.</li>
       <li><b>Overlap</b>: the part both eyes see at once. That's where things look 3D.</li>
+      <li>
+        <b>Width and height of each eye</b>: VR Headset Picker measures each eye from the centre of that eye's picture,
+        not from straight ahead. Some headsets turn each eye's picture outward, and then a left eye's angle and a right
+        eye's angle don't start from the same place, so its figures are given for each eye on its own.
+      </li>
     </ul>
 
     <h2>What the headset draws</h2>
     <p>
-      Next to the measures, a dotted line shows what the headset draws. Nobody can see past it, so it's the most
-      anyone can get. A VR Headset Picker link carries the headset's own figures; otherwise the line is the reference
-      for that headset model.
+      Each measure is set against the rendered field of view of the headset it was taken with: what that headset
+      reports it draws. Nobody can see past it, so it's the most anyone can get with that headset and its settings.
     </p>
+    <ul>
+      <li>
+        <b>FOV Atlas</b> reads it while you measure. The radar draws it as a dotted outline around each eye's picture.
+      </li>
+      <li>
+        <b>VR Headset Picker</b> links carry it too. Each eye's width and height are set against that same eye's
+        picture, and the horizontal and overlap of both eyes are shown exactly as the link gives them.
+      </li>
+      <li><b>WIMFOV and TestHMD</b> measure in their own way, so their measures aren't set against it.</li>
+    </ul>
 
     <h2>Driver tuning</h2>
     <p>
-      Driver settings change how much the headset draws: they move that dotted line, the ceiling. They never change
+      Driver settings change how much the headset draws: they change its rendered field of view. They never change
       how the headset fits a face. Only the shape of the face, the facial interface and its cushion change how close
       the eyes sit to the lenses.
     </p>
@@ -200,18 +209,13 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
           The headset list follows VR Headset Picker's names for each model, so its links can preselect the headset.
         </li>
         <li>
-          What each headset draws comes from the
+          The rendered field of view, what a headset itself reports it draws for each eye, is defined as in
           <a
-            href="https://risa2000.github.io/hmdgdb/"
+            href="https://github.com/risa2000/hmdq"
             target="_blank"
             rel="noopener noreferrer"
-          >HMD Geometry Database</a>,
-          hmdq and hmdgdb by Richard Musil, shared under
-          <a
-            href="https://creativecommons.org/licenses/by-sa/4.0/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >CC BY-SA 4.0</a>.
+          >hmdq</a>
+          by Richard Musil.
         </li>
       </ul>
     </section>

@@ -132,7 +132,14 @@ describe('loadPage', () => {
 
 describe('parseAggregate', () => {
   const stat = { count: 2, sum: 100, sumsq: 5000, max: 52 }
-  const cell = { left: { up: stat }, right: { 'up-right': stat }, binocular: { horizontal: { count: 2, sum: 200, sumsq: 20000, max: 101 } } }
+  const cell = {
+    left: { up: stat },
+    right: { 'up-right': stat },
+    figures: { horizontal: { count: 2, sum: 200, sumsq: 20000, max: 101 }, leftWidthPastRendered: { count: 2, sum: -3, sumsq: 5, max: -1 } },
+    renderedLeft: { left: stat },
+    renderedRight: {},
+  }
+  const withFigures = (figures: unknown): unknown => ({ ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, figures } } })
   const valid = { version: 1, tool: 'vrhp', headset: 'htc-vive', count: 2, cells: { 'deep-set|low|stock|fixed': cell } }
   const parse = (value: unknown): unknown => parseAggregate(JSON.stringify(value), 'vrhp', 'htc-vive')
 
@@ -158,9 +165,12 @@ describe('parseAggregate', () => {
     ['a cell key with an unknown value', { ...valid, cells: { 'deep-set|flat|stock|fixed': cell } }],
     ['a cell that is not an object', { ...valid, cells: { 'deep-set|low|stock|fixed': null } }],
     ['a cell with an extra group', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, extra: {} } } }],
-    ['a cell missing a group', { ...valid, cells: { 'deep-set|low|stock|fixed': { left: {}, right: {}, other: {} } } }],
+    ['a cell missing a group', { ...valid, cells: { 'deep-set|low|stock|fixed': { left: {}, right: {}, figures: {}, renderedLeft: {}, other: {} } } }],
     ['an unknown direction', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { sideways: stat } } } }],
-    ['an unknown binocular figure', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, binocular: { diagonal: stat } } } }],
+    ['an unknown figure', withFigures({ diagonal: stat })],
+    ['a negative figure that is never below zero', withFigures({ horizontal: { ...stat, sum: -1 } })],
+    ['a gap past a full turn below zero', withFigures({ leftWidthPastRendered: { ...stat, max: -400 } })],
+    ['an unknown rendered edge', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, renderedRight: { 'up-left': stat } } } }],
     ['a stat with an extra field', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, mean: 50 } } } } }],
     ['a stat that is not an object', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: 5 } } } }],
     ['a zero count', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, count: 0 } } } } }],

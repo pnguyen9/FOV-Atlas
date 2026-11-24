@@ -56,9 +56,9 @@ describe('measure text', () => {
     ['an unknown direction', fileOf(changed({ measures: { left: { sideways: 40 }, right: {} } })), 'shape-invalid'],
     ['an angle that is not a number', fileOf(changed({ measures: { left: { up: '40' }, right: {} } })), 'shape-invalid'],
     ['an eye that is not an object', fileOf(changed({ measures: { left: [], right: {} } })), 'shape-invalid'],
-    ['a ceiling that is not an object', fileOf(changed({ ceiling: 'model' })), 'shape-invalid'],
+    ['a ceiling that is not an object', fileOf(changed({ ceiling: 'none' })), 'shape-invalid'],
     ['an unknown ceiling source', fileOf(changed({ ceiling: { source: 'guess' } })), 'shape-invalid'],
-    ['a model ceiling with extra fields', fileOf(changed({ ceiling: { source: 'model', totals: {} } })), 'shape-invalid'],
+    ['a ceiling of none with extra fields', fileOf(changed({ ceiling: { source: 'none', totals: {} } })), 'shape-invalid'],
     [
       'measured edges missing one',
       fileOf(changed({ ceiling: { source: 'measured', left: { left: 1, right: 1, up: 1 }, right: { left: 1, right: 1, up: 1, down: 1 }, canting: 0 } })),

@@ -2,9 +2,8 @@
  * The headset models a measure can be filed under, grouped by brand.
  *
  * Ids follow VR Headset Picker's wherever it lists the model: its share links carry the id of the
- * headset picked there, which then selects the same model here. Models it lacks, such as those
- * recorded in the hmdq HMD Geometry Database, get slugs in the same style. An id is never changed
- * or reused once measures are stored under it.
+ * headset picked there, which then selects the same model here. Models it lacks get slugs in the
+ * same style. An id is never changed or reused once measures are stored under it.
  */
 
 export interface Headset {
@@ -12,26 +11,14 @@ export interface Headset {
   readonly id: string
   readonly brand: string
   readonly name: string
-  /**
-   * A model hmdgdb doesn't record but that renders like one it does: its rendered reference is
-   * taken from that model, and the page says so with the reason.
-   */
-  readonly referenceBorrowedFrom?: { readonly headset: string; readonly reason: string }
 }
 
 export const headsets: readonly Headset[] = [
   { id: 'apple-vision-pro', brand: 'Apple', name: 'Apple Vision Pro' },
 
   { id: 'bigscreen-beyond', brand: 'Bigscreen', name: 'Bigscreen Beyond' },
-  {
-    id: 'bigscreen-beyond-2',
-    brand: 'Bigscreen',
-    name: 'Bigscreen Beyond 2',
-    referenceBorrowedFrom: { headset: 'bigscreen-beyond-2e', reason: 'same lenses and panels' },
-  },
+  { id: 'bigscreen-beyond-2', brand: 'Bigscreen', name: 'Bigscreen Beyond 2' },
   { id: 'bigscreen-beyond-2e', brand: 'Bigscreen', name: 'Bigscreen Beyond 2e' },
-
-  { id: 'dpvr-e4', brand: 'DPVR', name: 'DPVR E4' },
 
   { id: 'hp-reverb', brand: 'HP', name: 'HP Reverb' },
   { id: 'hp-reverb-g2', brand: 'HP', name: 'HP Reverb G2' },
@@ -45,8 +32,6 @@ export const headsets: readonly Headset[] = [
   { id: 'vive-xr-elite', brand: 'HTC', name: 'VIVE XR Elite' },
   { id: 'vive-flow', brand: 'HTC', name: 'VIVE Flow' },
 
-  { id: 'lenovo-explorer', brand: 'Lenovo', name: 'Lenovo Explorer' },
-
   { id: 'meta-quest-2', brand: 'Meta', name: 'Meta Quest 2' },
   { id: 'meta-quest-3', brand: 'Meta', name: 'Meta Quest 3' },
   { id: 'meta-quest-3s', brand: 'Meta', name: 'Meta Quest 3S' },
@@ -59,14 +44,11 @@ export const headsets: readonly Headset[] = [
   { id: 'oculus-go', brand: 'Oculus', name: 'Oculus Go' },
   { id: 'oculus-quest', brand: 'Oculus', name: 'Oculus Quest' },
 
-  { id: 'pico-neo-2', brand: 'PICO', name: 'Pico Neo 2' },
-  { id: 'pico-neo-3', brand: 'PICO', name: 'Pico Neo 3' },
   { id: 'pico-4', brand: 'PICO', name: 'PICO 4' },
   { id: 'pico-4-ultra', brand: 'PICO', name: 'PICO 4 Ultra' },
 
   { id: 'pimax-5k-plus', brand: 'Pimax', name: 'Pimax 5K Plus' },
   { id: 'pimax-8k', brand: 'Pimax', name: 'Pimax 8K' },
-  { id: 'pimax-artisan', brand: 'Pimax', name: 'Pimax Artisan' },
   { id: 'pimax-vision-5k-super', brand: 'Pimax', name: 'Pimax Vision 5K Super' },
   { id: 'pimax-vision-8k-plus', brand: 'Pimax', name: 'Pimax Vision 8K Plus' },
   { id: 'pimax-vision-8k-x', brand: 'Pimax', name: 'Pimax Vision 8K X' },
@@ -83,7 +65,6 @@ export const headsets: readonly Headset[] = [
 
   { id: 'play-for-dream-mr', brand: 'Play For Dream', name: 'Play For Dream MR' },
 
-  { id: 'samsung-odyssey-plus', brand: 'Samsung', name: 'Samsung HMD Odyssey+' },
   { id: 'samsung-galaxy-xr', brand: 'Samsung', name: 'Samsung Galaxy XR' },
 
   { id: 'meganex-superlight-8k', brand: 'Shiftall', name: 'MeganeX superlight 8K' },
@@ -95,8 +76,6 @@ export const headsets: readonly Headset[] = [
 
   { id: 'playstation-vr', brand: 'Sony', name: 'PlayStation VR' },
   { id: 'playstation-vr2', brand: 'Sony', name: 'PlayStation VR2' },
-
-  { id: 'starvr-one', brand: 'StarVR', name: 'StarVR One' },
 
   { id: 'valve-index', brand: 'Valve', name: 'Valve Index' },
   { id: 'valve-steam-frame', brand: 'Valve', name: 'Steam Frame' },

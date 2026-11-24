@@ -8,6 +8,7 @@ import {
   figuresOfCombined,
   figuresOfMeasure,
   largestAngle,
+  renderedFrameOfCombined,
   shapeOf,
   submissionMatches,
   summarize,
@@ -15,7 +16,7 @@ import {
 import type { Filters } from '../../src/lib/fovStats'
 import { aggregatePages, emptyPage, withEntry, type Page } from '../../src/lib/submissionStore'
 import type { Submission } from '../../src/lib/submission'
-import { testHmdQuest, vrhpBeyond, vrhpBeyondDeepSet, vrhpBeyondThird } from './siteFixtures'
+import { atlasBeyond, testHmdQuest, vrhpBeyond, vrhpBeyondDeepSet, vrhpBeyondThird } from './siteFixtures'
 
 function pageOf(submissions: readonly Submission[]): Page {
   return submissions.reduce(
@@ -56,7 +57,7 @@ describe('combineCells', () => {
     const combined = combineCells(aggregate, anyFilters)
     expect(combined.count).toBe(3)
     expect(combined.stats.left.left).toEqual({ count: 3, sum: 159, sumsq: 55 * 55 + 51 * 51 + 53 * 53, max: 55 })
-    expect(combined.stats.binocular.horizontal?.count).toBe(3)
+    expect(combined.stats.figures.leftWidth?.count).toBe(3)
   })
   it('keeps only cells passing the filters', () => {
     const combined = combineCells(aggregate, { ...anyFilters, eyeDepth: ['deep-set'] })
@@ -66,7 +67,7 @@ describe('combineCells', () => {
   it('is empty when nothing matches', () => {
     expect(combineCells(aggregate, { ...anyFilters, gaze: ['free'], tuning: ['stock'] })).toEqual({
       count: 0,
-      stats: { left: {}, right: {}, binocular: {} },
+      stats: { left: {}, right: {}, figures: {}, renderedLeft: {}, renderedRight: {} },
     })
   })
 })
@@ -111,25 +112,53 @@ describe('combineEyes', () => {
 })
 
 describe('figures', () => {
-  it('reads an aggregate’s binocular figures and outer diagonal', () => {
+  it('reads an aggregate’s figures and outer diagonal, per eye for VR Headset Picker', () => {
     const figures = figuresOfCombined(combineCells(aggregate, anyFilters))
     expect(figures.count).toBe(3)
-    expect(figures.horizontal?.highest).toBe(110)
-    expect(figures.horizontal?.mean).toBe(106)
+    expect(figures.summaries.leftWidth?.highest).toBe(97)
+    expect(figures.summaries.leftWidth?.mean).toBe(94)
+    expect(figures.summaries.horizontal).toBeUndefined()
     expect(figures.diagonal).toBe(59)
-    expect(figures.overlapShare).toBeCloseTo((82 / 106) * 100)
+    expect(figures.overlapShare).toBeUndefined()
   })
   it('reads a single measure, its values standing as highest and mean', () => {
-    const figures = figuresOfMeasure(vrhpBeyond.measures)
-    expect(figures.horizontal).toEqual({ count: 1, mean: 110, sigma: 0, highest: 110 })
-    expect(figures.diagonal).toBe(59)
+    const figures = figuresOfMeasure(atlasBeyond)
+    expect(figures.summaries.horizontal).toEqual({ count: 1, mean: 106, sigma: 0, highest: 106 })
+    expect(figures.summaries.renderedHorizontal?.mean).toBe(110)
+    expect(figures.overlapShare).toBeCloseTo((81 / 106) * 100)
+    expect(figuresOfMeasure(vrhpBeyond).diagonal).toBe(59)
   })
   it('leaves out what a tool doesn’t measure', () => {
-    const figures = figuresOfMeasure(testHmdQuest.measures)
-    expect(figures.overlap).toBeUndefined()
+    const figures = figuresOfMeasure(testHmdQuest)
+    expect(figures.summaries.overlap).toBeUndefined()
     expect(figures.overlapShare).toBeUndefined()
     expect(figures.diagonal).toBeUndefined()
-    expect(figuresOfCombined({ count: 0, stats: { left: {}, right: {}, binocular: {} } }).horizontal).toBeUndefined()
+    const empty = { left: {}, right: {}, figures: {}, renderedLeft: {}, renderedRight: {} }
+    expect(figuresOfCombined({ count: 0, stats: empty }).summaries.horizontal).toBeUndefined()
+  })
+})
+
+describe('renderedFrameOfCombined', () => {
+  const atlasPage = [atlasBeyond, { ...atlasBeyond, ceiling: { ...atlasBeyond.ceiling, left: { left: 53, right: 42, up: 44.2, down: 54 } } }].reduce(
+    (page, submission, entryIndex) => withEntry(page, entryIndex + 1, { author: 'someone', submission }),
+    emptyPage('atlas', 'bigscreen-beyond-2', 0),
+  )
+  const combined = combineCells(aggregatePages('atlas', 'bigscreen-beyond-2', [atlasPage]), anyFilters)
+  it('takes the chosen statistic of each edge and the mean turn', () => {
+    expect(renderedFrameOfCombined(combined, 'highest')?.left.left).toBe(55)
+    expect(renderedFrameOfCombined(combined, 'mean')).toEqual({
+      left: { left: 54, right: 42, up: 44.2, down: 54 },
+      right: { left: 42, right: 55, up: 44.2, down: 54 },
+      canting: 0,
+    })
+  })
+  it('has none without every edge of both eyes', () => {
+    expect(renderedFrameOfCombined(combineCells(aggregate, anyFilters), 'highest')).toBeUndefined()
+    const leftOnly = { ...combined, stats: { ...combined.stats, renderedRight: {} } }
+    expect(renderedFrameOfCombined(leftOnly, 'highest')).toBeUndefined()
+    const withoutLeftEdge = Object.fromEntries(Object.entries(combined.stats.renderedLeft).filter(([edge]) => edge !== 'left'))
+    const partial = { ...combined, stats: { ...combined.stats, renderedLeft: withoutLeftEdge } }
+    expect(renderedFrameOfCombined(partial, 'highest')).toBeUndefined()
   })
 })
 

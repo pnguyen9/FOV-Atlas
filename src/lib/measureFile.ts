@@ -127,7 +127,7 @@ const isTotals = matches(
 function isCeiling(value: unknown): boolean {
   if (!isPlainObject(value)) return false
   switch (value.source) {
-    case 'model':
+    case 'none':
       return matches({ source: isString })(value)
     case 'link':
       return matches({ source: isString, totals: isTotals })(value)

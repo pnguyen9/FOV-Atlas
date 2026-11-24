@@ -5,45 +5,41 @@
  * outside the sorting.
  */
 import { computed } from 'vue'
-import { columns, formatCell, sortRows, type CompareRow } from './columns.ts'
-import { compareState, seriesSlotCount, slotOf, togglePick, type CompareColumnId } from './compareState.ts'
+import { columnsFor, formatCell, sortRows, type CompareColumnId, type CompareRow } from './columns.ts'
+import { compareState, seriesSlotCount, slotOf, togglePick } from './compareState.ts'
 import { routeHref } from '../../lib/hashRoute.ts'
-import { borrowedReferenceLabel } from '../../lib/headsets.ts'
+import { drawsRenderedOutline } from '../../lib/ceiling.ts'
+import type { Tool } from '../../lib/submission.ts'
 
 const props = defineProps<{
+  readonly tool: Tool
   readonly rows: readonly CompareRow[]
   readonly keptRow: CompareRow | null
 }>()
 
-const shownColumns = computed(() => columns.filter((column) => compareState.columns.includes(column.id)))
-const sortColumn = computed(() => columns.find((column) => column.id === compareState.sort.column) ?? columns[0])
+const columns = computed(() => columnsFor(props.tool))
+const shownIds = computed(() => compareState.columns[props.tool])
+const shownColumns = computed(() => columns.value.filter((column) => shownIds.value.includes(column.id)))
+const sortColumn = computed(
+  () => shownColumns.value.find((column) => column.id === compareState.sort.column) ?? shownColumns.value[0],
+)
 const sortedRows = computed(() =>
   sortColumn.value === undefined ? [...props.rows] : sortRows(props.rows, sortColumn.value, compareState.sort.descending),
 )
 
 function sortBy(id: CompareColumnId): void {
   compareState.sort =
-    compareState.sort.column === id ? { column: id, descending: !compareState.sort.descending } : { column: id, descending: true }
+    sortColumn.value?.id === id ? { column: id, descending: !compareState.sort.descending } : { column: id, descending: true }
 }
 
 function toggleColumn(id: CompareColumnId): void {
-  const shown = compareState.columns
+  const shown = shownIds.value
   if (shown.includes(id)) {
-    if (shown.length > 1) compareState.columns = shown.filter((column) => column !== id)
+    if (shown.length > 1) compareState.columns[props.tool] = shown.filter((column) => column !== id)
   } else {
-    compareState.columns = columns.map((column) => column.id).filter((column) => column === id || shown.includes(column))
+    compareState.columns[props.tool] = columns.value.map((column) => column.id).filter((column) => column === id || shown.includes(column))
   }
 }
-
-/** Models whose rendered figures are borrowed from another model, said under the table when shown. */
-const borrowedNotes = computed(() => {
-  const showsRendered = compareState.columns.some((column) => column === 'renderedHorizontal' || column === 'renderedGap')
-  if (!showsRendered) return []
-  return [...(props.keptRow === null ? [] : [props.keptRow]), ...props.rows].flatMap((row) => {
-    const label = borrowedReferenceLabel(row.headset)
-    return label === undefined ? [] : [`${row.name}: rendered figures ${label}.`]
-  })
-})
 
 const full = computed(() => compareState.picks.length >= seriesSlotCount)
 const slotClass = (headset: string): string | undefined => {
@@ -61,11 +57,11 @@ function openHeadset(headset: string): void {
 }
 
 const sortMark = (id: CompareColumnId): string => {
-  if (compareState.sort.column !== id) return ''
+  if (sortColumn.value?.id !== id) return ''
   return compareState.sort.descending ? ' ▾' : ' ▴'
 }
 const ariaSort = (id: CompareColumnId): 'ascending' | 'descending' | undefined => {
-  if (compareState.sort.column !== id) return undefined
+  if (sortColumn.value?.id !== id) return undefined
   return compareState.sort.descending ? 'descending' : 'ascending'
 }
 </script>
@@ -187,27 +183,26 @@ const ariaSort = (id: CompareColumnId): 'ascending' | 'descending' | undefined =
       :key="column.id"
       type="button"
       class="chip"
-      :class="{ on: compareState.columns.includes(column.id) }"
-      :aria-pressed="compareState.columns.includes(column.id)"
+      :class="{ on: shownIds.includes(column.id) }"
+      :aria-pressed="shownIds.includes(column.id)"
       :title="column.title"
       @click="toggleColumn(column.id)"
     >
       {{ column.label }}
     </button>
   </div>
-  <p class="small muted">
-    Rendered figures come from the hmdq HMD Geometry Database by Richard Musil (CC BY-SA 4.0), for models it records in a
-    single configuration.
-  </p>
-  <ul
-    v-if="borrowedNotes.length > 0"
-    class="small muted borrowed-notes"
+  <p
+    v-if="tool === 'vrhp'"
+    class="small muted"
   >
-    <li
-      v-for="note in borrowedNotes"
-      :key="note"
-    >
-      {{ note }}
-    </li>
-  </ul>
+    VR Headset Picker measures each eye from the centre of that eye's picture, so its widths and heights are per eye,
+    each set against the same eye's picture as the link reports it. The rendered horizontal and overlap of both eyes are
+    shown exactly as the link reports them.
+  </p>
+  <p
+    v-else-if="drawsRenderedOutline(tool)"
+    class="small muted"
+  >
+    Rendered figures are what each measurer's own headset reported drawing while they measured.
+  </p>
 </template>

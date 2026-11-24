@@ -1,63 +1,99 @@
 /**
- * The rendered ceiling: how far the headset draws its picture in each direction, the most anyone
- * could see. The compare pages draw it as marks on each edge (left, right, up, down).
+ * The rendered field of view: what the headset a measure was taken with reports it draws, the
+ * most anyone could see with it. Each measure is only ever set against its own headset's report,
+ * in its own tool's convention.
  *
- * A FOV Atlas measure carries each eye's edges, read from the browser. A VR Headset Picker link
- * and the hmdq HMD Geometry Database (`src/data/hmdgdb.ts`) carry binocular totals only: the outer
- * edge of each eye is then half the total width and the inner edge half the overlap, taking both
- * eyes as mirror images, and the split between up and down is unknown, so neither is drawn.
+ * Only FOV Atlas reads each eye's edges, so only its measures get an outline on the radar. A VR
+ * Headset Picker link carries per-eye and both-eye totals, which the figures compare (see
+ * `figuresOf` in `submissionStore.ts`); WIMFOV and TestHMD carry none.
  *
- * The corner mask some headsets apply hides corners, never these edges, so the edges are the same
- * full frame or masked; only the diagonal differs, and it is labelled with the variant it is.
+ * The corner mask some headsets apply hides corners, never these edges, so the outline is that of
+ * the full picture.
  */
 
-import { borrowedReferenceLabel, referenceConfigurationOf } from './headsets.ts'
-import type { EyeMeasure, EyeMeasures, Submission } from './submission.ts'
+import type { EdgeAngles, Submission, Tool } from './submission.ts'
 
-type CeilingSource = 'measured' | 'link' | 'model'
-
-export interface CeilingEdges {
-  readonly source: CeilingSource
-  readonly edges: EyeMeasures
+/** Both eyes' edges and how far each eye's picture is turned outward. */
+export interface RenderedFrame {
+  readonly left: EdgeAngles
+  readonly right: EdgeAngles
+  readonly canting: number
 }
 
-function mirroredEdges(horizontal: number, overlap: number): EyeMeasures {
-  const outer = horizontal / 2
-  const inner = overlap / 2
-  return { left: { left: outer, right: inner }, right: { left: inner, right: outer } }
+/** Whether the radar draws a rendered outline for the tool's measures. */
+export const drawsRenderedOutline = (tool: Tool): boolean => tool === 'atlas'
+
+export function renderedFrameOf({ ceiling }: Submission): RenderedFrame | undefined {
+  return ceiling.source === 'measured' ? { left: ceiling.left, right: ceiling.right, canting: ceiling.canting } : undefined
 }
 
-/** The model's reference edges from its hmdgdb configuration, when it has a single one. */
-export function modelCeiling(headset: string): CeilingEdges | undefined {
-  const reference = referenceConfigurationOf(headset)
-  return reference === undefined ? undefined : { source: 'model', edges: mirroredEdges(reference.horizontal, reference.overlap) }
+/** A point of an outline, in the radar's terms: its turn from up toward the wearer's left, and its angle from straight ahead. */
+export interface OutlinePoint {
+  readonly turn: number
+  readonly degrees: number
 }
 
-/** A measure's own ceiling when it carries one, the model's reference otherwise. */
-export function measureCeiling(submission: Submission): CeilingEdges | undefined {
-  const { ceiling } = submission
-  if (ceiling.source === 'measured') {
-    const eye = (edges: typeof ceiling.left): EyeMeasure => ({ left: edges.left, right: edges.right, up: edges.up, down: edges.down })
-    return { source: 'measured', edges: { left: eye(ceiling.left), right: eye(ceiling.right) } }
-  }
-  if (ceiling.source === 'link') {
-    return { source: 'link', edges: mirroredEdges(ceiling.totals.binocularHorizontal, ceiling.totals.binocularHorizontalOverlap) }
-  }
-  return modelCeiling(submission.headset)
+const radians = (degrees: number): number => (degrees * Math.PI) / 180
+const degreesOf = (angle: number): number => (angle * 180) / Math.PI
+const pointsPerSide = 16
+
+/**
+ * The border of one eye's picture as seen from that eye. A headset draws each eye's picture flat,
+ * so its border is a rectangle on a plane in front of the eye, turned outward by `canting`; the
+ * radar's projection then bends its sides. The stored edges are angles from straight ahead of the
+ * head along each principal direction, which this turns back into the picture's own extents.
+ * Null when the edges describe no flat picture.
+ */
+export function pictureOutline(edges: EdgeAngles, canting: number, eye: 'left' | 'right'): OutlinePoint[] | null {
+  const turned = radians(canting)
+  const [outer, inner] = eye === 'left' ? [edges.left, edges.right] : [edges.right, edges.left]
+  const outerExtent = outer - canting
+  const innerExtent = inner + canting
+  const flat = (angle: number): boolean => angle > -90 && angle < 90
+  if (![outerExtent, innerExtent, edges.up, edges.down].every(flat)) return null
+  // Along the up and down spokes the head looks at the picture from `canting` off its centre.
+  const top = Math.tan(radians(edges.up)) / Math.cos(turned)
+  const bottom = -Math.tan(radians(edges.down)) / Math.cos(turned)
+  const outerSide = Math.tan(radians(outerExtent))
+  const innerSide = Math.tan(radians(innerExtent))
+  const [leftSide, rightSide] = eye === 'left' ? [-outerSide, innerSide] : [-innerSide, outerSide]
+  if (leftSide >= rightSide || bottom >= top) return null
+
+  // The picture's own right and forward directions in the head frame, as parts to the wearer's
+  // right and straight ahead; up is the same for the picture and the head.
+  const outward = eye === 'left' ? -1 : 1
+  const right = { sideways: Math.cos(turned), ahead: -outward * Math.sin(turned) }
+  const forward = { sideways: outward * Math.sin(turned), ahead: Math.cos(turned) }
+  const corners = [
+    [leftSide, top],
+    [leftSide, bottom],
+    [rightSide, bottom],
+    [rightSide, top],
+  ] as const
+  return corners.flatMap(([startX, startY], cornerIndex) => {
+    const [endX, endY] = corners[(cornerIndex + 1) % corners.length] ?? corners[0]
+    return Array.from({ length: pointsPerSide }, (_, step) => {
+      const fraction = step / pointsPerSide
+      const pictureX = startX + (endX - startX) * fraction
+      const pictureY = startY + (endY - startY) * fraction
+      const headX = pictureX * right.sideways + forward.sideways
+      const headZ = pictureX * right.ahead + forward.ahead
+      return {
+        turn: Math.atan2(-headX, pictureY),
+        degrees: degreesOf(Math.atan2(Math.hypot(headX, pictureY), headZ)),
+      }
+    })
+  })
 }
 
-/** Where a measure's ceiling comes from, and which corner variant applies to its diagonal. */
+/** Where a measure's rendered field of view comes from, for the list of measures. */
 export function ceilingWords(submission: Submission): string {
   if (submission.ceiling.source === 'measured') return 'Read while measuring'
   if (submission.ceiling.source === 'link') return 'From the tool’s link'
-  if (referenceConfigurationOf(submission.headset) === undefined) return 'No model reference'
-  const borrowed = borrowedReferenceLabel(submission.headset)
-  const reference = borrowed === undefined ? 'Model reference' : `Model reference ${borrowed}`
-  return `${reference}, ${submission.cornerMask === 'on' ? 'with corner mask' : 'full frame'}`
+  return 'Not reported'
 }
 
 export function cornerMaskWords(submission: Submission): string {
   if (submission.cornerMask === 'on') return 'corner mask detected'
-  if (submission.cornerMask === 'off-probably') return 'corner mask probably off'
   return submission.tool === 'atlas' ? 'corner mask not reported' : 'corner mask unknown'
 }

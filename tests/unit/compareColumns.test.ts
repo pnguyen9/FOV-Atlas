@@ -1,39 +1,74 @@
 import { describe, expect, it } from 'vitest'
-import { columns, formatCell, sortRows, type CompareRow } from '../../src/pages/compare/columns'
+import { columnsFor, defaultColumnsFor, formatCell, headlineColumnsFor, sortRows, type CompareRow } from '../../src/pages/compare/columns'
 import { figuresOfMeasure } from '../../src/lib/fovStats'
-import { referenceConfigurationOf } from '../../src/lib/headsets'
+import { tools, type Submission } from '../../src/lib/submission'
 import { formatDegrees, gazeLabelOf, headsetName, tuningLabelOf } from '../../src/components/measureLabels'
-import { testHmdQuest, vrhpBeyond, vrhpIndex } from './siteFixtures'
+import { atlasBeyond, testHmdQuest, vrhpBeyond, vrhpIndex, wimfovBeyond } from './siteFixtures'
 
-const rowOf = (key: string, submission: typeof vrhpBeyond): CompareRow => ({
+const rowOf = (key: string, submission: Submission): CompareRow => ({
   key,
   headset: submission.headset,
   name: key,
-  figures: figuresOfMeasure(submission.measures),
+  figures: figuresOfMeasure(submission),
   total: 1,
-  reference: referenceConfigurationOf(submission.headset),
 })
 const index = rowOf('Index', vrhpIndex)
 const beyond = rowOf('Beyond', vrhpBeyond)
-const quest = rowOf('Quest', testHmdQuest)
-const broken: CompareRow = { ...beyond, key: 'Broken', name: 'Broken', figures: null, reference: undefined }
+const broken: CompareRow = { ...beyond, key: 'Broken', name: 'Broken', figures: null }
+const cellsOf = (row: CompareRow, tool: typeof tools[number]): Record<string, string> =>
+  Object.fromEntries(columnsFor(tool).map((column) => [column.id, formatCell(column, row)]))
 
 describe('Compare columns', () => {
-  it('formats every column of a measure', () => {
-    expect(columns.map((column) => formatCell(column, index))).toEqual([
-      '116.0°', '102.0°', '62.0°', '90.0°', '77.6 %', '1',
-      '116.0°', '0.0°', '102.0°', '0.0°', '90.0°', '0.0°', '108.1°', '-7.9°',
-    ])
-    expect(columns.map((column) => formatCell(column, broken)).every((cell) => cell === '—')).toBe(true)
+  it('gives VR Headset Picker per-eye figures, each against the same eye of its link', () => {
+    expect(cellsOf(beyond, 'vrhp')).toMatchObject({
+      highestLeftWidth: '97.0°',
+      highestRightWidth: '97.0°',
+      highestLeftHeight: '96.9°',
+      count: '1',
+      renderedLeftWidth: '97.0°',
+      leftWidthGap: '-0.1°',
+      rightWidthGap: '-0.4°',
+      leftHeightGap: '0.0°',
+      linkHorizontal: '109.2°',
+      linkOverlap: '84.3°',
+    })
+    expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestHorizontal')
+    expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestOverlap')
+    expect(cellsOf(index, 'vrhp').leftWidthGap).toBe('—')
+  })
+
+  it('gives FOV Atlas its own headset’s rendered horizontal and the gap to it', () => {
+    expect(cellsOf(rowOf('Atlas', atlasBeyond), 'atlas')).toMatchObject({
+      highestHorizontal: '106.0°',
+      renderedHorizontal: '110.0°',
+      renderedGap: '4.0°',
+    })
+  })
+
+  it('gives WIMFOV and TestHMD no rendered columns', () => {
+    for (const tool of ['wimfov', 'testhmd'] as const) {
+      expect(columnsFor(tool).map((column) => column.id).filter((id) => id.includes('rendered') || id.includes('Gap'))).toEqual([])
+    }
+    expect(cellsOf(rowOf('WIMFOV', wimfovBeyond), 'wimfov').overlapShare).toBe('76.4 %')
+  })
+
+  it('shows only columns the tool has, and leads headset pages with a few of them', () => {
+    for (const tool of tools) {
+      const available = columnsFor(tool).map((column) => column.id)
+      expect(defaultColumnsFor(tool).every((id) => available.includes(id))).toBe(true)
+      expect(headlineColumnsFor(tool).every((column) => available.includes(column.id))).toBe(true)
+    }
+    expect(columnsFor('vrhp').map((column) => formatCell(column, broken)).every((cell) => cell === '—')).toBe(true)
   })
 
   it('sorts either way, rows without the figure last, ties by name', () => {
-    const [overlap] = columns.filter((column) => column.id === 'highestOverlap')
-    if (overlap === undefined) throw new Error('no column')
-    expect(sortRows([quest, beyond, index], overlap, true).map((row) => row.name)).toEqual(['Index', 'Beyond', 'Quest'])
-    expect(sortRows([quest, index, beyond], overlap, false).map((row) => row.name)).toEqual(['Beyond', 'Index', 'Quest'])
-    expect(sortRows([broken, quest], overlap, true).map((row) => row.name)).toEqual(['Broken', 'Quest'])
-    expect(sortRows([index, { ...index, name: 'Another' }], overlap, true).map((row) => row.name)).toEqual(['Another', 'Index'])
+    const [gap] = columnsFor('vrhp').filter((column) => column.id === 'rightWidthGap')
+    if (gap === undefined) throw new Error('no column')
+    const quest = rowOf('Quest', testHmdQuest)
+    expect(sortRows([quest, beyond, index], gap, true).map((row) => row.name)).toEqual(['Beyond', 'Index', 'Quest'])
+    expect(sortRows([index, quest, beyond], gap, false).map((row) => row.name)).toEqual(['Beyond', 'Index', 'Quest'])
+    expect(sortRows([broken, quest], gap, true).map((row) => row.name)).toEqual(['Broken', 'Quest'])
+    expect(sortRows([beyond, { ...beyond, name: 'Another' }], gap, true).map((row) => row.name)).toEqual(['Another', 'Beyond'])
   })
 })
 

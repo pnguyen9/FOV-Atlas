@@ -2,23 +2,23 @@
 /**
  * One headset model: its figures per tool (one tool at a time), the radar of everyone who matches
  * the filters next to measures ticked in the list, every published measure, and the model's
- * catalog entry with its rendered reference.
+ * catalog entry.
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { formatCell, headlineColumnsFor, type CompareRow } from './compare/columns.ts'
 import { compareState, seriesSlotCount, togglePick, type SeriesPick } from './compare/compareState.ts'
 import CatalogInfo from './headset/CatalogInfo.vue'
 import DirectionStats from './headset/DirectionStats.vue'
 import type { ListedEntry } from './headset/listedEntry.ts'
 import SubmissionList from './headset/SubmissionList.vue'
 import FilterPanel from '../components/FilterPanel.vue'
-import { formatDegrees } from '../components/measureLabels.ts'
 import RadarOptions from '../components/radar/RadarOptions.vue'
 import RadarPanel from '../components/radar/RadarPanel.vue'
-import { aggregateSeries, keptSeries, type RadarSeries } from '../components/radar/radarSeries.ts'
+import { aggregateSeries, keptSeries, measureRenderedNote, type RadarSeries } from '../components/radar/radarSeries.ts'
 import SegmentedControl from '../components/SegmentedControl.vue'
-import { ceilingWords, measureCeiling } from '../lib/ceiling.ts'
+import { renderedFrameOf } from '../lib/ceiling.ts'
 import { combineCells, figuresOfCombined, submissionMatches } from '../lib/fovStats.ts'
-import { borrowedReferenceLabel, catalogHeadset, referenceConfigurationOf } from '../lib/headsets.ts'
+import { catalogHeadset } from '../lib/headsets.ts'
 import { routeHref } from '../lib/hashRoute.ts'
 import { headsetsOf, loadAggregate, loadIndex, loadPage, type Loaded } from '../lib/siteData.ts'
 import { toolNameOf, tools, type Tool } from '../lib/submission.ts'
@@ -30,8 +30,6 @@ const props = defineProps<{ readonly headset: string }>()
 const firstMeasureSlot = 2
 
 const catalog = computed(() => catalogHeadset(props.headset))
-const reference = computed(() => referenceConfigurationOf(props.headset))
-const borrowedReference = computed(() => borrowedReferenceLabel(props.headset))
 
 const index = ref<Loaded<DataIndex> | null>(null)
 onMounted(async () => {
@@ -130,7 +128,6 @@ const radarSeries = computed<RadarSeries[]>(() => {
     aggregateSeries({
       key: 'everyone',
       name: 'Everyone',
-      headset: props.headset,
       colour: 1,
       combined: combined.value,
       statistic,
@@ -147,8 +144,8 @@ const radarSeries = computed<RadarSeries[]>(() => {
       name: `${author} #${pick.key}`,
       colour: pick.slot,
       measures: submission.measures,
-      ceiling: measureCeiling(submission),
-      ceilingNote: `${author} #${pick.key}: ${ceilingWords(submission)}`,
+      rendered: renderedFrameOf(submission),
+      renderedNote: measureRenderedNote(`${author} #${pick.key}`, submission),
       seeText: `the measure ${author} sent in issue #${pick.key}`,
     })
   }
@@ -159,9 +156,10 @@ const radarSeries = computed<RadarSeries[]>(() => {
   return series
 })
 
-const meanHorizontal = computed(() => {
-  const horizontal = figures.value?.horizontal
-  return horizontal === undefined ? '—' : `${formatDegrees(horizontal.mean)} ± ${formatDegrees(horizontal.sigma)}`
+const headlines = computed(() => {
+  if (tool.value === null || figures.value === null) return []
+  const row: CompareRow = { key: props.headset, headset: props.headset, name: '', figures: figures.value, total: totalCount.value }
+  return headlineColumnsFor(tool.value).map((column) => ({ id: column.id, label: column.label, title: column.title, value: formatCell(column, row) }))
 })
 
 </script>
@@ -222,28 +220,17 @@ const meanHorizontal = computed(() => {
           v-if="figures !== null"
           class="kpis"
         >
-          <div class="kpi">
+          <div
+            v-for="headline in headlines"
+            :key="headline.id"
+            class="kpi"
+            :title="headline.title"
+          >
             <div class="kpi-value">
-              {{ formatDegrees(figures.horizontal?.highest) }}
+              {{ headline.value }}
             </div>
             <div class="kpi-label">
-              Highest horizontal
-            </div>
-          </div>
-          <div class="kpi">
-            <div class="kpi-value">
-              {{ meanHorizontal }}
-            </div>
-            <div class="kpi-label">
-              Mean horizontal ± σ
-            </div>
-          </div>
-          <div class="kpi">
-            <div class="kpi-value">
-              {{ formatDegrees(reference?.horizontal) }}
-            </div>
-            <div class="kpi-label">
-              Rendered horizontal (hmdq{{ borrowedReference === undefined ? '' : `, ${borrowedReference}` }})
+              {{ headline.label }}
             </div>
           </div>
           <div class="kpi">
@@ -294,11 +281,12 @@ const meanHorizontal = computed(() => {
                 Individual measures
               </h2>
               <p class="small muted">
-                Tick measures to put them on the radar next to everyone's, each with its own rendered ceiling. The name
-                links to the GitHub issue the measure was sent in.
+                Tick measures to put them on the radar next to everyone's. The name links to the GitHub issue the measure
+                was sent in.
               </p>
               <SubmissionList
                 v-if="shownEntries.length > 0"
+                :tool="tool"
                 :entries="shownEntries"
                 :slots="slots"
                 :full="full"

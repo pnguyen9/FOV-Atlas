@@ -1,17 +1,28 @@
 <script setup lang="ts">
-/** Mean, spread, highest and count per direction and eye, and for the figures of both eyes. */
+/** Mean, spread, highest and count per direction and eye, and for the tool's figures. */
 import { computed } from 'vue'
 import { formatDegrees } from '../../components/measureLabels.ts'
 import { summarize, type Summary } from '../../lib/fovStats.ts'
 import { directions } from '../../lib/submission.ts'
-import { binocularFigures, type BinocularFigure, type CellStats } from '../../lib/submissionStore.ts'
+import type { CellStats, FigureName } from '../../lib/submissionStore.ts'
 
 const props = defineProps<{ readonly stats: CellStats }>()
 
-const figureLabels: ReadonlyMap<BinocularFigure, string> = new Map([
+/** The figures listed, in order; gaps to rendered and the pictures' turn are left to other views. */
+const figureLabels: ReadonlyMap<FigureName, string> = new Map([
   ['horizontal', 'Horizontal'],
   ['vertical', 'Vertical'],
   ['overlap', 'Overlap'],
+  ['leftWidth', 'Width, left eye'],
+  ['rightWidth', 'Width, right eye'],
+  ['leftHeight', 'Height, left eye'],
+  ['rightHeight', 'Height, right eye'],
+  ['renderedHorizontal', 'Rendered horizontal'],
+  ['renderedOverlap', 'Rendered overlap'],
+  ['renderedLeftWidth', 'Rendered width, left eye'],
+  ['renderedRightWidth', 'Rendered width, right eye'],
+  ['renderedLeftHeight', 'Rendered height, left eye'],
+  ['renderedRightHeight', 'Rendered height, right eye'],
 ])
 
 const directionRows = computed(() => {
@@ -32,10 +43,10 @@ const directionRows = computed(() => {
 })
 
 const figureRows = computed(() => {
-  const stats = new Map(Object.entries(props.stats.binocular))
-  return binocularFigures.flatMap((figure) => {
+  const stats = new Map(Object.entries(props.stats.figures))
+  return [...figureLabels].flatMap(([figure, label]) => {
     const stat = stats.get(figure)
-    return stat === undefined ? [] : [{ figure, label: figureLabels.get(figure), summary: summarize(stat) }]
+    return stat === undefined ? [] : [{ figure, label, summary: summarize(stat) }]
   })
 })
 
@@ -54,7 +65,7 @@ const cells = (summary: Summary | undefined): string[] =>
             class="text-cell"
             scope="col"
           >
-            Both eyes
+            Figure
           </th>
           <th scope="col">
             Mean

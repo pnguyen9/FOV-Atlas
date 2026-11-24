@@ -59,7 +59,7 @@ export const vrhpBeyondDeepSet: Submission = {
   gaze: 'free',
   ipd: null,
   facialInterface: '',
-  ceiling: { source: 'model' },
+  ceiling: { source: 'none' },
 }
 export const vrhpBeyondThird: Submission = { ...vrhpBeyond, measures: vrhpEye(53, 41, 42, 52, 57) }
 export const vrhpIndex: Submission = {
@@ -67,7 +67,7 @@ export const vrhpIndex: Submission = {
   headset: 'valve-index',
   reportedHeadset: '',
   measures: vrhpEye(58, 45, 50, 52, 62),
-  ceiling: { source: 'model' },
+  ceiling: { source: 'none' },
 }
 
 const wimfovEye = (scale: number): EyeMeasure => ({
@@ -79,7 +79,7 @@ export const wimfovBeyond: Submission = {
   ...base,
   tool: 'wimfov',
   measures: { left: wimfovEye(1), right: { ...wimfovEye(1), left: 41, right: 52 } },
-  ceiling: { source: 'model' },
+  ceiling: { source: 'none' },
   provenance: { input: 'paste', linkData: null },
 }
 
@@ -88,7 +88,7 @@ export const testHmdQuest: Submission = {
   tool: 'testhmd',
   headset: 'meta-quest-2',
   measures: { left: { left: 50, up: 47, down: 47 }, right: { right: 50, up: 47, down: 47 } },
-  ceiling: { source: 'model' },
+  ceiling: { source: 'none' },
   provenance: { input: 'typed', linkData: null },
 }
 
