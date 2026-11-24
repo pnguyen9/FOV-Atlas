@@ -111,7 +111,7 @@ jobs:
               # A missing label must not lose the rest of the report: the comment already says it all.
               if [ "$RENDERED_DIFFERS" = true ]; then
                 gh issue edit "$ISSUE" --add-label rendered-differs ||
-                  echo '::warning::Could not add the rendered-differs label. Create it in the repository.'
+                  echo '::warning::Could not add the rendered-differs label (missing label?).'
               elif [ "$MARKED_RENDERED_DIFFERS" = true ]; then
                 gh issue edit "$ISSUE" --remove-label rendered-differs
               fi
@@ -129,6 +129,7 @@ jobs:
               ;;
             withdrawn)
               gh issue edit "$ISSUE" --add-label withdrawn
+              if [ "$MARKED_RENDERED_DIFFERS" = true ]; then gh issue edit "$ISSUE" --remove-label rendered-differs || true; fi
               gh issue close "$ISSUE" --reason 'not planned'
               ;;
           esac

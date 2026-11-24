@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   dataUrl,
-  hasRenderedAverage,
   headsetsOf,
   loadAggregate,
   loadIndex,
@@ -113,21 +112,38 @@ describe('loadAggregate', () => {
 describe('loadRenderedAverage', () => {
   const average = renderedAverageOf('bigscreen-beyond-2', [{ ...atlasSubmission, tuning: { ...atlasSubmission.tuning, driverTuned: false } }])
 
+  const listing = (headset: string, count = 1): ReturnType<typeof emptyIndex> => ({ ...emptyIndex(), rendered: { [headset]: count } })
+
   it('reads a model’s averaged rendered field of view, when the index lists one', async () => {
     const fetcher = fakeFetcher({ '/FOV-Atlas/data/rendered/bigscreen-beyond-2.json': serialize(average) })
-    expect(await loadRenderedAverage('bigscreen-beyond-2', { baseUrl, fetcher })).toEqual({ ok: true, value: average })
-    expect(hasRenderedAverage({ ...emptyIndex(), rendered: { 'bigscreen-beyond-2': 1 } }, 'bigscreen-beyond-2')).toBe(true)
-    expect(hasRenderedAverage(emptyIndex(), 'bigscreen-beyond-2')).toBe(false)
+    expect(await loadRenderedAverage(listing('bigscreen-beyond-2'), 'bigscreen-beyond-2', { baseUrl, fetcher })).toEqual({
+      ok: true,
+      value: average,
+    })
+  })
+
+  it('fetches nothing for a model the index lists no average for', async () => {
+    const fetcher = fakeFetcher({})
+    expect(await loadRenderedAverage(emptyIndex(), 'bigscreen-beyond-2', { baseUrl, fetcher })).toEqual({ ok: true, value: null })
+    expect(fetcher.calls).toEqual([])
   })
 
   it('refuses another headset’s average', async () => {
     const fetcher = fakeFetcher({ '/FOV-Atlas/data/rendered/htc-vive.json': serialize(average) })
-    expect(await loadRenderedAverage('htc-vive', { baseUrl, fetcher })).toEqual({ ok: false, error: 'invalid' })
+    expect(await loadRenderedAverage(listing('htc-vive'), 'htc-vive', { baseUrl, fetcher })).toEqual({ ok: false, error: 'invalid' })
+  })
+
+  it('refuses an average pooling another number of measures than the index lists', async () => {
+    const fetcher = fakeFetcher({ '/FOV-Atlas/data/rendered/bigscreen-beyond-2.json': serialize(average) })
+    expect(await loadRenderedAverage(listing('bigscreen-beyond-2', 2), 'bigscreen-beyond-2', { baseUrl, fetcher })).toEqual({
+      ok: false,
+      error: 'invalid',
+    })
   })
 
   it('fetches nothing for a malformed headset id', async () => {
     const fetcher = fakeFetcher({})
-    expect(await loadRenderedAverage('../index', { baseUrl, fetcher })).toEqual({ ok: false, error: 'bad-request' })
+    expect(await loadRenderedAverage(listing('../index'), '../index', { baseUrl, fetcher })).toEqual({ ok: false, error: 'bad-request' })
     expect(fetcher.calls).toEqual([])
   })
 })

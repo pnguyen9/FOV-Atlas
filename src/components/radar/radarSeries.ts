@@ -4,6 +4,7 @@ import { headsetName } from '../measureLabels.ts'
 import { renderedFrameOf, type OutlinePoint, type RenderedFrame } from '../../lib/ceiling.ts'
 import { shapeOf, type Combined, type Statistic } from '../../lib/fovStats.ts'
 import { averagedHeadFrame, averagedPictureFrame, unitDifference, unitDifferenceWords, type RenderedAverage } from '../../lib/renderedAverage.ts'
+import type { Loaded } from '../../lib/siteData.ts'
 import type { EyeMeasure, EyeMeasures, Submission, Tool } from '../../lib/submission.ts'
 
 export interface RadarSeries {
@@ -40,13 +41,19 @@ interface AggregateSeriesOptions {
   readonly statistic: Statistic
   readonly seeText: string
   readonly tool: Tool
-  /** The model's averaged rendered field of view; null when it has none, undefined while unknown. */
-  readonly average?: RenderedAverage | null
+  /** The model's averaged rendered field of view, a loaded null when it has none; null while loading. */
+  readonly average: Loaded<RenderedAverage | null> | null
 }
 
-const warningOf = (average: RenderedAverage | null | undefined): string | null => {
-  const difference = average === null || average === undefined ? null : unitDifference(average)
+const warningOf = (average: RenderedAverage | null): string | null => {
+  const difference = average === null ? null : unitDifference(average)
   return difference === null ? null : unitDifferenceWords(difference)
+}
+
+function missingAverageNote(name: string, average: Loaded<RenderedAverage | null> | null): string {
+  if (average === null) return `${name}: loading the model's averaged rendered field of view…`
+  if (!average.ok) return `${name}: the model's averaged rendered field of view couldn't be loaded. Try again in a moment`
+  return `${name}: no FOV Atlas measure of this model has read what it draws yet`
 }
 
 /**
@@ -54,15 +61,21 @@ const warningOf = (average: RenderedAverage | null | undefined): string | null =
  * edges, in the tool's own terms. VR Headset Picker measures each picture from its own centre;
  * FOV Atlas and TestHMD measure from straight ahead of the head.
  */
-function averagedOutline(name: string, tool: Tool, average: RenderedAverage | null | undefined): Pick<RadarSeries, 'rendered' | 'renderedNote'> {
+function averagedOutline(
+  name: string,
+  tool: Tool,
+  loaded: Loaded<RenderedAverage | null> | null,
+): Pick<RadarSeries, 'rendered' | 'renderedNote' | 'renderedWarning'> {
+  const average = loaded?.ok === true ? loaded.value : null
   const rendered = tool === 'vrhp' ? averagedPictureFrame(average) : averagedHeadFrame(average)
   const headsets = average?.count ?? 0
   return {
     rendered,
     renderedNote:
       rendered === undefined
-        ? `${name}: no FOV Atlas measure of this model has read what it draws yet`
+        ? missingAverageNote(name, loaded)
         : `${name}: average of ${String(headsets)} ${headsets === 1 ? 'headset' : 'headsets'} of this model, as they report drawing it`,
+    renderedWarning: warningOf(average),
   }
 }
 
@@ -83,7 +96,6 @@ export function aggregateSeries({ key, name, colour, combined, statistic, seeTex
     measures: matching === null ? null : shapeOf(matching.stats, statistic),
     meanMeasures: matching === null ? null : shapeOf(matching.stats, 'mean'),
     ...averagedOutline(name, tool, average),
-    renderedWarning: warningOf(average),
     seeText,
   }
 }

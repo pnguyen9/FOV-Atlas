@@ -6,6 +6,7 @@
  * and its own convention; nothing here converts one tool's figures into another's.
  */
 
+import { isFlatPicture } from './ceiling.ts'
 import { catalogHeadset, otherHeadset } from './headsets.ts'
 import { plainTextProblem, type PlainTextProblem } from './plainText.ts'
 import type { RenderedTotals } from './vrhpLink.ts'
@@ -256,7 +257,9 @@ function ceilingProblem(ceiling: Ceiling): SubmissionError | null {
     Object.values(edges).every((angle) => isAngle(angle, 'radial')),
   )
   const cantingValid = Number.isFinite(ceiling.canting) && Math.abs(ceiling.canting) <= maximumCantingDegrees
-  return edgesValid && cantingValid ? null : 'ceiling-out-of-range'
+  // The rendered field of view is a flat picture per eye; heights and outlines are worked out from it.
+  const flat = isFlatPicture(ceiling.left, ceiling.canting, 'left') && isFlatPicture(ceiling.right, ceiling.canting, 'right')
+  return edgesValid && cantingValid && flat ? null : 'ceiling-out-of-range'
 }
 
 function textProblem(field: TextField, text: string, maximumLength: number, multiline = false): SubmissionError | null {

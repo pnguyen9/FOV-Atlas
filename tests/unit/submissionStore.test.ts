@@ -122,7 +122,6 @@ describe('figuresOf', () => {
       renderedHorizontal: 110,
       renderedOverlap: 84,
       horizontalPastRendered: -1.6,
-      canting: 0,
     })
   })
 

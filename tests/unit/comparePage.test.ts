@@ -260,6 +260,19 @@ describe('ComparePage radar', () => {
     expect(wrapper.find('.rendered-notes').text()).toContain('Valve Index: no FOV Atlas measure of this model has read what it draws yet')
   })
 
+  it('tells a model average that failed to load from a model without one', async () => {
+    site.failing.add('data/rendered/valve-index.json')
+    const wrapper = await mountPage(null, 'radar')
+    await pickTool(wrapper, 'VR Headset Picker')
+    compareState.picks = [{ key: 'valve-index', slot: 1 }]
+    await flushPromises()
+    expect(wrapper.findAll('.rendered path')).toHaveLength(0)
+    expect(wrapper.find('.rendered-notes').text()).toContain(
+      "Valve Index: the model's averaged rendered field of view couldn't be loaded. Try again in a moment",
+    )
+    expect(wrapper.find('.rendered-notes').text()).not.toContain('no FOV Atlas measure')
+  })
+
   it('outlines each eye’s picture for FOV Atlas by the model’s average', async () => {
     const wrapper = await mountPage(null, 'radar')
     await pickTool(wrapper, 'FOV Atlas')
@@ -400,6 +413,14 @@ describe('ComparePage kept measure', () => {
     expect(wrapper.find('.kept-card').text()).toContain('It shows only next to VR Headset Picker measures')
     await clickButton(wrapper, 'Show VR Headset Picker measures')
     expect(compareState.tool).toBe('vrhp')
+  })
+
+  it('sets it against its model’s average when no published measure of its tool shares its headset, warning when units differ', async () => {
+    const wrapper = await mountPage(encodeMeasureParameter({ ...testHmdQuest, headset: 'valve-index' }))
+    expect(compareState.tool).toBe('testhmd')
+    expect(wrapper.find('.kept-row .text-cell').text()).toContain('Valve Index')
+    expect(cellsOf(wrapper, 0).at(-1)).toBe('129.0°')
+    expect(wrapper.find('.unit-warning').text()).toContain('Valve Index: Units of this model differ by up to 10.0°')
   })
 
   it('draws it dashed on the radar, and can leave it off', async () => {

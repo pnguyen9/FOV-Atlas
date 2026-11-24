@@ -106,7 +106,6 @@ export interface Stat {
  * - `…PastRendered`: the measured figure minus the rendered one, worked out per measure, so the
  *   gap always sets a measure against its own headset. Below zero for every measure that stays
  *   inside what is drawn; the highest is the smallest gap.
- * - `canting`: how far each eye's picture is turned outward.
  */
 export const figureNames = [
   'horizontal',
@@ -127,13 +126,10 @@ export const figureNames = [
   'leftHeightPastRendered',
   'rightWidthPastRendered',
   'rightHeightPastRendered',
-  'canting',
 ] as const
 export type FigureName = (typeof figureNames)[number]
 /** The figures that can be below zero. */
-export const signedFigures: readonly FigureName[] = figureNames.filter(
-  (figure) => figure.endsWith('PastRendered') || figure === 'canting',
-)
+export const signedFigures: readonly FigureName[] = figureNames.filter((figure) => figure.endsWith('PastRendered'))
 
 
 export interface CellStats {
@@ -207,10 +203,11 @@ export function withLocation(lookup: IssueLookup, issue: number, location: Locat
 
 const issuePattern = /^[1-9]\d*$/
 const isPageNumber = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+export const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-function parseJson(json: string): unknown {
+/** The parsed value, or null for text that is not JSON. */
+export function parseJson(json: string): unknown {
   try {
     return JSON.parse(json)
   } catch {
@@ -389,7 +386,6 @@ function bothEyeFigures({ measures, ceiling }: Submission): Figures {
     renderedHorizontal,
     renderedOverlap: sumOf(ceiling.left.right, ceiling.right.left),
     horizontalPastRendered: differenceOf(measured.horizontal, renderedHorizontal),
-    canting: ceiling.canting,
   })
 }
 

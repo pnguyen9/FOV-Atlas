@@ -68,7 +68,7 @@ const outlines = computed<ChartOutline[]>(() =>
     ? outlined.value.flatMap(({ key, colour, rendered }) => {
         if (rendered === undefined) return []
         const pictures = eyesShown.value.flatMap((eye) => {
-          const points = pictureOutline(eye === 'left' ? rendered.left : rendered.right, rendered.canting, eye)
+          const points = pictureOutline(eye === 'left' ? rendered.left : rendered.right, rendered.turn, eye)
           return points === null ? [] : [points]
         })
         return pictures.length === 0 ? [] : [{ key, colourClass: colourClass(colour), outlines: pictures }]

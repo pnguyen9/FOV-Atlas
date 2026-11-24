@@ -350,6 +350,78 @@ describe('runAction', () => {
       expect(json(files, indexPath)).toEqual({ version: 1, headsets: {} })
     })
 
+    const averageIn = (files: MemoryFiles, headset: string): ReturnType<typeof parseRenderedAverage> =>
+      parseRenderedAverage(files.contents.get(renderedPath(headset)) ?? '', headset)
+
+    it('rebuilds both models’ averages when an edit moves a measure to another headset', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock), 1), files)
+      runAction(submissionEvent(bodyOf(stock), 2), files)
+      runAction(submissionEvent(bodyOf({ ...stock, headset: 'valve-index' }), 2), files)
+      expect(averageIn(files, 'bigscreen-beyond-2')?.count).toBe(1)
+      expect(averageIn(files, 'valve-index')?.count).toBe(1)
+      expect(json(files, indexPath)).toMatchObject({ rendered: { 'bigscreen-beyond-2': 1, 'valve-index': 1 } })
+      runAction(submissionEvent(bodyOf({ ...stock, headset: 'valve-index' }), 1), files)
+      expect(files.contents.has(averagePath)).toBe(false)
+      expect(averageIn(files, 'valve-index')?.count).toBe(2)
+      expect(json(files, indexPath)).toMatchObject({ rendered: { 'valve-index': 2 } })
+      expect(json(files, indexPath)).not.toHaveProperty(['rendered', 'bigscreen-beyond-2'])
+    })
+
+    it('drops a measure from the average when an edit changes its tool away from FOV Atlas', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock), 1), files)
+      runAction(submissionEvent(bodyOf(stock), 2), files)
+      const testHmd = { ...testHmdSubmission, tuning: stock.tuning }
+      expect(runAction(submissionEvent(bodyOf(testHmd), 2), files)).toMatchObject({ outcome: 'accepted', renderedDiffers: false })
+      expect(averageIn(files, 'bigscreen-beyond-2')?.count).toBe(1)
+      expect(json(files, indexPath)).toMatchObject({ rendered: { 'bigscreen-beyond-2': 1 } })
+      runAction(submissionEvent(bodyOf(testHmd), 1), files)
+      expect(files.contents.has(averagePath)).toBe(false)
+      expect(json(files, indexPath)).not.toHaveProperty('rendered')
+    })
+
+    it('takes a measure edited to driver-tuned out of the average, unflagged', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock), 1), files)
+      expect(runAction(submissionEvent(bodyOf(widened(5)), 2), files).renderedDiffers).toBe(true)
+      const tuned = { ...widened(5), tuning: atlasSubmission.tuning }
+      const result = runAction(submissionEvent(bodyOf(tuned), 2), files)
+      expect(result).toMatchObject({ outcome: 'accepted', renderedDiffers: false })
+      expect(result.message).not.toContain('Note for the maintainers')
+      expect(averageIn(files, 'bigscreen-beyond-2')?.count).toBe(1)
+      expect(averageIn(files, 'bigscreen-beyond-2')?.values.horizontal).toMatchObject({ min: 110, max: 110 })
+    })
+
+    it('rebuilds the average on a maintainer’s /recheck', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock), 1), files)
+      const recheck = readEvent(
+        'issue_comment',
+        payload({
+          action: 'created',
+          number: 2,
+          body: bodyOf(widened(5)),
+          extra: { comment: { body: '/recheck', user: { login: 'maintainer' }, author_association: 'OWNER' } },
+        }),
+      )
+      if (recheck === null) throw new Error('no event')
+      expect(runAction(recheck, files)).toMatchObject({ outcome: 'accepted', renderedDiffers: true })
+      expect(averageIn(files, 'bigscreen-beyond-2')?.count).toBe(2)
+      expect(json(files, indexPath)).toMatchObject({ rendered: { 'bigscreen-beyond-2': 2 } })
+    })
+
+    it('rewrites the average without a withdrawn measure while others remain', () => {
+      const files = memoryFiles()
+      runAction(submissionEvent(bodyOf(stock), 1), files)
+      runAction(submissionEvent(bodyOf(widened(2)), 2), files)
+      runAction(submissionEvent(bodyOf(widened(4)), 3), files)
+      expect(runAction(withdrawEvent(2), files).outcome).toBe('withdrawn')
+      expect(averageIn(files, 'bigscreen-beyond-2')?.count).toBe(2)
+      expect(averageIn(files, 'bigscreen-beyond-2')?.values.horizontal).toMatchObject({ count: 2, min: 110, max: 118 })
+      expect(json(files, indexPath)).toMatchObject({ rendered: { 'bigscreen-beyond-2': 2 } })
+    })
+
     it('leaves the average alone for other tools', () => {
       const files = memoryFiles()
       runAction(submissionEvent(bodyOf(stock), 1), files)

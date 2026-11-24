@@ -6,7 +6,6 @@ import {
   entersAverage,
   parseRenderedAverage,
   pictureEdges,
-  pictureVertical,
   renderedAverageOf,
   renderedDifferences,
   renderedMean,
@@ -20,12 +19,11 @@ import {
   unitDifferenceWords,
   type RenderedAverage,
 } from '../../src/lib/renderedAverage'
+import { degreesOf, pictureVertical, radians } from '../../src/lib/ceiling'
 import { serialize } from '../../src/lib/submissionStore'
 import type { Submission } from '../../src/lib/submission'
 import { atlasBeyond, atlasBeyondSecond, atlasBeyondTuned, atlasIndex, atlasIndexWider, testHmdQuest, vrhpBeyond } from './siteFixtures'
 
-const radians = (degrees: number): number => (degrees * Math.PI) / 180
-const degreesOf = (angle: number): number => (angle * 180) / Math.PI
 
 /**
  * A left-eye picture as hmdq reads it: the tangents of its edges on its own plane, turned outward
@@ -172,13 +170,13 @@ describe('averaged frames', () => {
     expect(averagedHeadFrame(average)).toEqual({
       left: { left: 64.5, right: 49.5, up: 51.5, down: 53.5 },
       right: { left: 49.5, right: 64.5, up: 51.5, down: 53.5 },
-      canting: 5,
+      turn: 5,
     })
   })
 
   it('draws them from the centre of each picture for VR Headset Picker, the turn removed', () => {
     const frame = averagedPictureFrame(average)
-    expect(frame?.canting).toBe(0)
+    expect(frame?.turn).toBe(0)
     expect(frame?.left).toMatchObject({ left: 59.5, right: 54.5 })
     expect(frame?.right).toMatchObject({ left: 54.5, right: 59.5 })
     expect(frame?.left.up).toBeCloseTo(pictureVertical(51.5, 5))

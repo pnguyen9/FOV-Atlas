@@ -17,12 +17,12 @@ import RadarOptions from '../components/radar/RadarOptions.vue'
 import RadarPanel from '../components/radar/RadarPanel.vue'
 import { aggregateSeries, keptSeries, measureRenderedNote, type RadarSeries } from '../components/radar/radarSeries.ts'
 import SegmentedControl from '../components/SegmentedControl.vue'
-import { renderedFrameOf } from '../lib/ceiling.ts'
+import { drawsRenderedOutline, renderedFrameOf } from '../lib/ceiling.ts'
 import { combineCells, figuresOfCombined, submissionMatches } from '../lib/fovStats.ts'
 import { catalogHeadset } from '../lib/headsets.ts'
 import { routeHref } from '../lib/hashRoute.ts'
 import type { RenderedAverage } from '../lib/renderedAverage.ts'
-import { hasRenderedAverage, headsetsOf, loadAggregate, loadIndex, loadPage, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
+import { headsetsOf, loadAggregate, loadIndex, loadPage, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
 import { toolNameOf, tools, type Tool } from '../lib/submission.ts'
 import type { Aggregate, DataIndex } from '../lib/submissionStore.ts'
 
@@ -60,7 +60,7 @@ watch(
   async ([loadedIndex, headset]) => {
     average.value = null
     if (loadedIndex?.ok !== true) return
-    const loaded = hasRenderedAverage(loadedIndex.value, headset) ? await loadRenderedAverage(headset) : { ok: true as const, value: null }
+    const loaded = await loadRenderedAverage(loadedIndex.value, headset)
     if (headset === props.headset) average.value = loaded
   },
   { immediate: true },
@@ -152,7 +152,7 @@ const radarSeries = computed<RadarSeries[]>(() => {
       statistic,
       seeText: `the ${statistic} shape of everyone who matches the filters`,
       tool: currentTool,
-      average: modelAverage.value,
+      average: average.value,
     }),
   ]
   for (const pick of picks.value) {
@@ -348,7 +348,7 @@ const headlines = computed(() => {
         </div>
       </template>
       <RenderedAverageSection
-        v-if="index?.ok === true"
+        v-if="index?.ok === true && (tool === null || drawsRenderedOutline(tool))"
         :average="average"
       />
       <CatalogInfo :headset="catalog" />

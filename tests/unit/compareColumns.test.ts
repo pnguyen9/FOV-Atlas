@@ -30,10 +30,12 @@ describe('Compare columns', () => {
       renderedWidth: '97.0° / 96.6°',
       widthGap: '0.0° / 0.9°',
       heightGap: '0.0° / 0.0°',
-      linkHorizontal: '109.2°',
+      renderedHorizontal: '109.2°',
       linkOverlap: '84.3°',
       averagedWidth: '—',
     })
+    expect(columnsFor('vrhp').find((column) => column.id === 'renderedHorizontal')?.label).toBe('Rendered horizontal (link)')
+    expect(columnsFor('atlas').find((column) => column.id === 'renderedHorizontal')?.label).toBe('Rendered horizontal')
     expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestHorizontal')
     expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestOverlap')
     expect(cellsOf(index, 'vrhp').widthGap).toBe('—')

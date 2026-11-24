@@ -47,7 +47,6 @@ export const compareColumnIds = [
   'renderedHeight',
   'widthGap',
   'heightGap',
-  'linkHorizontal',
   'linkOverlap',
   'averagedHorizontal',
   'averagedGap',
@@ -192,12 +191,6 @@ const allColumns: readonly Column[] = [
   eyePairColumn('widthGap', 'Width gap', gapTitle('width'), smallestGap('leftWidthPastRendered'), smallestGap('rightWidthPastRendered')),
   eyePairColumn('heightGap', 'Height gap', gapTitle('height'), smallestGap('leftHeightPastRendered'), smallestGap('rightHeightPastRendered')),
   degreeColumn(
-    'linkHorizontal',
-    'Rendered horizontal (link)',
-    'Both eyes together, edge to edge, exactly as the link reports the headset draws it (the highest of the measures)',
-    summaryValue('renderedHorizontal', highest),
-  ),
-  degreeColumn(
     'linkOverlap',
     'Rendered overlap (link)',
     'Width both eyes’ pictures share, exactly as the link reports it (the highest of the measures)',
@@ -287,7 +280,7 @@ const toolColumns: ReadonlyMap<Tool, ToolColumns> = new Map([
         'renderedHeight',
         'widthGap',
         'heightGap',
-        'linkHorizontal',
+        'renderedHorizontal',
         'linkOverlap',
         'averagedWidth',
         'averagedHeight',
@@ -317,15 +310,33 @@ const toolColumns: ReadonlyMap<Tool, ToolColumns> = new Map([
   ],
 ])
 
+/** A column's words for a tool whose figure comes from elsewhere. */
+const toolWords: ReadonlyMap<Tool, ReadonlyMap<CompareColumnId, Pick<Column, 'label' | 'title'>>> = new Map([
+  [
+    'vrhp',
+    new Map([
+      [
+        'renderedHorizontal',
+        {
+          label: 'Rendered horizontal (link)',
+          title: 'Both eyes together, edge to edge, exactly as the link reports the headset draws it (the highest of the measures)',
+        },
+      ],
+    ]),
+  ],
+])
+
 const columnsById = new Map(allColumns.map((column) => [column.id, column]))
-const columnsOf = (ids: readonly CompareColumnId[]): Column[] =>
+const columnsOf = (tool: Tool, ids: readonly CompareColumnId[]): Column[] =>
   ids.flatMap((id) => {
     const column = columnsById.get(id)
-    return column === undefined ? [] : [column]
+    const words = toolWords.get(tool)?.get(id)
+    if (column === undefined) return []
+    return [words === undefined ? column : { ...column, ...words }]
   })
 
 /** Every column the tool's figures can fill, in table order. */
-export const columnsFor = (tool: Tool): Column[] => columnsOf(toolColumns.get(tool)?.available ?? [])
+export const columnsFor = (tool: Tool): Column[] => columnsOf(tool, toolColumns.get(tool)?.available ?? [])
 
 const headlineIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
   ['atlas', ['highestHorizontal', 'meanHorizontal', 'renderedHorizontal', 'renderedGap']],
@@ -335,7 +346,7 @@ const headlineIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
 ])
 
 /** The few figures a headset page leads with for the tool. */
-export const headlineColumnsFor = (tool: Tool): Column[] => columnsOf(headlineIds.get(tool) ?? [])
+export const headlineColumnsFor = (tool: Tool): Column[] => columnsOf(tool, headlineIds.get(tool) ?? [])
 
 /** The columns shown for the tool until the visitor picks others. */
 export const defaultColumnsFor = (tool: Tool): CompareColumnId[] => [...(toolColumns.get(tool)?.shown ?? [])]

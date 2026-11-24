@@ -277,6 +277,16 @@ describe('HeadsetPage', () => {
     expect(wrapper.find('.rendered-average').text()).toContain('Loading…')
     await flushPromises()
     expect(wrapper.find('.rendered-average .problem').text()).toContain("couldn't be loaded")
+    expect(wrapper.find('.rendered-notes').text()).toContain("Everyone: the model's averaged rendered field of view couldn't be loaded")
+  })
+
+  it('shows no averaged rendered field of view on the WIMFOV tab', async () => {
+    compareState.tool = 'wimfov'
+    const wrapper = await mountPage('bigscreen-beyond-2')
+    expect(wrapper.find('.segmented button.on').text()).toBe('WIMFOV')
+    expect(wrapper.find('.rendered-average').exists()).toBe(false)
+    await clickButton(wrapper, 'FOV Atlas')
+    expect(wrapper.find('.rendered-average').exists()).toBe(true)
   })
 
   it('leads TestHMD figures with the model’s averaged rendered horizontal', async () => {

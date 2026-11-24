@@ -3,6 +3,7 @@ import {
   ceilingWords,
   cornerMaskWords,
   drawsRenderedOutline,
+  isFlatPicture,
   pictureOutline,
   renderedFrameOf,
   type OutlinePoint,
@@ -28,7 +29,7 @@ describe('renderedFrameOf', () => {
     expect(renderedFrameOf(atlasBeyond)).toEqual({
       left: { left: 55, right: 42, up: 44.2, down: 54 },
       right: { left: 42, right: 55, up: 44.2, down: 54 },
-      canting: 0,
+      turn: 0,
     })
   })
   it('has none for a link’s totals or a tool without a report', () => {
@@ -67,8 +68,28 @@ describe('pictureOutline', () => {
     ['an outer edge past what a flat picture reaches', { ...square, left: 120 }, 10],
     ['edges that leave no picture', { ...square, left: 10, right: -20 }, 0],
     ['a top below the bottom', { ...square, up: -50 }, 0],
-  ])('refuses %s', (_description, edges, canting) => {
-    expect(pictureOutline(edges, canting, 'left')).toBeNull()
+  ])('refuses %s', (_description, edges, turn) => {
+    expect(pictureOutline(edges, turn, 'left')).toBeNull()
+  })
+})
+
+describe('isFlatPicture', () => {
+  const edges = { left: 70, right: 30, up: 48, down: 48 }
+
+  it('accepts edges within a quarter turn of the picture’s centre, the turn taken into account', () => {
+    expect(isFlatPicture(edges, 0, 'left')).toBe(true)
+    expect(isFlatPicture({ ...edges, left: 115 }, 30, 'left')).toBe(true)
+    expect(isFlatPicture({ ...edges, left: 30, right: 115 }, 30, 'right')).toBe(true)
+  })
+
+  it.each([
+    ['a top at a right angle', { ...edges, up: 90 }, 0, 'left'],
+    ['a bottom past a right angle', { ...edges, down: 95 }, 0, 'right'],
+    ['an outer edge a quarter turn from the turned picture’s centre', { ...edges, left: 120 }, 30, 'left'],
+    ['an outer edge past it, right eye', { ...edges, right: 130 }, 30, 'right'],
+    ['an inner edge pushed past it by the turn', { ...edges, right: 70 }, 25, 'left'],
+  ] as const)('refuses %s', (_description, angles, turn, eye) => {
+    expect(isFlatPicture(angles, turn, eye)).toBe(false)
   })
 })
 

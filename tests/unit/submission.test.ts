@@ -71,7 +71,7 @@ describe('submissionProblem', () => {
     ['a typed angle straight behind the head', withLeftUp(vrhpSubmission, 180)],
     ['a VR Headset Picker link angle just below 90°', withLeftUp(vrhpLinked, 89.99)],
     ['a measured ceiling beyond 90° from straight ahead', withAtlas({
-      ceiling: { source: 'measured', left: { left: 120, right: 42, up: 44, down: 54 }, right: { left: 42, right: 120, up: 44, down: 54 }, canting: 30 },
+      ceiling: { source: 'measured', left: { left: 115, right: 42, up: 44, down: 54 }, right: { left: 42, right: 115, up: 44, down: 54 }, canting: 30 },
     })],
   ])('accepts %s', (_description, submission) => {
     expect(submissionProblem(submission)).toBeNull()
@@ -110,6 +110,19 @@ describe('submissionProblem', () => {
     ['ceiling-out-of-range', withAtlas({ ceiling: { ...atlasSubmission.ceiling, canting: Number.NaN } as Submission['ceiling'] })],
     ['ceiling-out-of-range', withAtlas({
       ceiling: { source: 'measured', left: { left: 180.5, right: 42, up: 44, down: 54 }, right: { left: 42, right: 55, up: 44, down: 54 }, canting: 0 },
+    })],
+    // Up 95 with a turn of 10 would make the left eye's picture 44.6° high below zero.
+    ['ceiling-out-of-range', withAtlas({
+      ceiling: { source: 'measured', left: { left: 55, right: 42, up: 95, down: 40 }, right: { left: 42, right: 55, up: 44, down: 54 }, canting: 10 },
+    })],
+    ['ceiling-out-of-range', withAtlas({
+      ceiling: { source: 'measured', left: { left: 55, right: 42, up: 44, down: 54 }, right: { left: 42, right: 55, up: 44, down: 90 }, canting: 0 },
+    })],
+    ['ceiling-out-of-range', withAtlas({
+      ceiling: { source: 'measured', left: { left: 120, right: 42, up: 44, down: 54 }, right: { left: 42, right: 120, up: 44, down: 54 }, canting: 30 },
+    })],
+    ['ceiling-out-of-range', withAtlas({
+      ceiling: { source: 'measured', left: { left: 55, right: 70, up: 44, down: 54 }, right: { left: 42, right: 55, up: 44, down: 54 }, canting: 25 },
     })],
     ['corner-mask-not-allowed', { ...testHmdSubmission, cornerMask: 'on' }],
     ['corner-mask-not-allowed', { ...vrhpLinked, cornerMask: 'on' }],

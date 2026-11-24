@@ -19,14 +19,14 @@ import type { EdgeAngles, Submission, Tool } from './submission.ts'
 export interface RenderedFrame {
   readonly left: EdgeAngles
   readonly right: EdgeAngles
-  readonly canting: number
+  readonly turn: number
 }
 
 /** Whether the radar draws a rendered outline for the tool's measures or groups: every tool following hmdq's definition. */
 export const drawsRenderedOutline = (tool: Tool): boolean => tool !== 'wimfov'
 
 export function renderedFrameOf({ ceiling }: Submission): RenderedFrame | undefined {
-  return ceiling.source === 'measured' ? { left: ceiling.left, right: ceiling.right, canting: ceiling.canting } : undefined
+  return ceiling.source === 'measured' ? { left: ceiling.left, right: ceiling.right, turn: ceiling.canting } : undefined
 }
 
 /** A point of an outline, in the radar's terms: its turn from up toward the wearer's left, and its angle from straight ahead. */
@@ -35,27 +35,46 @@ export interface OutlinePoint {
   readonly degrees: number
 }
 
-const radians = (degrees: number): number => (degrees * Math.PI) / 180
-const degreesOf = (angle: number): number => (angle * 180) / Math.PI
+export const radians = (degrees: number): number => (degrees * Math.PI) / 180
+export const degreesOf = (angle: number): number => (angle * 180) / Math.PI
 const pointsPerSide = 16
 
 /**
+ * An angle up or down from straight ahead of the head, turned into the same angle from the centre
+ * of a picture turned outward by `turn`. Straight ahead meets the picture `turn` off its centre,
+ * further from the eye, so the same edge sits at a smaller angle there.
+ */
+export const pictureVertical = (headDegrees: number, turn: number): number =>
+  degreesOf(Math.atan(Math.tan(radians(headDegrees)) / Math.cos(radians(turn))))
+
+/** The outer and inner edges of one eye's picture, measured across the picture itself. */
+function sideExtents(edges: EdgeAngles, turn: number, eye: 'left' | 'right'): { readonly outer: number; readonly inner: number } {
+  const [outer, inner] = eye === 'left' ? [edges.left, edges.right] : [edges.right, edges.left]
+  return { outer: outer - turn, inner: inner + turn }
+}
+
+/**
+ * Whether the edges, read from straight ahead of the head with the picture turned outward by
+ * `turn`, can bound a flat picture: each edge less than a quarter turn from the picture's centre.
+ */
+export function isFlatPicture(edges: EdgeAngles, turn: number, eye: 'left' | 'right'): boolean {
+  const { outer, inner } = sideExtents(edges, turn, eye)
+  return [outer, inner, edges.up, edges.down].every((angle) => angle > -90 && angle < 90)
+}
+
+/**
  * The border of one eye's picture as seen from that eye. A headset draws each eye's picture flat,
- * so its border is a rectangle on a plane in front of the eye, turned outward by `canting`; the
+ * so its border is a rectangle on a plane in front of the eye, turned outward by `turn`; the
  * radar's projection then bends its sides. The stored edges are angles from straight ahead of the
  * head along each principal direction, which this turns back into the picture's own extents.
  * Null when the edges describe no flat picture.
  */
-export function pictureOutline(edges: EdgeAngles, canting: number, eye: 'left' | 'right'): OutlinePoint[] | null {
-  const turned = radians(canting)
-  const [outer, inner] = eye === 'left' ? [edges.left, edges.right] : [edges.right, edges.left]
-  const outerExtent = outer - canting
-  const innerExtent = inner + canting
-  const flat = (angle: number): boolean => angle > -90 && angle < 90
-  if (![outerExtent, innerExtent, edges.up, edges.down].every(flat)) return null
-  // Along the up and down spokes the head looks at the picture from `canting` off its centre.
-  const top = Math.tan(radians(edges.up)) / Math.cos(turned)
-  const bottom = -Math.tan(radians(edges.down)) / Math.cos(turned)
+export function pictureOutline(edges: EdgeAngles, turn: number, eye: 'left' | 'right'): OutlinePoint[] | null {
+  if (!isFlatPicture(edges, turn, eye)) return null
+  const turned = radians(turn)
+  const { outer: outerExtent, inner: innerExtent } = sideExtents(edges, turn, eye)
+  const top = Math.tan(radians(pictureVertical(edges.up, turn)))
+  const bottom = -Math.tan(radians(pictureVertical(edges.down, turn)))
   const outerSide = Math.tan(radians(outerExtent))
   const innerSide = Math.tan(radians(innerExtent))
   const [leftSide, rightSide] = eye === 'left' ? [-outerSide, innerSide] : [-innerSide, outerSide]

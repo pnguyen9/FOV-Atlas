@@ -9,6 +9,7 @@ import { columnsFor, formatCell, sortRows, type CompareColumnId, type CompareRow
 import { compareState, seriesSlotCount, slotOf, togglePick } from './compareState.ts'
 import { routeHref } from '../../lib/hashRoute.ts'
 import { drawsRenderedOutline } from '../../lib/ceiling.ts'
+import { unitDifference, unitDifferenceWords } from '../../lib/renderedAverage.ts'
 import type { Tool } from '../../lib/submission.ts'
 
 const props = defineProps<{
@@ -40,6 +41,17 @@ function toggleColumn(id: CompareColumnId): void {
     compareState.columns[props.tool] = columns.value.map((column) => column.id).filter((column) => column === id || shown.includes(column))
   }
 }
+
+/** Shown with the model-average columns: one line per model whose units report drawing noticeably different pictures. */
+const unitWarnings = computed(() => {
+  if (!shownColumns.value.some((column) => column.id.startsWith('averaged'))) return []
+  const byHeadset = new Map<string, string>()
+  for (const row of [...(props.keptRow === null ? [] : [props.keptRow]), ...sortedRows.value]) {
+    const difference = row.averaged === null || row.averaged === undefined ? null : unitDifference(row.averaged)
+    if (difference !== null && !byHeadset.has(row.headset)) byHeadset.set(row.headset, `${row.name}: ${unitDifferenceWords(difference)}`)
+  }
+  return [...byHeadset].map(([headset, text]) => ({ headset, text }))
+})
 
 const full = computed(() => compareState.picks.length >= seriesSlotCount)
 const slotClass = (headset: string): string | undefined => {
@@ -166,6 +178,14 @@ const ariaSort = (id: CompareColumnId): 'ascending' | 'descending' | undefined =
       </tbody>
     </table>
   </div>
+  <p
+    v-for="warning in unitWarnings"
+    :key="warning.headset"
+    class="note unit-warning"
+  >
+    {{ warning.text }}: the headsets measured don't all report drawing the same picture, so the model average is
+    only a rough reference.
+  </p>
   <p
     v-if="full"
     class="small muted"

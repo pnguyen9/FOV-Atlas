@@ -13,7 +13,9 @@ import {
   emptyIndex,
   figureNames,
   indexPath,
+  isPlainObject,
   pagePath,
+  parseJson,
   parseIndex,
   parsePage,
   signedFigures,
@@ -91,14 +93,23 @@ export function headsetsOf(index: DataIndex, tool: Tool): ReadonlyMap<string, He
 
 const badRequest = { ok: false, error: 'bad-request' } as const
 
-/** Whether the index lists an averaged rendered field of view for the headset. */
-export const hasRenderedAverage = (index: DataIndex, headset: string): boolean =>
-  new Map(Object.entries(index.rendered ?? {})).has(headset)
-
-/** A headset model's averaged rendered field of view (see `renderedAverage.ts`), checked in full. */
-export async function loadRenderedAverage(headset: string, options: LoadOptions = {}): Promise<Loaded<RenderedAverage>> {
+/**
+ * A headset model's averaged rendered field of view (see `renderedAverage.ts`), checked in full;
+ * null when the index lists none. A file pooling another number of measures than the index says
+ * is refused.
+ */
+export async function loadRenderedAverage(
+  index: DataIndex,
+  headset: string,
+  options: LoadOptions = {},
+): Promise<Loaded<RenderedAverage | null>> {
   if (!isHeadsetId(headset)) return badRequest
-  return checked(await loadText(renderedPath(headset), options), (json) => parseRenderedAverage(json, headset))
+  const listed = new Map(Object.entries(index.rendered ?? {})).get(headset)
+  if (listed === undefined) return { ok: true, value: null }
+  return checked(await loadText(renderedPath(headset), options), (json) => {
+    const average = parseRenderedAverage(json, headset)
+    return average?.count === listed ? average : null
+  })
 }
 
 /** The list of headsets with measures, per tool; empty while nothing is published. */
@@ -117,9 +128,6 @@ export async function loadPage(tool: Tool, headset: string, page: number, option
   if (!tools.includes(tool) || !isHeadsetId(headset) || !Number.isSafeInteger(page) || page < 0) return badRequest
   return checked(await loadText(pagePath(tool, headset, page), options), (json) => parsePage(json, tool, headset, page))
 }
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /** Within `limit` of zero, on both sides when `signed`. */
 const isDegrees = (value: unknown, limit: number, signed = false): value is number =>
@@ -165,14 +173,6 @@ function isCellKey(key: string): boolean {
     (tunings as readonly string[]).includes(tuning) &&
     (gazes as readonly string[]).includes(gaze)
   )
-}
-
-function parseJson(json: string): unknown {
-  try {
-    return JSON.parse(json)
-  } catch {
-    return null
-  }
 }
 
 /**

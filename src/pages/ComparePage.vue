@@ -19,7 +19,7 @@ import { combineCells, figuresOfCombined, figuresOfMeasure, type Combined } from
 import { routeHref, type CompareView } from '../lib/hashRoute.ts'
 import { drawsRenderedOutline } from '../lib/ceiling.ts'
 import type { RenderedAverage } from '../lib/renderedAverage.ts'
-import { hasRenderedAverage, headsetsOf, loadAggregate, loadIndex, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
+import { headsetsOf, loadAggregate, loadIndex, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
 import { toolNameOf, tools, type Tool } from '../lib/submission.ts'
 import type { Aggregate, DataIndex } from '../lib/submissionStore.ts'
 
@@ -51,21 +51,22 @@ const publishedAnything = computed(
 /** The tool whose aggregates are loaded, which lags the chosen tool while they load. */
 const loadedTool = ref<Tool | null>(null)
 const aggregates = shallowRef(new Map<string, Loaded<Aggregate>>())
-/** Each model's averaged rendered field of view, for the tools that follow hmdq's definition; null when it has none. */
-const averages = shallowRef(new Map<string, RenderedAverage | null>())
-
-async function averageOf(headset: string, dataIndex: DataIndex): Promise<RenderedAverage | null> {
-  if (!hasRenderedAverage(dataIndex, headset)) return null
-  const loaded = await loadRenderedAverage(headset)
-  return loaded.ok ? loaded.value : null
+/**
+ * Each model's averaged rendered field of view, for the tools that follow hmdq's definition; a
+ * loaded null when it has none. Left out for WIMFOV.
+ */
+const averages = shallowRef(new Map<string, Loaded<RenderedAverage | null>>())
+const averageValue = (headset: string): RenderedAverage | null => {
+  const loaded = averages.value.get(headset)
+  return loaded?.ok === true ? loaded.value : null
 }
 
 async function loadTool(tool: Tool, dataIndex: DataIndex): Promise<void> {
   const headsets = [...headsetsOf(dataIndex, tool).keys()]
-  const usesAverage = drawsRenderedOutline(tool)
+  const averaged = drawsRenderedOutline(tool) ? headsets : []
   const [loaded, loadedAverages] = await Promise.all([
     Promise.all(headsets.map(async (headset) => [headset, await loadAggregate(tool, headset)] as const)),
-    Promise.all(headsets.map(async (headset) => [headset, usesAverage ? await averageOf(headset, dataIndex) : null] as const)),
+    Promise.all(averaged.map(async (headset) => [headset, await loadRenderedAverage(dataIndex, headset)] as const)),
   ])
   if (compareState.tool !== tool) return
   aggregates.value = new Map(loaded)
@@ -102,7 +103,7 @@ const rows = computed<CompareRow[]>(() =>
       name: headsetName({ headset }),
       figures: headsetCombined === null ? null : figuresOfCombined(headsetCombined),
       total: loaded?.ok === true ? loaded.value.count : 0,
-      averaged: averages.value.get(headset) ?? null,
+      averaged: averageValue(headset),
     }
   }),
 )
@@ -110,6 +111,14 @@ const rows = computed<CompareRow[]>(() =>
 const keptSameTool = computed(() =>
   compareState.kept !== null && compareState.kept.tool === compareState.tool ? compareState.kept : null,
 )
+
+// A kept measure of a headset with no published measure of this tool still gets its model's average.
+watch([() => keptSameTool.value?.headset, loadedTool], async ([headset, tool]) => {
+  const dataIndex = index.value?.ok === true ? index.value.value : null
+  if (headset === undefined || tool === null || dataIndex === null || !drawsRenderedOutline(tool) || averages.value.has(headset)) return
+  const loaded = await loadRenderedAverage(dataIndex, headset)
+  if (loadedTool.value === tool) averages.value = new Map([...averages.value, [headset, loaded]])
+})
 
 const keptRow = computed<CompareRow | null>(() => {
   const kept = keptSameTool.value
@@ -120,7 +129,7 @@ const keptRow = computed<CompareRow | null>(() => {
     name: headsetName(kept),
     figures: figuresOfMeasure(kept),
     total: 1,
-    averaged: averages.value.get(kept.headset) ?? null,
+    averaged: averageValue(kept.headset),
   }
 })
 
@@ -169,7 +178,7 @@ const radarSeries = computed<RadarSeries[]>(() => {
       statistic,
       seeText: `the ${statistic} shape measured on the ${name}`,
       tool,
-      average: averages.value.get(pick.key) ?? null,
+      average: averages.value.get(pick.key) ?? { ok: true, value: null },
     })
   })
   const kept = keptSameTool.value

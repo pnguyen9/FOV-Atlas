@@ -17,32 +17,35 @@ import type { ListedEntry } from './listedEntry.ts'
 interface FigureColumn {
   readonly label: string
   readonly title: string
-  readonly figure: FigureName
+  /** One figure, or the left and right eye's, shown in one cell as left / right. */
+  readonly figures: readonly FigureName[]
   /** Gaps are stored as measured minus rendered and shown the other way round. */
   readonly gap?: boolean
 }
 
 const bothEyes: readonly FigureColumn[] = [
-  { label: 'Horiz.', title: 'Horizontal, both eyes', figure: 'horizontal' },
-  { label: 'Vert.', title: 'Vertical, the taller eye', figure: 'vertical' },
-  { label: 'Overlap', title: 'Width both eyes see at once', figure: 'overlap' },
+  { label: 'Horiz.', title: 'Horizontal, both eyes', figures: ['horizontal'] },
+  { label: 'Vert.', title: 'Vertical, the taller eye', figures: ['vertical'] },
+  { label: 'Overlap', title: 'Width both eyes see at once', figures: ['overlap'] },
 ]
 const figureColumns: ReadonlyMap<Tool, readonly FigureColumn[]> = new Map([
   [
     'atlas',
-    [...bothEyes, { label: 'Gap', title: 'Rendered horizontal of this headset minus the horizontal measured', figure: 'horizontalPastRendered', gap: true }],
+    [...bothEyes, { label: 'Gap', title: 'Rendered horizontal of this headset minus the horizontal measured', figures: ['horizontalPastRendered'], gap: true }],
   ],
   ['wimfov', bothEyes],
   ['testhmd', bothEyes.slice(0, 2)],
   [
     'vrhp',
     [
-      { label: 'Width L', title: 'Width of the left eye', figure: 'leftWidth' },
-      { label: 'Width R', title: 'Width of the right eye', figure: 'rightWidth' },
-      { label: 'Height L', title: 'Height of the left eye', figure: 'leftHeight' },
-      { label: 'Height R', title: 'Height of the right eye', figure: 'rightHeight' },
-      { label: 'Gap L', title: 'Width of the left eye’s picture, as the link reports it, minus the width measured', figure: 'leftWidthPastRendered', gap: true },
-      { label: 'Gap R', title: 'Width of the right eye’s picture, as the link reports it, minus the width measured', figure: 'rightWidthPastRendered', gap: true },
+      { label: 'Width L / R', title: 'Width of the left eye / the right eye', figures: ['leftWidth', 'rightWidth'] },
+      { label: 'Height L / R', title: 'Height of the left eye / the right eye', figures: ['leftHeight', 'rightHeight'] },
+      {
+        label: 'Gap L / R',
+        title: 'Width of each eye’s picture, as the link reports it, minus the width measured; left eye / right eye',
+        figures: ['leftWidthPastRendered', 'rightWidthPastRendered'],
+        gap: true,
+      },
     ],
   ],
 ])
@@ -64,10 +67,14 @@ const rows = computed(() =>
     return {
       issue,
       entry,
-      figures: columns.value.map(({ figure, gap }) => {
-        const value = summaries.get(figure)?.mean
-        return formatDegrees(gap === true && value !== undefined ? -value : value)
-      }),
+      // Each value but the last ends with the separator, so a narrow cell wraps only between them.
+      figures: columns.value.map(({ figures, gap }) =>
+        figures.map((figure, figureIndex) => {
+          const value = summaries.get(figure)?.mean
+          const text = formatDegrees(gap === true && value !== undefined ? -value : value)
+          return figureIndex < figures.length - 1 ? `${text} /` : text
+        }),
+      ),
       eyeDepth: eyeDepthOptions.find((option) => option.value === entry.submission.face.eyeDepth),
       noseBridge: noseBridgeOptions.find((option) => option.value === entry.submission.face.noseBridge),
     }
@@ -77,7 +84,7 @@ const rows = computed(() =>
 
 <template>
   <div class="table-wrap">
-    <table class="data-table">
+    <table class="data-table measures-table">
       <thead>
         <tr>
           <th
@@ -121,7 +128,7 @@ const rows = computed(() =>
           </th>
           <th
             v-for="column in columns"
-            :key="column.figure"
+            :key="column.label"
             scope="col"
             :title="column.title"
           >
@@ -197,8 +204,13 @@ const rows = computed(() =>
           <td
             v-for="(figure, figureIndex) in figures"
             :key="figureIndex"
+            :class="{ 'eye-pair': figure.length > 1 }"
           >
-            {{ figure }}
+            <span
+              v-for="(value, valueIndex) in figure"
+              :key="valueIndex"
+              class="figure-value"
+            >{{ value }}</span>
           </td>
           <td class="text-cell">
             {{ ceilingWords(entry.submission) }}<span class="tag">{{ cornerMaskWords(entry.submission) }}</span>
@@ -216,8 +228,24 @@ const rows = computed(() =>
 </template>
 
 <style scoped>
+/* Wrapping headers and words, and closer columns, keep the table within the page's main column. */
+.measures-table th,
+.measures-table td {
+  padding-inline: 7px;
+}
+.measures-table th,
+.measures-table .text-cell,
+.measures-table .eye-pair {
+  white-space: normal;
+}
+.figure-value {
+  display: inline-block;
+}
+.figure-value + .figure-value {
+  margin-left: 0.25em;
+}
 .interface {
-  max-width: 220px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
 }

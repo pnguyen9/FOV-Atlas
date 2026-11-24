@@ -277,10 +277,12 @@ function savePages(files: DataFiles, index: DataIndex, pages: readonly Page[], c
 /** The only tool whose measures read what their headset draws edge by edge, and so the only one averaged. */
 const renderedSource: Tool = 'atlas'
 
-const submissionsOf = (pages: readonly Page[], leftOut: number | null = null): Submission[] =>
-  pages.flatMap((page) =>
-    Object.entries(page.entries).flatMap(([issue, { submission }]) => (issue === String(leftOut) ? [] : [submission])),
+const submissionsOf = (pages: readonly Page[], leftOut: number | null = null): Submission[] => {
+  const leftOutKey = leftOut === null ? null : String(leftOut)
+  return pages.flatMap((page) =>
+    Object.entries(page.entries).flatMap(([issue, { submission }]) => (issue === leftOutKey ? [] : [submission])),
   )
+}
 
 /** Rewrites or removes a headset's averaged rendered field of view; returns the index listing it. */
 function saveRendered(files: DataFiles, index: DataIndex, headset: string, pages: readonly Page[]): DataIndex {

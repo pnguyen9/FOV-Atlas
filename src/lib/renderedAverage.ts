@@ -20,9 +20,10 @@
  * between units can be told.
  */
 
-import type { RenderedFrame } from './ceiling.ts'
+import { pictureVertical, type RenderedFrame } from './ceiling.ts'
+import { summarize } from './fovStats.ts'
 import { isHeadsetId, maximumCantingDegrees, type EdgeAngles, type Submission } from './submission.ts'
-import { dataRoot } from './submissionStore.ts'
+import { dataRoot, isPlainObject, parseJson } from './submissionStore.ts'
 
 export const renderedPath = (headset: string): string => `${dataRoot}/rendered/${headset}.json`
 
@@ -81,17 +82,7 @@ export interface RenderedAverage {
   readonly values: Readonly<Partial<Record<RenderedValueName, RenderedStat>>>
 }
 
-const radians = (degrees: number): number => (degrees * Math.PI) / 180
-const degreesOf = (angle: number): number => (angle * 180) / Math.PI
 const roundCenti = (degrees: number): number => Math.round(degrees * 100) / 100
-
-/**
- * An angle up or down from straight ahead of the head, turned into the same angle from the centre
- * of a picture turned outward by `turn`. Straight ahead meets the picture `turn` off its centre,
- * further from the eye, so the same edge sits at a smaller angle there.
- */
-export const pictureVertical = (headDegrees: number, turn: number): number =>
-  degreesOf(Math.atan(Math.tan(radians(headDegrees)) / Math.cos(radians(turn))))
 
 /**
  * The edges of each eye's picture across the picture itself, as VR Headset Picker gives its
@@ -116,8 +107,8 @@ export const entersAverage = (submission: Submission): boolean => !submission.tu
 export function renderedValuesOf(submission: Submission): RenderedValues {
   const { ceiling } = submission
   if (!entersAverage(submission) || ceiling.source !== 'measured') return {}
-  const { left, right, canting } = ceiling
-  const heightOf = (edges: EdgeAngles): number => roundCenti(pictureVertical(edges.up, canting) + pictureVertical(edges.down, canting))
+  const { left, right, canting: turn } = ceiling
+  const heightOf = (edges: EdgeAngles): number => roundCenti(pictureVertical(edges.up, turn) + pictureVertical(edges.down, turn))
   return {
     leftWidth: roundCenti(left.left + left.right),
     leftHeight: heightOf(left),
@@ -133,7 +124,7 @@ export function renderedValuesOf(submission: Submission): RenderedValues {
     rightEyeRight: right.right,
     rightEyeUp: right.up,
     rightEyeDown: right.down,
-    turn: canting,
+    turn,
   }
 }
 
@@ -192,10 +183,9 @@ export interface RenderedSummary {
   readonly max: number
 }
 
-export function summarizeRendered({ count, sum, sumsq, min, max }: RenderedStat): RenderedSummary {
-  const mean = sum / count
-  // Rounding in the stored sums can push a zero variance slightly below zero.
-  return { count, mean, sigma: Math.sqrt(Math.max(0, sumsq / count - mean * mean)), min, max }
+export function summarizeRendered(stat: RenderedStat): RenderedSummary {
+  const { count, mean, sigma } = summarize(stat)
+  return { count, mean, sigma, min: stat.min, max: stat.max }
 }
 
 /** Each value present, summarized, in the order of `renderedValueNames`. */
@@ -267,7 +257,7 @@ export function averagedHeadFrame(average: RenderedAverage | null | undefined): 
   const left = edges('leftEye')
   const right = edges('rightEye')
   const turn = mean('turn')
-  return left === undefined || right === undefined || turn === undefined ? undefined : { left, right, canting: turn }
+  return left === undefined || right === undefined || turn === undefined ? undefined : { left, right, turn }
 }
 
 /**
@@ -278,14 +268,12 @@ export function averagedPictureFrame(average: RenderedAverage | null | undefined
   const frame = averagedHeadFrame(average)
   if (frame === undefined) return undefined
   return {
-    left: pictureEdges(frame.left, frame.canting, 'left'),
-    right: pictureEdges(frame.right, frame.canting, 'right'),
-    canting: 0,
+    left: pictureEdges(frame.left, frame.turn, 'left'),
+    right: pictureEdges(frame.right, frame.turn, 'right'),
+    turn: 0,
   }
 }
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 const isCount = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0
 
 /** Every stored value is at most a half turn, and a both-eye value adds two of them. */
@@ -310,14 +298,6 @@ function isRenderedStat(value: unknown, name: RenderedValueName): value is Rende
     sumsq >= 0 &&
     sumsq <= count * Math.max(min * min, max * max) + slack * maximumDegrees
   )
-}
-
-function parseJson(json: string): unknown {
-  try {
-    return JSON.parse(json)
-  } catch {
-    return null
-  }
 }
 
 /**
