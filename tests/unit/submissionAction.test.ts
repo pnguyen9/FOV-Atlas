@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { issueFieldsOf, renderIssueBody, type IssueError } from '../../src/lib/issueForm'
 import { messageFor, readEvent, runAction, type ActionEvent, type DataFiles } from '../../src/lib/submissionAction'
-import { aggregatePath, indexPath, parseShard, shardDirectory, shardPath } from '../../src/lib/submissionStore'
+import {
+  aggregatePath,
+  emptyPage,
+  entriesPerPage,
+  indexPath,
+  lookupPath,
+  pagePath,
+  parsePage,
+  serialize,
+  serializePage,
+  withEntry,
+} from '../../src/lib/submissionStore'
 import { wimfovResultLink } from '../../src/lib/wimfov'
+import type { Tool } from '../../src/lib/submission'
 import { atlasSubmission, testHmdSubmission, wimfovPage, wimfovResultId } from './fixtures'
 
 interface MemoryFiles extends DataFiles {
@@ -20,12 +32,11 @@ function memoryFiles(initial: Record<string, string> = {}): MemoryFiles {
     remove: (path) => {
       contents.delete(path)
     },
-    listShards: () => [...contents.keys()].filter((path) => path.startsWith(`${shardDirectory}/`)),
   }
 }
 
 const atlasBody = renderIssueBody(issueFieldsOf(atlasSubmission))
-const atlasShard = shardPath('atlas', 'bigscreen-beyond-2')
+const atlasPage = pagePath('atlas', 'bigscreen-beyond-2', 0)
 
 interface PayloadParts {
   action?: string
@@ -95,37 +106,117 @@ const submissionEvent = (body: string, issue = 42): ActionEvent => ({ kind: 'sub
 const withdrawEvent = (issue = 42): ActionEvent => ({ kind: 'withdraw', issue, author: 'someone' })
 
 describe('runAction', () => {
-  it('stores an accepted submission with its aggregate and the index', () => {
+  const json = (files: MemoryFiles, path: string): unknown => JSON.parse(files.contents.get(path) ?? 'null')
+  const issuesOn = (files: MemoryFiles, tool: Tool, headset: string, page: number): string[] =>
+    Object.keys(parsePage(files.contents.get(pagePath(tool, headset, page)) ?? '', tool, headset, page)?.entries ?? {})
+  const valveBody = renderIssueBody(issueFieldsOf({ ...testHmdSubmission, headset: 'valve-index' }))
+
+  /** Stores issues 1 to `count` on the atlas headset. */
+  function filled(count: number): MemoryFiles {
+    const files = memoryFiles()
+    for (let issue = 1; issue <= count; issue += 1) runAction(submissionEvent(atlasBody, issue), files)
+    return files
+  }
+
+  it('stores an accepted submission with its aggregate, the index and the issue lookup', () => {
     const files = memoryFiles()
     const result = runAction(submissionEvent(atlasBody), files)
     expect(result.outcome).toBe('accepted')
     expect(result.message).toContain('`bigscreen-beyond-2`')
     expect(result.commitMessage).toBe('Store submission #42 (atlas/bigscreen-beyond-2)')
-    const shard = parseShard(files.contents.get(atlasShard) ?? '', 'atlas', 'bigscreen-beyond-2')
-    expect(shard?.entries['42']).toEqual({ author: 'someone', submission: atlasSubmission })
+    const page = parsePage(files.contents.get(atlasPage) ?? '', 'atlas', 'bigscreen-beyond-2', 0)
+    expect(page?.entries['42']).toEqual({ author: 'someone', submission: atlasSubmission })
     expect(files.contents.get(aggregatePath('atlas', 'bigscreen-beyond-2'))).toContain('"count": 1')
-    expect(JSON.parse(files.contents.get(indexPath) ?? '')).toEqual({ version: 1, counts: { atlas: { 'bigscreen-beyond-2': 1 } } })
+    expect(json(files, indexPath)).toEqual({ version: 1, headsets: { atlas: { 'bigscreen-beyond-2': { count: 1, pages: 1 } } } })
+    expect(json(files, lookupPath(0))).toEqual({
+      version: 1,
+      lookup: 0,
+      issues: { 42: { tool: 'atlas', headset: 'bigscreen-beyond-2', page: 0 } },
+    })
   })
 
-  it('moves an edited submission to its new shard', () => {
+  it('replaces an edited submission on its page when it stays on its headset', () => {
+    const files = filled(entriesPerPage + 1)
+    const edited = renderIssueBody(issueFieldsOf({ ...atlasSubmission, ipd: 60 }))
+    expect(runAction(submissionEvent(edited, 5), files).outcome).toBe('accepted')
+    const page = parsePage(files.contents.get(atlasPage) ?? '', 'atlas', 'bigscreen-beyond-2', 0)
+    expect(page?.entries['5']?.submission.ipd).toBe(60)
+    expect(issuesOn(files, 'atlas', 'bigscreen-beyond-2', 1)).toEqual([String(entriesPerPage + 1)])
+    expect(json(files, indexPath)).toEqual({
+      version: 1,
+      headsets: { atlas: { 'bigscreen-beyond-2': { count: entriesPerPage + 1, pages: 2 } } },
+    })
+  })
+
+  it('moves an edited submission to its new headset', () => {
     const files = memoryFiles()
     runAction(submissionEvent(atlasBody), files)
     runAction(submissionEvent(atlasBody, 43), files)
-    const moved = renderIssueBody(issueFieldsOf({ ...testHmdSubmission, headset: 'valve-index' }))
-    expect(runAction(submissionEvent(moved), files).outcome).toBe('accepted')
-    expect(Object.keys(parseShard(files.contents.get(atlasShard) ?? '', 'atlas', 'bigscreen-beyond-2')?.entries ?? {})).toEqual(['43'])
-    expect(files.contents.has(shardPath('testhmd', 'valve-index'))).toBe(true)
-    expect(JSON.parse(files.contents.get(indexPath) ?? '')).toEqual({
+    expect(runAction(submissionEvent(valveBody), files).outcome).toBe('accepted')
+    expect(issuesOn(files, 'atlas', 'bigscreen-beyond-2', 0)).toEqual(['43'])
+    expect(issuesOn(files, 'testhmd', 'valve-index', 0)).toEqual(['42'])
+    expect(json(files, indexPath)).toEqual({
       version: 1,
-      counts: { atlas: { 'bigscreen-beyond-2': 1 }, testhmd: { 'valve-index': 1 } },
+      headsets: { atlas: { 'bigscreen-beyond-2': { count: 1, pages: 1 } }, testhmd: { 'valve-index': { count: 1, pages: 1 } } },
     })
+    expect(json(files, lookupPath(0))).toMatchObject({ issues: { 42: { tool: 'testhmd', headset: 'valve-index', page: 0 } } })
+  })
+
+  it('removes the old headset entirely when its last submission moves away', () => {
+    const files = memoryFiles()
+    runAction(submissionEvent(atlasBody), files)
+    runAction(submissionEvent(valveBody), files)
+    expect(files.contents.has(atlasPage)).toBe(false)
+    expect(files.contents.has(aggregatePath('atlas', 'bigscreen-beyond-2'))).toBe(false)
+    expect(json(files, indexPath)).toEqual({ version: 1, headsets: { testhmd: { 'valve-index': { count: 1, pages: 1 } } } })
+  })
+
+  it('starts a new page once the last one is full', () => {
+    const files = filled(entriesPerPage + 1)
+    expect(issuesOn(files, 'atlas', 'bigscreen-beyond-2', 0)).toHaveLength(entriesPerPage)
+    expect(issuesOn(files, 'atlas', 'bigscreen-beyond-2', 1)).toEqual([String(entriesPerPage + 1)])
+    expect(json(files, lookupPath(0))).toMatchObject({ issues: { [entriesPerPage + 1]: { page: 1 } } })
+    expect(json(files, aggregatePath('atlas', 'bigscreen-beyond-2'))).toMatchObject({ count: entriesPerPage + 1 })
+  })
+
+  it('leaves a gap on an earlier page and keeps appending to the last one', () => {
+    const files = filled(entriesPerPage + 1)
+    expect(runAction(withdrawEvent(1), files).outcome).toBe('withdrawn')
+    expect(issuesOn(files, 'atlas', 'bigscreen-beyond-2', 0)).toHaveLength(entriesPerPage - 1)
+    runAction(submissionEvent(atlasBody, 5000), files)
+    expect(issuesOn(files, 'atlas', 'bigscreen-beyond-2', 1)).toEqual([String(entriesPerPage + 1), '5000'])
+    expect(json(files, indexPath)).toEqual({
+      version: 1,
+      headsets: { atlas: { 'bigscreen-beyond-2': { count: entriesPerPage + 1, pages: 2 } } },
+    })
+    expect(json(files, lookupPath(5))).toEqual({
+      version: 1,
+      lookup: 5,
+      issues: { 5000: { tool: 'atlas', headset: 'bigscreen-beyond-2', page: 1 } },
+    })
+  })
+
+  it('drops trailing pages left empty, however many', () => {
+    const files = filled(entriesPerPage + 1)
+    for (let issue = 1; issue <= entriesPerPage; issue += 1) runAction(withdrawEvent(issue), files)
+    expect(files.contents.get(atlasPage)).toContain('"entries":{}')
+    runAction(withdrawEvent(entriesPerPage + 1), files)
+    expect([...files.contents.keys()]).toEqual([indexPath])
+    expect(json(files, indexPath)).toEqual({ version: 1, headsets: {} })
+  })
+
+  it('keeps an empty page that has a later page after it', () => {
+    const files = filled(entriesPerPage + 1)
+    for (let issue = 1; issue <= entriesPerPage; issue += 1) runAction(withdrawEvent(issue), files)
+    expect(json(files, indexPath)).toEqual({ version: 1, headsets: { atlas: { 'bigscreen-beyond-2': { count: 1, pages: 2 } } } })
+    expect(files.contents.has(lookupPath(0))).toBe(true)
   })
 
   it('uses the fetched WIMFOV page', () => {
     const fields = { ...issueFieldsOf(atlasSubmission), tool: 'wimfov', measure: '', 'wimfov-link': wimfovResultLink(wimfovResultId) }
     const files = memoryFiles()
     expect(runAction(submissionEvent(renderIssueBody(fields)), files, { wimfovPage: wimfovPage() }).outcome).toBe('accepted')
-    expect(files.contents.has(shardPath('wimfov', 'bigscreen-beyond-2'))).toBe(true)
+    expect(files.contents.has(pagePath('wimfov', 'bigscreen-beyond-2', 0))).toBe(true)
   })
 
   it('answers an invalid submission with the reason and stores nothing', () => {
@@ -147,26 +238,57 @@ describe('runAction', () => {
     expect(files.contents).toEqual(stored)
   })
 
-  it('removes a withdrawn submission, its empty shard and its aggregate', () => {
+  it('removes a withdrawn submission, its empty page, its aggregate and its lookup', () => {
     const files = memoryFiles()
     runAction(submissionEvent(atlasBody), files)
     const result = runAction(withdrawEvent(), files)
     expect(result).toMatchObject({ outcome: 'withdrawn', commitMessage: 'Withdraw submission #42' })
     expect([...files.contents.keys()]).toEqual([indexPath])
-    expect(JSON.parse(files.contents.get(indexPath) ?? '')).toEqual({ version: 1, counts: {} })
+    expect(json(files, indexPath)).toEqual({ version: 1, headsets: {} })
   })
 
   it('says so when there is nothing to withdraw', () => {
     expect(runAction(withdrawEvent(), memoryFiles())).toMatchObject({ outcome: 'not-found', commitMessage: '' })
   })
 
+  const atlasIndex = serialize({ version: 1, headsets: { atlas: { 'bigscreen-beyond-2': { count: 1, pages: 1 } } } })
+  const atlasLookup = (page: number): string =>
+    serialize({ version: 1, lookup: 0, issues: { 42: { tool: 'atlas', headset: 'bigscreen-beyond-2', page } } })
+  const otherIssuePage = serializePage(
+    withEntry(emptyPage('atlas', 'bigscreen-beyond-2', 0), 43, { author: 'someone', submission: atlasSubmission }),
+  )
+
   it.each([
-    ['a corrupt shard', { [atlasShard]: '{' }, 'is corrupt'],
-    ['a corrupt index', { [indexPath]: '[]' }, 'is corrupt'],
-    ['an unexpected file among the shards', { [`${shardDirectory}/notes.txt`]: '' }, 'Unexpected file'],
-    ['a shard of an unknown tool', { [`${shardDirectory}/hmdq/valve-index.json`]: '{}' }, 'Unexpected file'],
-  ])('stops on %s', (_description, initial: Record<string, string>, message) => {
-    expect(() => runAction(submissionEvent(atlasBody), memoryFiles(initial))).toThrow(message)
+    ['a corrupt page', { [indexPath]: atlasIndex, [atlasPage]: '{' }, submissionEvent(atlasBody), 'is corrupt'],
+    ['a page the index lists but that is missing', { [indexPath]: atlasIndex }, submissionEvent(atlasBody), 'is missing'],
+    ['a corrupt index', { [indexPath]: '[]' }, submissionEvent(atlasBody), 'is corrupt'],
+    ['a corrupt issue lookup', { [lookupPath(0)]: '{' }, submissionEvent(atlasBody), 'is corrupt'],
+    [
+      'a lookup pointing outside the data',
+      { [lookupPath(0)]: serialize({ version: 1, lookup: 0, issues: { 42: { tool: 'atlas', headset: '../../x', page: 0 } } }) },
+      withdrawEvent(),
+      'is corrupt',
+    ],
+    [
+      'a lookup pointing to a page without the issue, on withdraw',
+      { [indexPath]: atlasIndex, [atlasPage]: otherIssuePage, [lookupPath(0)]: atlasLookup(0) },
+      withdrawEvent(),
+      'to a page without it',
+    ],
+    [
+      'a lookup pointing to a page without the issue, on edit',
+      { [indexPath]: atlasIndex, [atlasPage]: otherIssuePage, [lookupPath(0)]: atlasLookup(0) },
+      submissionEvent(atlasBody),
+      'to a page without it',
+    ],
+    [
+      'a lookup pointing past the last page',
+      { [indexPath]: atlasIndex, [atlasPage]: otherIssuePage, [lookupPath(0)]: atlasLookup(3) },
+      submissionEvent(atlasBody),
+      'to a page without it',
+    ],
+  ])('stops on %s', (_description, initial: Record<string, string>, event: ActionEvent, message) => {
+    expect(() => runAction(event, memoryFiles(initial))).toThrow(message)
   })
 })
 

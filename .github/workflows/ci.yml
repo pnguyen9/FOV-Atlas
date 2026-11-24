@@ -10,9 +10,12 @@ on:
 permissions:
   contents: read
 
+# A burst of submissions triggers one run each. A running deploy is left to finish; GitHub keeps
+# only the newest waiting run per group and cancels the older waiting ones, and that newest run
+# builds everything committed before it.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   check:

@@ -8,58 +8,15 @@
  * The fetched WIMFOV page, if any, is read from WIMFOV_PAGE_PATH.
  */
 
-import { appendFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
 import { wimfovResultToFetch } from '../src/lib/issueForm.ts'
-import { readEvent, runAction, type DataFiles } from '../src/lib/submissionAction.ts'
-import { shardDirectory } from '../src/lib/submissionStore.ts'
+import { readEvent, runAction } from '../src/lib/submissionAction.ts'
 import { maximumPageLength } from '../src/lib/wimfov.ts'
+import { appendText, dataFiles, readText } from './files.ts'
 
 function required(value: string | undefined, name: string): string {
   if (value === undefined || value === '') throw new Error(`${name} is not set`)
   return value
 }
-
-const isMissingFile = (error: unknown): boolean => error instanceof Error && 'code' in error && error.code === 'ENOENT'
-
-/*
- * The only file access. Paths are either built by the store module from validated tool and
- * headset ids, or named by the runner through its own environment variables.
- */
-/* eslint-disable security/detect-non-literal-fs-filename */
-function readText(path: string): string | null {
-  try {
-    return readFileSync(path, 'utf8')
-  } catch (error) {
-    if (isMissingFile(error)) return null
-    throw error
-  }
-}
-
-function writeText(path: string, content: string): void {
-  mkdirSync(dirname(path), { recursive: true })
-  writeFileSync(path, content)
-}
-
-function appendText(path: string, content: string): void {
-  appendFileSync(path, content)
-}
-
-function removeFile(path: string): void {
-  rmSync(path, { force: true })
-}
-
-function listFiles(directory: string): string[] {
-  try {
-    return readdirSync(directory, { recursive: true, withFileTypes: true })
-      .filter((entry) => entry.isFile())
-      .map((entry) => join(entry.parentPath, entry.name))
-  } catch (error) {
-    if (isMissingFile(error)) return []
-    throw error
-  }
-}
-/* eslint-enable security/detect-non-literal-fs-filename */
 
 function writeOutput(name: string, value: string): void {
   // Values are fixed sentences or validated ids; a line break would let one forge other outputs.
@@ -67,17 +24,7 @@ function writeOutput(name: string, value: string): void {
   appendText(required(process.env.GITHUB_OUTPUT, 'GITHUB_OUTPUT'), `${name}=${value}\n`)
 }
 
-const root = process.cwd()
-const files: DataFiles = {
-  read: (path) => readText(join(root, path)),
-  write: (path, content) => {
-    writeText(join(root, path), content)
-  },
-  remove: (path) => {
-    removeFile(join(root, path))
-  },
-  listShards: () => listFiles(join(root, shardDirectory)).map((path) => relative(root, path)),
-}
+const files = dataFiles(process.cwd())
 
 function readWimfovPage(): string | undefined {
   const path = process.env.WIMFOV_PAGE_PATH

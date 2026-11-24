@@ -62,8 +62,8 @@ jobs:
           for attempt in 1 2 3 4 5; do
             : > "$outputs"
             GITHUB_OUTPUT="$outputs" node scripts/submission-action.ts process
-            if [ -z "$(git status --porcelain -- public/data)" ]; then break; fi
-            git add --all -- public/data
+            if [ -z "$(git status --porcelain -- public/data data/issues)" ]; then break; fi
+            git add --all -- public/data data/issues
             git commit --quiet --message "$(sed -n 's/^commit_message=//p' "$outputs")"
             if git push --quiet origin "HEAD:$GITHUB_REF_NAME"; then break; fi
             if [ "$attempt" = 5 ]; then echo 'Could not push the data commit' >&2; exit 1; fi

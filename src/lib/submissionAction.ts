@@ -9,22 +9,32 @@
 
 import { parseIssueBody, type IssueError, type ParseOptions } from './issueForm.ts'
 import type { PlainTextProblem } from './plainText.ts'
-import { tools, type Submission, type TextField, type Tool } from './submission.ts'
+import type { Submission, TextField, Tool } from './submission.ts'
 import {
+  aggregatePages,
   aggregatePath,
-  aggregateShard,
   emptyIndex,
-  emptyShard,
+  emptyLookup,
+  emptyPage,
+  entriesPerPage,
   indexPath,
+  lookupNumberOf,
+  lookupPath,
+  pagePath,
   parseIndex,
-  parseShard,
+  parseLookup,
+  parsePage,
   serialize,
-  shardDirectory,
-  shardPath,
-  withCount,
+  serializeLookup,
+  serializePage,
   withEntry,
+  withLocation,
   withoutEntry,
-  type Shard,
+  withSummary,
+  type DataIndex,
+  type IssueLookup,
+  type Location,
+  type Page,
 } from './submissionStore.ts'
 
 /** The repository's data files, relative to its root. */
@@ -32,8 +42,6 @@ export interface DataFiles {
   read(path: string): string | null
   write(path: string, content: string): void
   remove(path: string): void
-  /** Every file below `shardDirectory`, as paths relative to the repository root. */
-  listShards(): readonly string[]
 }
 
 export const submissionLabel = 'submission'
@@ -179,61 +187,104 @@ export function messageFor(error: IssueError): string {
   return messages.get(error) ?? 'The submission is invalid.'
 }
 
-const shardFilePattern = /^([a-z]+)\/([a-z0-9-]+)\.json$/
-
-function readShard(files: DataFiles, tool: Tool, headset: string): Shard {
-  const json = files.read(shardPath(tool, headset))
-  if (json === null) return emptyShard(tool, headset)
-  const shard = parseShard(json, tool, headset)
-  if (shard === null) throw new Error(`${shardPath(tool, headset)} is corrupt`)
-  return shard
+function readIndex(files: DataFiles): DataIndex {
+  const json = files.read(indexPath)
+  const index = json === null ? emptyIndex() : parseIndex(json)
+  if (index === null) throw new Error(`${indexPath} is corrupt`)
+  return index
 }
 
-/** Every stored shard holding this issue, as [tool, headset] pairs. */
-function shardsHolding(files: DataFiles, issue: number): [Tool, string][] {
-  return files.listShards().flatMap((path): [Tool, string][] => {
-    const prefix = `${shardDirectory}/`
-    const match = path.startsWith(prefix) ? shardFilePattern.exec(path.slice(prefix.length)) : null
-    const [, tool, headset] = match ?? []
-    if (!tools.includes(tool as Tool) || headset === undefined) throw new Error(`Unexpected file ${path}`)
-    return String(issue) in readShard(files, tool as Tool, headset).entries ? [[tool as Tool, headset]] : []
+function readLookup(files: DataFiles, lookupNumber: number): IssueLookup {
+  const json = files.read(lookupPath(lookupNumber))
+  const lookup = json === null ? emptyLookup(lookupNumber) : parseLookup(json, lookupNumber)
+  if (lookup === null) throw new Error(`${lookupPath(lookupNumber)} is corrupt`)
+  return lookup
+}
+
+function locationOf(files: DataFiles, issue: number): Location | null {
+  return readLookup(files, lookupNumberOf(issue)).issues[String(issue)] ?? null
+}
+
+function saveLocation(files: DataFiles, issue: number, location: Location | null): void {
+  const lookup = withLocation(readLookup(files, lookupNumberOf(issue)), issue, location)
+  const path = lookupPath(lookup.lookup)
+  if (Object.keys(lookup.issues).length === 0) files.remove(path)
+  else files.write(path, serializeLookup(lookup))
+}
+
+/** Every page of a headset, as many as the index lists; a listed page that is missing is corruption. */
+function readPages(files: DataFiles, index: DataIndex, tool: Tool, headset: string): Page[] {
+  const summaries = new Map(Object.entries(index.headsets)).get(tool) ?? {}
+  const pageCount = new Map(Object.entries(summaries)).get(headset)?.pages ?? 0
+  return Array.from({ length: pageCount }, (_, pageNumber) => {
+    const path = pagePath(tool, headset, pageNumber)
+    const json = files.read(path)
+    const page = json === null ? null : parsePage(json, tool, headset, pageNumber)
+    if (page === null) throw new Error(`${path} is ${json === null ? 'missing' : 'corrupt'}`)
+    return page
   })
 }
 
-/** Writes the shard with its aggregate and count, or removes both once it is empty. */
-function saveShard(files: DataFiles, shard: Shard): void {
-  const count = Object.keys(shard.entries).length
-  if (count === 0) {
-    files.remove(shardPath(shard.tool, shard.headset))
-    files.remove(aggregatePath(shard.tool, shard.headset))
-  } else {
-    files.write(shardPath(shard.tool, shard.headset), serialize(shard))
-    files.write(aggregatePath(shard.tool, shard.headset), serialize(aggregateShard(shard)))
+const entryCount = (page: Page): number => Object.keys(page.entries).length
+
+/**
+ * Writes the changed page, drops trailing pages left empty, and rebuilds the headset's aggregate
+ * and index summary from all its pages.
+ */
+function savePages(files: DataFiles, index: DataIndex, pages: readonly Page[], changed: Page): void {
+  const { tool, headset } = changed
+  const updated = pages.map((page) => (page.page === changed.page ? changed : page))
+  if (changed.page === pages.length) updated.push(changed)
+  for (let last = updated.at(-1); last !== undefined && entryCount(last) === 0; last = updated.at(-1)) {
+    files.remove(pagePath(tool, headset, last.page))
+    updated.pop()
   }
-  const indexJson = files.read(indexPath)
-  const index = indexJson === null ? emptyIndex() : parseIndex(indexJson)
-  if (index === null) throw new Error(`${indexPath} is corrupt`)
-  files.write(indexPath, serialize(withCount(index, shard.tool, shard.headset, count)))
+  if (changed.page < updated.length) files.write(pagePath(tool, headset, changed.page), serializePage(changed))
+  const count = updated.reduce((total, page) => total + entryCount(page), 0)
+  if (count === 0) files.remove(aggregatePath(tool, headset))
+  else files.write(aggregatePath(tool, headset), serialize(aggregatePages(tool, headset, updated)))
+  const summary = count === 0 ? null : { count, pages: updated.length }
+  files.write(indexPath, serialize(withSummary(index, tool, headset, summary)))
 }
 
-function removeIssue(files: DataFiles, issue: number): number {
-  const holders = shardsHolding(files, issue)
-  for (const [tool, headset] of holders) saveShard(files, withoutEntry(readShard(files, tool, headset), issue))
-  return holders.length
+function pageHolding(pages: readonly Page[], location: Location, issue: number): Page {
+  const page = pages[location.page]
+  if (page?.entries[String(issue)] === undefined) {
+    throw new Error(`${lookupPath(lookupNumberOf(issue))} points issue ${String(issue)} to a page without it`)
+  }
+  return page
 }
 
+function removeIssue(files: DataFiles, issue: number): boolean {
+  const location = locationOf(files, issue)
+  if (location === null) return false
+  const index = readIndex(files)
+  const pages = readPages(files, index, location.tool, location.headset)
+  savePages(files, index, pages, withoutEntry(pageHolding(pages, location, issue), issue))
+  saveLocation(files, issue, null)
+  return true
+}
+
+/** Replaces the entry in place when the issue stays on its headset; otherwise moves it to the last page of its new one. */
 function store(files: DataFiles, issue: number, author: string, submission: Submission): void {
-  removeIssue(files, issue)
-  const shard = readShard(files, submission.tool, submission.headset)
-  saveShard(files, withEntry(shard, issue, { author, submission }))
+  const { tool, headset } = submission
+  const location = locationOf(files, issue)
+  const staysOnHeadset = location?.tool === tool && location.headset === headset
+  if (location !== null && !staysOnHeadset) removeIssue(files, issue)
+  const index = readIndex(files)
+  const pages = readPages(files, index, tool, headset)
+  const last = pages[pages.length - 1]
+  const hasRoom = last !== undefined && entryCount(last) < entriesPerPage
+  const target = staysOnHeadset ? pageHolding(pages, location, issue) : hasRoom ? last : emptyPage(tool, headset, pages.length)
+  savePages(files, index, pages, withEntry(target, issue, { author, submission }))
+  saveLocation(files, issue, { tool, headset, page: target.page })
 }
 
 const keptNote = ' The version accepted earlier stays published until a valid edit replaces it.'
 
 export function runAction(event: ActionEvent, files: DataFiles, options: ParseOptions = {}): ActionResult {
   if (event.kind === 'withdraw') {
-    const removed = removeIssue(files, event.issue)
-    return removed > 0
+    return removeIssue(files, event.issue)
       ? {
           outcome: 'withdrawn',
           message: 'Your measure has been removed from FOV Atlas. It disappears from the site with the next deploy.',
@@ -245,7 +296,7 @@ export function runAction(event: ActionEvent, files: DataFiles, options: ParseOp
   if (!parsed.ok) {
     return {
       outcome: 'invalid',
-      message: `This submission could not be accepted: ${messageFor(parsed.error)} Edit the issue to fix it; it is checked again after every edit.${shardsHolding(files, event.issue).length > 0 ? keptNote : ''}`,
+      message: `This submission could not be accepted: ${messageFor(parsed.error)} Edit the issue to fix it; it is checked again after every edit.${locationOf(files, event.issue) === null ? '' : keptNote}`,
       commitMessage: '',
     }
   }
