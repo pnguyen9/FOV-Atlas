@@ -30,8 +30,7 @@ npm run dev     # local dev server
 npm run check   # lint, typecheck, unit tests with coverage, production build
 ```
 
-See [SECURITY.md](SECURITY.md) for the security policy. The first mockup of the pages lives in
-[docs/mockup](docs/mockup/index.html).
+The first mockup of the pages lives in [docs/mockup](docs/mockup/index.html).
 
 ## Credits
 
