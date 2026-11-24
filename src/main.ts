@@ -1,5 +1,4 @@
 import { createApp } from 'vue'
-import App from './App.vue'
-import { isFramed } from './lib/framing'
+import { rootComponent } from './rootComponent'
 
-createApp(App, { framed: isFramed(window) }).mount('#app')
+createApp(rootComponent(window)).mount('#app')

@@ -5,7 +5,7 @@ GitHub issues processed by a GitHub Action. No server, ever.
 
 ## Commands
 
-Node 22.23.5 via nvm (`nvm use`); the laptop's default node is too old.
+Node version in `.nvmrc` (`nvm use`).
 
 - `npm run check`: lint (warnings fail), typecheck, unit tests with coverage thresholds, build.
 - `npm run dev` / `npm run preview` (preview serves the built site with its CSP).

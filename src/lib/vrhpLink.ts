@@ -9,11 +9,12 @@
  * range of every angle. Anything unexpected is rejected, never repaired.
  */
 
-export const supportedVersion = 4
+const supportedVersion = 4
 const headerBytes = 2
 const angleCount = 10
 const totalCount = 9
-const minimumPayloadBytes = headerBytes + angleCount * 2 + totalCount * 2
+const totalsOffset = headerBytes + angleCount * 2
+const minimumPayloadBytes = totalsOffset + totalCount * 2
 /** Longer than any real link; caps the work done on hostile input. */
 export const maximumInputLength = 2048
 const maximumAngleDegrees = 90
@@ -41,7 +42,6 @@ export interface RenderedTotals {
 }
 
 export interface VrhpMeasure {
-  readonly version: number
   readonly flags: number
   readonly left: EyeAngles
   readonly right: EyeAngles
@@ -67,13 +67,8 @@ const base64UrlPattern = /^[A-Za-z0-9_-]+$/
 export function extractResultsParameter(input: string): string | null {
   const trimmed = input.trim()
   if (base64UrlPattern.test(trimmed)) return trimmed
-  let url: URL
-  try {
-    url = new URL(trimmed)
-  } catch {
-    return null
-  }
-  if (url.protocol !== 'https:') return null
+  const url = URL.parse(trimmed)
+  if (url?.protocol !== 'https:') return null
   return url.searchParams.get('results')
 }
 
@@ -95,33 +90,23 @@ export function decodeVrhpLink(input: string): VrhpDecodeResult {
   if (bytes.length < minimumPayloadBytes) return { ok: false, error: 'too-short' }
 
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  const version = view.getUint8(0)
-  if (version !== supportedVersion) return { ok: false, error: 'unsupported-version' }
-  const flags = view.getUint8(1)
+  if (view.getUint8(0) !== supportedVersion) return { ok: false, error: 'unsupported-version' }
+  const angleAt = (angleIndex: number): number => view.getInt16(headerBytes + angleIndex * 2, true) / 100
+  const totalAt = (totalIndex: number): number => view.getUint16(totalsOffset + totalIndex * 2, true) / 100
+  const indices = (count: number): number[] => Array.from({ length: count }, (_, index) => index)
 
-  const angles: number[] = []
-  for (let angleIndex = 0; angleIndex < angleCount; angleIndex++) {
-    const degrees = view.getInt16(headerBytes + angleIndex * 2, true) / 100
-    if (degrees < 0 || degrees > maximumAngleDegrees) return { ok: false, error: 'angle-out-of-range' }
-    angles.push(degrees)
+  if (indices(angleCount).map(angleAt).some((degrees) => degrees < 0 || degrees > maximumAngleDegrees)) {
+    return { ok: false, error: 'angle-out-of-range' }
   }
-  const totalsOffset = headerBytes + angleCount * 2
-  const totals: number[] = []
-  for (let totalIndex = 0; totalIndex < totalCount; totalIndex++) {
-    const degrees = view.getUint16(totalsOffset + totalIndex * 2, true) / 100
-    if (degrees > maximumTotalDegrees) return { ok: false, error: 'total-out-of-range' }
-    totals.push(degrees)
+  if (indices(totalCount).map(totalAt).some((degrees) => degrees > maximumTotalDegrees)) {
+    return { ok: false, error: 'total-out-of-range' }
   }
-
-  const angleAt = (angleIndex: number): number => angles.at(angleIndex) ?? Number.NaN
-  const totalAt = (totalIndex: number): number => totals.at(totalIndex) ?? Number.NaN
   // Stored order per eye: left edge, right edge, up, down, diagonal. The left eye's left edge is
   // temporal; the right eye's left edge is nasal.
   return {
     ok: true,
     measure: {
-      version,
-      flags,
+      flags: view.getUint8(1),
       left: { temporal: angleAt(0), nasal: angleAt(1), up: angleAt(2), down: angleAt(3), diagonal: angleAt(4) },
       right: { nasal: angleAt(5), temporal: angleAt(6), up: angleAt(7), down: angleAt(8), diagonal: angleAt(9) },
       rendered: {

@@ -22,7 +22,7 @@ average, how much it varies, and the highest anyone has measured.
 
 ## Development
 
-Requires Node 22.22 or later (`nvm use`).
+Requires the Node version in `.nvmrc` (`nvm use`).
 
 ```sh
 npm ci

@@ -7,11 +7,7 @@ export interface WindowFrameView {
   readonly top: object | null
 }
 
+/** `top` is one of the few properties readable across origins, so this never throws. */
 export function isFramed(currentWindow: WindowFrameView): boolean {
-  try {
-    return currentWindow.top !== currentWindow.self
-  } catch {
-    // Reading top across origins throws, which itself means a foreign frame.
-    return true
-  }
+  return currentWindow.top !== currentWindow.self
 }

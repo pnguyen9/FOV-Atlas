@@ -14,7 +14,7 @@ interface PayloadParts {
   trailingText?: string
 }
 
-// The user's Beyond 2 measure (2026-11-23) and its rendered totals.
+// A real Bigscreen Beyond 2 measure and its rendered totals.
 const beyondAngles = [55.0, 42.0, 43.0, 53.9, 59.0, 41.5, 54.3, 44.2, 52.5, 52.0]
 const beyondTotals = [96.95, 96.93, 96.62, 96.67, 109.24, 84.33, 98.06, 95.54, 122.66]
 
@@ -41,20 +41,14 @@ const shareLink = (payload: string): string =>
   `https://example.test/measure-your-fov/results?results=${payload}`
 
 describe('extractResultsParameter', () => {
-  it('accepts a bare value', () => {
-    expect(extractResultsParameter('  BAeG6mUQ  ')).toBe('BAeG6mUQ')
-  })
-  it('reads the results parameter from a link', () => {
-    expect(extractResultsParameter(shareLink('BAeG'))).toBe('BAeG')
-  })
-  it('rejects plain http links', () => {
-    expect(extractResultsParameter('http://example.test/?results=BAeG')).toBeNull()
-  })
-  it('rejects text that is neither a link nor base64url', () => {
-    expect(extractResultsParameter('not a link')).toBeNull()
-  })
-  it('returns null when the link has no results parameter', () => {
-    expect(extractResultsParameter('https://example.test/')).toBeNull()
+  it.each([
+    ['a bare value, trimmed', '  BAeG6mUQ  ', 'BAeG6mUQ'],
+    ['the results parameter of a link', shareLink('BAeG'), 'BAeG'],
+    ['a plain http link', 'http://example.test/?results=BAeG', null],
+    ['text that is neither a link nor base64url', 'not a link', null],
+    ['a link without a results parameter', 'https://example.test/', null],
+  ])('handles %s', (_description, input, expected) => {
+    expect(extractResultsParameter(input)).toBe(expected)
   })
 })
 
@@ -62,11 +56,11 @@ describe('base64UrlToBytes', () => {
   it('decodes unpadded base64url with both url-safe characters', () => {
     expect(Array.from(base64UrlToBytes('-_8') ?? [])).toEqual([0xfb, 0xff])
   })
-  it('rejects characters outside the alphabet', () => {
-    expect(base64UrlToBytes('ab+/')).toBeNull()
-  })
-  it('rejects impossible lengths', () => {
-    expect(base64UrlToBytes('abcde')).toBeNull()
+  it.each([
+    ['characters outside the alphabet', 'ab+/'],
+    ['an impossible length', 'abcde'],
+  ])('rejects %s', (_description, input) => {
+    expect(base64UrlToBytes(input)).toBeNull()
   })
 })
 
