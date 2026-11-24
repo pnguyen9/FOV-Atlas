@@ -10,7 +10,7 @@
  */
 
 import { plainTextProblem } from './plainText.ts'
-import { maximumAngleDegrees, type Direction, type EyeMeasure, type EyeMeasures } from './submission.ts'
+import { maximumRadialDegrees, type Direction, type EyeMeasure, type EyeMeasures } from './submission.ts'
 
 export const wimfovOrigin = 'https://andreasaronsson.com'
 export const wimfovPath = '/!apps/wimfov/'
@@ -28,7 +28,7 @@ const rawOrder: readonly Direction[] = [
   'down-down-right', 'right-down-right', 'right-up-right', 'up-up-right',
 ]
 
-const pointPattern = /^\d{1,2}$|^\d{1,2}\.\d{1,2}$/
+const pointPattern = /^\d{1,3}$|^\d{1,3}\.\d{1,2}$/
 const pointsFragmentPattern = /^"points"\s*:\s*"([^"]*)"\s*,?$/
 
 export type WimfovError =
@@ -71,7 +71,7 @@ function parsePointsText(points: string): WimfovPointsResult {
   if (!shapeValid || ![...left, ...right].every((value) => pointPattern.test(value))) {
     return { ok: false, error: 'wimfov-points-invalid' }
   }
-  if ([...left, ...right].some((value) => Number(value) > maximumAngleDegrees)) {
+  if ([...left, ...right].some((value) => Number(value) > maximumRadialDegrees)) {
     return { ok: false, error: 'wimfov-angle-out-of-range' }
   }
   return { ok: true, measures: { left: eyeFromRaw(left), right: eyeFromRaw(right) } }

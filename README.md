@@ -37,6 +37,13 @@ The first mockup of the pages lives in [docs/mockup](docs/mockup/index.html).
 I described the problem and gave some technical specifications. The entire coding was done by
 Claude Code, and the whole design and navigation of the site were its suggestions.
 
+The headset catalog follows [VR Headset Picker](https://vrheadsetpicker.com)'s model ids, so its
+share links can preselect the headset. The rendered field-of-view figures in
+[`src/data/hmdgdb.ts`](src/data/hmdgdb.ts) come from the
+[HMD Geometry Database](https://risa2000.github.io/hmdgdb/): hmdq / hmdgdb by Richard Musil,
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
 ## License
 
-Public domain ([Unlicense](LICENSE)).
+Public domain ([Unlicense](LICENSE)), except [`src/data/hmdgdb.ts`](src/data/hmdgdb.ts), which is
+shared under CC BY-SA 4.0 like the database it comes from.

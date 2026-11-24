@@ -11,14 +11,17 @@ describe('testHmdMeasures', () => {
     if (result.ok) expect(testHmdTotals(result.measures)).toEqual({ horizontal: 104.5, vertical: 95 })
   })
 
-  it('accepts the full 180°', () => {
-    expect(testHmdMeasures(180, 180).ok).toBe(true)
+  it('accepts up to a full turn, each half reaching straight behind', () => {
+    expect(testHmdMeasures(360, 360)).toEqual({
+      ok: true,
+      measures: { left: { left: 180, up: 180, down: 180 }, right: { right: 180, up: 180, down: 180 } },
+    })
   })
 
   it.each([
     ['zero', 0, 90],
     ['a negative total', 100, -1],
-    ['more than 180°', 180.1, 90],
+    ['more than 360°', 360.1, 90],
     ['two decimals', 104.25, 90],
     ['a string', '104', 90],
     ['not a number', Number.NaN, 90],

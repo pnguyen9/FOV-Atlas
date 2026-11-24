@@ -25,9 +25,19 @@ body:
     id: headset
     attributes:
       label: Headset model
-      description: The model id used by FOV Atlas, such as `bigscreen-beyond-2`.
+      description: |
+        The model id in the FOV Atlas catalog, such as `bigscreen-beyond-2`, or `other` when the
+        model is not listed.
     validations:
       required: true
+  - type: input
+    id: headset-name
+    attributes:
+      label: Headset name, if not listed
+      description: |
+        Only when the headset model is `other`: its brand and name, plain text, up to 80
+        characters. A maintainer checks it by hand and adds it to the catalog before your measure
+        is published.
   - type: textarea
     id: measure
     attributes:

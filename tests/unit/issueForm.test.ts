@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   buildIssueUrl,
+  headsetChoiceOfVrhpLink,
   issueFields,
   issueFieldsOf,
   maximumBodyLength,
@@ -14,9 +15,11 @@ import {
   type IssueFields,
 } from '../../src/lib/issueForm'
 import type { Submission } from '../../src/lib/submission'
+import { decodeVrhpLink, type VrhpMeasure } from '../../src/lib/vrhpLink'
 import { wimfovResultLink } from '../../src/lib/wimfov'
 import {
   atlasSubmission,
+  beyondAngles,
   encodeVrhpPayload,
   testHmdSubmission,
   wimfovPage,
@@ -89,6 +92,8 @@ describe('round trips through the issue body', () => {
     ['typed VR Headset Picker values', parsed(fieldsWith({ tool: 'vrhp', measure: typedEyes }))],
     ['pasted WIMFOV points', wimfovPasted],
     ['a WIMFOV link', wimfovLinked],
+    ['a VR Headset Picker link without totals', parsed(fieldsWith({ tool: 'vrhp', measure: encodeVrhpPayload({ totals: null }) }))],
+    ['a headset missing from the catalog', { ...atlasSubmission, headset: 'other', otherHeadsetName: 'Meta Boba 3 prototype' }],
   ])('keeps %s unchanged', (_description, submission: Submission) => {
     const body = renderIssueBody(issueFieldsOf(submission))
     expect(parseIssueBody(body, { wimfovPage: wimfovPage() })).toEqual({ ok: true, submission })
@@ -106,6 +111,16 @@ describe('round trips through the issue body', () => {
   it('infers the corner mask from the link when the model figure is known', () => {
     const submission = parsed(fieldsWith({ tool: 'vrhp', measure: vrhpShareLink }), { maskedDiagonalOf: () => 114.3 })
     expect(submission.cornerMask).toBe('off-probably')
+  })
+
+  it('takes the model figure from the hmdgdb records by default', () => {
+    const submission = parsed(fieldsWith({ tool: 'vrhp', headset: 'valve-index', measure: vrhpShareLink }))
+    expect(submission.cornerMask).toBe('off-probably')
+  })
+
+  it('falls back to the model ceiling when the link has no totals', () => {
+    const submission = parsed(fieldsWith({ tool: 'vrhp', measure: encodeVrhpPayload({ totals: null }) }), { maskedDiagonalOf: () => 114.3 })
+    expect([submission.ceiling, submission.cornerMask]).toEqual([{ source: 'model' }, 'unknown'])
   })
 
   it('records how WIMFOV values arrived', () => {
@@ -130,6 +145,10 @@ describe('submissionFromFields', () => {
   it.each([
     ['tool-invalid', { tool: 'hmdq' }],
     ['headset-invalid', { headset: 'Beyond 2' }],
+    ['headset-invalid', { headset: 'pimax-dream-air-max' }],
+    ['headset-name-missing', { headset: 'other' }],
+    ['headset-name-unexpected', { 'headset-name': 'Bigscreen Beyond 2' }],
+    ['headset-name-too-long', { headset: 'other', 'headset-name': 'x'.repeat(81) }],
     ['eye-depth-invalid', { 'eye-depth': 'deep' }],
     ['nose-bridge-invalid', { 'nose-bridge': '' }],
     ['modded-invalid', { modded: 'true' }],
@@ -162,13 +181,15 @@ describe('submissionFromFields', () => {
     ['measure-invalid', { tool: 'vrhp', measure: JSON.stringify({ left: {}, right: {}, extra: {} }) }],
     ['measure-invalid', { tool: 'testhmd', measure: '{"horizontal":104}' }],
     ['measure-invalid', { tool: 'testhmd', measure: '104 x 95' }],
-    ['testhmd-out-of-range', { tool: 'testhmd', measure: '{"horizontal":104,"vertical":200}' }],
+    ['testhmd-out-of-range', { tool: 'testhmd', measure: '{"horizontal":104,"vertical":361}' }],
     ['vrhp-too-short', { tool: 'vrhp', measure: 'AAAA' }],
+    ['vrhp-angle-out-of-range', { tool: 'vrhp', measure: encodeVrhpPayload({ angles: [90, ...beyondAngles.slice(1)] }) }],
     ['wimfov-link-wrong-tool', { tool: 'vrhp', measure: vrhpShareLink, 'wimfov-link': wimfovLink }],
     ['wimfov-link-not-read-only', { tool: 'wimfov', 'wimfov-link': `${wimfovLink}&edit=1` }],
     ['wimfov-page-unavailable', { tool: 'wimfov', 'wimfov-link': wimfovLink }],
     ['wimfov-points-invalid', { tool: 'wimfov', measure: '1,2,3' }],
-    ['angle-out-of-range', { measure: atlasMeasure({ left: { ...atlasSubmission.measures.left, up: 95 } }) }],
+    ['angle-out-of-range', { measure: atlasMeasure({ left: { ...atlasSubmission.measures.left, up: 180.5 } }) }],
+    ['angle-out-of-range', { tool: 'vrhp', measure: typedEyes.replace('59', '181') }],
     ['missing-direction', { tool: 'vrhp', measure: JSON.stringify({ left: {}, right: {} }) }],
     ['note-markup', { note: '<script>' }],
   ])('rejects %s', (error, changes: Partial<IssueFields>) => {
@@ -218,6 +239,11 @@ describe('buildIssueUrl', () => {
     expect(prefilled).toEqual(atlasFields)
   })
 
+  it('titles a headset missing from the catalog by its typed name', () => {
+    const result = buildIssueUrl({ ...atlasSubmission, headset: 'other', otherHeadsetName: 'Boba 3' })
+    expect(result.ok && new URL(result.url).searchParams.get('title')).toBe('Measure: Boba 3 (atlas)')
+  })
+
   it('refuses an invalid submission', () => {
     expect(buildIssueUrl({ ...atlasSubmission, ipd: 20 })).toEqual({ ok: false, error: 'ipd-out-of-range' })
   })
@@ -231,5 +257,22 @@ describe('buildIssueUrl', () => {
       note: '€'.repeat(500),
     }
     expect(buildIssueUrl(submission)).toEqual({ ok: false, error: 'url-too-long' })
+  })
+})
+
+describe('headsetChoiceOfVrhpLink', () => {
+  const measureOf = (payload: string): VrhpMeasure => {
+    const result = decodeVrhpLink(payload)
+    if (!result.ok) throw new Error(result.error)
+    return result.measure
+  }
+  it.each([
+    ['the catalog model the link was made for', {}, { headset: 'bigscreen-beyond-2', otherHeadsetName: '' }],
+    ['other with the link’s name for an unknown id', { name: 'Boba 3', id: 'meta-boba-3' }, { headset: 'other', otherHeadsetName: 'Boba 3' }],
+    ['other with the link’s name for a typed-in headset', { name: 'Boba 3', id: null }, { headset: 'other', otherHeadsetName: 'Boba 3' }],
+    ['nothing without a name or a known id', { name: null, id: null }, null],
+    ['nothing when the name is too long for the form', { name: 'x'.repeat(81), id: null }, null],
+  ])('picks %s', (_description, parts, expected) => {
+    expect(headsetChoiceOfVrhpLink(measureOf(encodeVrhpPayload(parts)))).toEqual(expected)
   })
 })

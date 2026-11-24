@@ -60,8 +60,9 @@ function payload({
   return { action, issue: { number, user: { login }, labels, body, ...issueExtra }, ...extra }
 }
 
-const comment = (text: string, login = 'someone', action = 'created'): unknown =>
-  payload({ action, extra: { comment: { body: text, user: { login } } } })
+const comment = (text: string, login = 'someone', action = 'created', association = 'NONE'): unknown =>
+  payload({ action, extra: { comment: { body: text, user: { login }, author_association: association } } })
+const otherBody = renderIssueBody(issueFieldsOf({ ...atlasSubmission, headset: 'other', otherHeadsetName: 'Meta Boba 3 prototype' }))
 
 describe('readEvent', () => {
   it('reads an opened submission', () => {
@@ -81,6 +82,20 @@ describe('readEvent', () => {
     expect(readEvent('issue_comment', comment('  /withdraw\n'))).toEqual({ kind: 'withdraw', issue: 42, author: 'Someone' })
   })
 
+  it.each(['OWNER', 'MEMBER', 'COLLABORATOR'])('reads /recheck from a maintainer (%s) as the issue as it stands', (association) => {
+    expect(readEvent('issue_comment', comment(' /recheck\n', 'maintainer', 'created', association))).toEqual({
+      kind: 'submission',
+      issue: 42,
+      author: 'Someone',
+      body: atlasBody,
+    })
+  })
+
+  it('reads a missing body as empty on /recheck', () => {
+    const event = payload({ action: 'created', body: null, extra: { comment: { body: '/recheck', user: { login: 'maintainer' }, author_association: 'OWNER' } } })
+    expect(readEvent('issue_comment', event)).toMatchObject({ body: '' })
+  })
+
   it.each([
     ['a payload that is not an object', 'issues', null],
     ['another issue action', 'issues', payload({ action: 'closed' })],
@@ -94,6 +109,10 @@ describe('readEvent', () => {
     ['an invalid login', 'issues', payload({ login: 'some one' })],
     ['/withdraw from someone else', 'issue_comment', comment('/withdraw', 'other')],
     ['another comment', 'issue_comment', comment('/withdraw please')],
+    ['/recheck from the issue author', 'issue_comment', comment('/recheck')],
+    ['/recheck from a contributor without write access', 'issue_comment', comment('/recheck', 'other', 'created', 'CONTRIBUTOR')],
+    ['/recheck without an association', 'issue_comment', payload({ extra: { comment: { body: '/recheck', user: { login: 'other' } } } })],
+    ['an edited /recheck', 'issue_comment', comment('/recheck', 'other', 'edited', 'OWNER')],
     ['an edited comment', 'issue_comment', comment('/withdraw', 'someone', 'edited')],
     ['a comment without text', 'issue_comment', payload({ extra: { comment: { user: { login: 'someone' } } } })],
     ['another event', 'push', payload()],
@@ -219,6 +238,30 @@ describe('runAction', () => {
     expect(files.contents.has(pagePath('wimfov', 'bigscreen-beyond-2', 0))).toBe(true)
   })
 
+  it('checks a headset missing from the catalog but stores nothing, waiting for a maintainer', () => {
+    const files = memoryFiles()
+    const result = runAction(submissionEvent(otherBody), files)
+    expect(result).toMatchObject({ outcome: 'new-headset', commitMessage: '' })
+    expect(result.message).toContain('check the model by hand')
+    expect(result.message).not.toContain('Boba')
+    expect(result.message).not.toContain('accepted earlier')
+    expect(files.contents.size).toBe(0)
+  })
+
+  it('keeps the accepted version when an edit moves the issue to a headset missing from the catalog', () => {
+    const files = memoryFiles()
+    runAction(submissionEvent(atlasBody), files)
+    const stored = new Map(files.contents)
+    const result = runAction(submissionEvent(otherBody), files)
+    expect(result.outcome).toBe('new-headset')
+    expect(result.message).toContain('accepted earlier stays published')
+    expect(files.contents).toEqual(stored)
+  })
+
+  it('rejects a headset missing from the catalog when something else is invalid', () => {
+    expect(runAction(submissionEvent(otherBody.replace('in-between', 'deep')), memoryFiles()).outcome).toBe('invalid')
+  })
+
   it('answers an invalid submission with the reason and stores nothing', () => {
     const files = memoryFiles()
     const result = runAction(submissionEvent(atlasBody.replace('### Note', '### Notes')), files)
@@ -297,6 +340,8 @@ describe('messageFor', () => {
     ['wimfov-link-not-read-only', 'Never post your WIMFOV edit link'],
     ['note-heading-line', '“Note” has a line starting with `#`.'],
     ['facial-interface-too-long', '“Facial interface and cushion” is too long.'],
+    ['headset-name-markup', '“Headset name, if not listed” contains `<` or `>`'],
+    ['headset-name-missing', 'must give the model’s name'],
     ['unknown', 'The submission is invalid.'],
   ])('explains %s', (error, expected) => {
     expect(messageFor(error as IssueError)).toContain(expected)

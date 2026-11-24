@@ -1,11 +1,12 @@
 /**
  * A submitted measure, as stored in the repository and shown on the site.
  *
- * Angles are degrees from straight ahead, per eye, in the head frame as the wearer sees it, and
- * are stored exactly as the tool gave them. Each tool keeps its own directions and its own
- * convention; nothing here converts one tool's figures into another's.
+ * Angles are degrees from straight ahead, per eye, with directions named in the head frame as the
+ * wearer sees it, and are stored exactly as the tool gave them. Each tool keeps its own directions
+ * and its own convention; nothing here converts one tool's figures into another's.
  */
 
+import { catalogHeadset, otherHeadset } from './headsets.ts'
 import { plainTextProblem, type PlainTextProblem } from './plainText.ts'
 import type { RenderedTotals } from './vrhpLink.ts'
 
@@ -30,7 +31,10 @@ export interface EyeMeasures {
   readonly right: EyeMeasure
 }
 
-/** One eye's rendered frustum edges, read from the browser while measuring with FOV Atlas. */
+/**
+ * One eye's rendered frustum edges, read from the browser while measuring with FOV Atlas, as
+ * angles from straight ahead of the head like the measures, that eye's canting included.
+ */
 export interface EdgeAngles {
   readonly left: number
   readonly right: number
@@ -40,7 +44,13 @@ export interface EdgeAngles {
 
 /** What the headset renders, the most anyone could see: the measure's own figures when known. */
 export type Ceiling =
-  | { readonly source: 'measured'; readonly left: EdgeAngles; readonly right: EdgeAngles; readonly canting: number }
+  | {
+      readonly source: 'measured'
+      readonly left: EdgeAngles
+      readonly right: EdgeAngles
+      /** Each view's rotation from straight ahead, kept for reference; the edges already include it. */
+      readonly canting: number
+    }
   | { readonly source: 'link'; readonly totals: RenderedTotals }
   | { readonly source: 'model' }
 
@@ -69,7 +79,10 @@ export interface Provenance {
 
 export interface Submission {
   readonly tool: Tool
+  /** A catalog id, or `other` for a model the catalog lacks; such a submission is never stored. */
   readonly headset: string
+  /** The model's name as typed by the submitter when `headset` is `other`, else empty. */
+  readonly otherHeadsetName: string
   readonly measures: EyeMeasures
   readonly ceiling: Ceiling
   readonly cornerMask: CornerMask
@@ -85,11 +98,21 @@ export interface Submission {
   readonly note: string
 }
 
-export const maximumAngleDegrees = 90
+/**
+ * Angles are radial, measured from straight ahead of the head, and can reach straight behind.
+ * VR Headset Picker links are the exception: they store each angle per rendered view, projected
+ * onto a flat plane in hmdq's tangent convention, where 90° from the view's own axis lies at
+ * infinity. A link value of 90 or more is therefore malformed, not a wide field of view; the
+ * format simply cannot express one, while a canted view still reaches past 90° in the head frame.
+ */
+export const maximumRadialDegrees = 180
+export const projectedLimitDegrees = 90
+export type AngleConvention = 'radial' | 'projected'
 export const maximumCantingDegrees = 45
 export const ipdRange = { minimum: 45, maximum: 85 } as const
 export const textLimits = {
   headset: 48,
+  otherHeadsetName: 80,
   reportedHeadset: 128,
   tuningDetails: 200,
   facialInterface: 200,
@@ -145,6 +168,8 @@ const allowedInputs: ReadonlyMap<Tool, readonly InputKind[]> = new Map([
 export type SubmissionError =
   | 'unknown-tool'
   | 'headset-invalid'
+  | 'headset-name-missing'
+  | 'headset-name-unexpected'
   | 'missing-direction'
   | 'unexpected-direction'
   | 'angle-out-of-range'
@@ -157,7 +182,7 @@ export type SubmissionError =
   | 'ipd-out-of-range'
   | `${TextField}-${PlainTextProblem}`
 
-export type TextField = 'tuning-details' | 'facial-interface' | 'note'
+export type TextField = 'headset-name' | 'tuning-details' | 'facial-interface' | 'note'
 
 const headsetPattern = /^[a-z0-9-]+$/
 
@@ -167,8 +192,14 @@ export function hasAtMostDecimals(value: number, decimals: number): boolean {
   return Math.abs(scaled - Math.round(scaled)) < 1e-6
 }
 
-export function isAngle(value: unknown, maximum = maximumAngleDegrees): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= maximum && hasAtMostDecimals(value, 2)
+export function isAngle(value: unknown, convention: AngleConvention): value is number {
+  const withinLimit = convention === 'radial' ? (value as number) <= maximumRadialDegrees : (value as number) < projectedLimitDegrees
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && withinLimit && hasAtMostDecimals(value, 2)
+}
+
+/** Only angles decoded from a VR Headset Picker link are projected; everything else is radial. */
+export function angleConventionOf(tool: Tool, input: InputKind): AngleConvention {
+  return tool === 'vrhp' && input === 'link' ? 'projected' : 'radial'
 }
 
 export function isHeadsetId(value: string): boolean {
@@ -181,11 +212,21 @@ export function isHeadsetId(value: string): boolean {
   )
 }
 
-function eyeProblem(measure: EyeMeasure, rule: DirectionRule): SubmissionError | null {
+function eyeProblem(measure: EyeMeasure, rule: DirectionRule, convention: AngleConvention): SubmissionError | null {
   const given = Object.keys(measure)
   if (given.some((direction) => !rule.allowed.includes(direction as Direction))) return 'unexpected-direction'
   if (rule.required.some((direction) => !given.includes(direction))) return 'missing-direction'
-  return Object.values(measure).every((angle) => isAngle(angle)) ? null : 'angle-out-of-range'
+  return Object.values(measure).every((angle) => isAngle(angle, convention)) ? null : 'angle-out-of-range'
+}
+
+/** A catalog id with no typed name, or `other` with the model's name typed in. */
+export function headsetProblem(headset: string, otherHeadsetName: string): SubmissionError | null {
+  if (headset !== otherHeadset) {
+    if (catalogHeadset(headset) === undefined) return 'headset-invalid'
+    return otherHeadsetName === '' ? null : 'headset-name-unexpected'
+  }
+  if (otherHeadsetName.trim() === '') return 'headset-name-missing'
+  return textProblem('headset-name', otherHeadsetName, textLimits.otherHeadsetName)
 }
 
 /** TestHMD's halves: one horizontal and one vertical figure, split evenly over the edges. */
@@ -195,7 +236,9 @@ function testHmdSymmetric({ left, right }: EyeMeasures): boolean {
 
 function ceilingProblem(ceiling: Ceiling): SubmissionError | null {
   if (ceiling.source !== 'measured') return null
-  const edgesValid = [ceiling.left, ceiling.right].every((edges) => Object.values(edges).every((angle) => isAngle(angle)))
+  const edgesValid = [ceiling.left, ceiling.right].every((edges) =>
+    Object.values(edges).every((angle) => isAngle(angle, 'radial')),
+  )
   const cantingValid = Number.isFinite(ceiling.canting) && Math.abs(ceiling.canting) <= maximumCantingDegrees
   return edgesValid && cantingValid ? null : 'ceiling-out-of-range'
 }
@@ -210,8 +253,10 @@ export function submissionProblem(submission: Submission): SubmissionError | nul
   const { tool, measures, ceiling } = submission
   const rules = directionRules.get(tool)
   if (rules === undefined) return 'unknown-tool'
-  if (!isHeadsetId(submission.headset)) return 'headset-invalid'
-  const eyeError = eyeProblem(measures.left, rules.left) ?? eyeProblem(measures.right, rules.right)
+  const headsetError = headsetProblem(submission.headset, submission.otherHeadsetName)
+  if (headsetError !== null) return headsetError
+  const convention = angleConventionOf(tool, submission.provenance.input)
+  const eyeError = eyeProblem(measures.left, rules.left, convention) ?? eyeProblem(measures.right, rules.right, convention)
   if (eyeError !== null) return eyeError
   if (tool === 'testhmd' && !testHmdSymmetric(measures)) return 'testhmd-not-symmetric'
   if (allowedCeilings.get(tool)?.includes(ceiling.source) !== true) return 'ceiling-not-allowed'

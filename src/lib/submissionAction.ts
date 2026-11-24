@@ -1,12 +1,16 @@
 /**
  * What the submission workflow does with one GitHub event: store a submitted measure, replace it
- * when its issue is edited, or remove it when the issue author comments `/withdraw`.
+ * when its issue is edited, or remove it when the issue author comments `/withdraw`. A measure of
+ * a headset missing from the catalog is checked but not stored; the issue waits for a maintainer,
+ * who adds the model, sets the issue's headset to its id, and the edit or a `/recheck` comment
+ * from a maintainer processes it again.
  *
  * The event payload is attacker-controlled (issue body, comment, logins), so it is read field by
  * field here. Comments posted back are fixed sentences: nothing from the issue is echoed except
  * the validated headset id.
  */
 
+import { otherHeadset } from './headsets.ts'
 import { parseIssueBody, type IssueError, type ParseOptions } from './issueForm.ts'
 import type { PlainTextProblem } from './plainText.ts'
 import type { Submission, TextField, Tool } from './submission.ts'
@@ -47,12 +51,15 @@ export interface DataFiles {
 export const submissionLabel = 'submission'
 export const withdrawnLabel = 'withdrawn'
 export const withdrawCommand = '/withdraw'
+export const recheckCommand = '/recheck'
+/** GitHub's `author_association` values of people with write access to the repository. */
+const maintainerAssociations: readonly unknown[] = ['OWNER', 'MEMBER', 'COLLABORATOR']
 
 export type ActionEvent =
   | { readonly kind: 'submission'; readonly issue: number; readonly author: string; readonly body: string }
   | { readonly kind: 'withdraw'; readonly issue: number; readonly author: string }
 
-export type Outcome = 'accepted' | 'invalid' | 'withdrawn' | 'not-found'
+export type Outcome = 'accepted' | 'invalid' | 'new-headset' | 'withdrawn' | 'not-found'
 export interface ActionResult {
   readonly outcome: Outcome
   /** The comment posted on the issue. */
@@ -79,8 +86,8 @@ function labelsOf(issue: unknown): readonly string[] {
 
 /**
  * The event to act on, or null for anything else: other actions, issues without the submission
- * label or already withdrawn, pull requests, edits that leave the body alone, and `/withdraw`
- * from anyone but the issue author.
+ * label or already withdrawn, pull requests, edits that leave the body alone, `/withdraw` from
+ * anyone but the issue author, and `/recheck` from anyone without write access.
  */
 export function readEvent(eventName: string, payload: unknown): ActionEvent | null {
   const issue = field(payload, 'issue')
@@ -102,9 +109,15 @@ export function readEvent(eventName: string, payload: unknown): ActionEvent | nu
     const comment = field(payload, 'comment')
     const text = field(comment, 'body')
     const commenter = loginOf(field(comment, 'user'))
-    const isCommand = typeof text === 'string' && text.trim() === withdrawCommand
+    const command = typeof text === 'string' ? text.trim() : ''
     // Logins are case-insensitive on GitHub.
-    if (isCommand && commenter?.toLowerCase() === author.toLowerCase()) return { kind: 'withdraw', issue: number, author }
+    if (command === withdrawCommand && commenter?.toLowerCase() === author.toLowerCase()) {
+      return { kind: 'withdraw', issue: number, author }
+    }
+    if (command === recheckCommand && maintainerAssociations.includes(field(comment, 'author_association'))) {
+      const body = field(issue, 'body')
+      return { kind: 'submission', issue: number, author, body: typeof body === 'string' ? body : '' }
+    }
   }
   return null
 }
@@ -117,6 +130,7 @@ const toolNames: Readonly<Record<Tool, string>> = {
 }
 
 const textFieldNames: readonly (readonly [TextField, string])[] = [
+  ['headset-name', 'Headset name, if not listed'],
   ['tuning-details', 'Tuning details'],
   ['facial-interface', 'Facial interface and cushion'],
   ['note', 'Note'],
@@ -135,14 +149,16 @@ const errorMessages: Readonly<Record<FixedError, string>> = {
   'body-too-long': 'The issue body is far longer than a submission.',
   'body-malformed': 'The issue body does not match the submission form: every section of the form must be there, once, with its heading unchanged.',
   'tool-invalid': '“Measuring tool” must be one of `atlas`, `vrhp`, `wimfov` or `testhmd`.',
-  'headset-invalid': '“Headset model” must be a model id such as `bigscreen-beyond-2`.',
+  'headset-invalid': '“Headset model” must be the id of a model in the FOV Atlas catalog, such as `bigscreen-beyond-2`, or `other`.',
+  'headset-name-missing': '“Headset model” is `other`, so “Headset name, if not listed” must give the model’s name.',
+  'headset-name-unexpected': '“Headset name, if not listed” must be empty when “Headset model” is a catalog id.',
   'measure-missing': '“Measure” is empty.',
   'measure-invalid': '“Measure” is not in the format this tool expects.',
   'wimfov-link-wrong-tool': 'A WIMFOV link was given, but the measuring tool is not `wimfov`.',
   'wimfov-page-unavailable': 'The WIMFOV result page could not be read. Check the link, or paste the `points` value instead.',
   'wimfov-mismatch': 'The pasted WIMFOV points differ from the result behind the WIMFOV link. Keep only one of them.',
   'wimfov-points-invalid': 'The WIMFOV points must be `left|right`, with 16 comma-separated values per eye.',
-  'wimfov-angle-out-of-range': 'A WIMFOV value is above 90°.',
+  'wimfov-angle-out-of-range': 'A WIMFOV value is above 180°.',
   'wimfov-link-not-read-only':
     'Only the WIMFOV read-only link (`https://andreasaronsson.com/!apps/wimfov/?id=…`) is accepted. Never post your WIMFOV edit link in public: anyone holding it can change or delete your result. If you posted it here, remove it from the issue.',
   'wimfov-page-too-large': 'The WIMFOV link did not lead to a WIMFOV result page.',
@@ -154,19 +170,21 @@ const errorMessages: Readonly<Record<FixedError, string>> = {
   'tuned-invalid': '“Driver tuned” must be `yes` or `no`.',
   'gaze-invalid': '“Gaze while measuring” must be `fixed` or `free`.',
   'ipd-invalid': '“Lens IPD (mm)” must be a number of millimetres such as `63` or `63.5`.',
-  'testhmd-out-of-range': 'The TestHMD figures must be above 0° and at most 180°, with at most one decimal.',
+  'testhmd-out-of-range': 'The TestHMD figures must be above 0° and at most 360°, with at most one decimal.',
   'vrhp-too-long': 'The VR Headset Picker link is too long.',
   'vrhp-no-results-parameter': 'The VR Headset Picker link has no results in it. Copy the share link from your results page.',
   'vrhp-not-base64url': 'The VR Headset Picker link is damaged. Copy the share link again.',
   'vrhp-too-short': 'The VR Headset Picker link is cut short. Copy the share link again.',
+  'vrhp-trailing-data': 'The VR Headset Picker link has unexpected data at its end. Copy the share link again.',
   'vrhp-unsupported-version': 'This VR Headset Picker link comes from a version that is not supported yet.',
-  'vrhp-angle-out-of-range': 'An angle in the VR Headset Picker link is outside 0–90°.',
+  'vrhp-angle-out-of-range': 'An angle in the VR Headset Picker link is negative, or 90° or more, which its format cannot hold.',
   'vrhp-total-out-of-range': 'A rendered total in the VR Headset Picker link is above 360°.',
   'vrhp-headset-name-invalid': 'The headset name inside the VR Headset Picker link is not plain text.',
+  'vrhp-headset-id-invalid': 'The headset id inside the VR Headset Picker link is malformed.',
   'unknown-tool': '“Measuring tool” is not a known tool.',
   'missing-direction': 'A required direction is missing from the measure.',
   'unexpected-direction': 'The measure has a direction this tool does not measure.',
-  'angle-out-of-range': 'An angle is outside 0–90° or has more than two decimals.',
+  'angle-out-of-range': 'An angle is negative, above 180°, or has more than two decimals.',
   'testhmd-not-symmetric': 'The TestHMD values must split evenly over both sides.',
   'ceiling-not-allowed': 'This tool cannot carry a rendered ceiling of that kind.',
   'ceiling-out-of-range': 'The rendered ceiling is out of range.',
@@ -301,6 +319,13 @@ export function runAction(event: ActionEvent, files: DataFiles, options: ParseOp
     }
   }
   const { submission } = parsed
+  if (submission.headset === otherHeadset) {
+    return {
+      outcome: 'new-headset',
+      message: `Thanks! Everything else in this submission is valid, but its headset is not in the FOV Atlas catalog yet. A maintainer will check the model by hand and add it to the catalog; until then this issue stays open and the measure is not published.${locationOf(files, event.issue) === null ? '' : keptNote}`,
+      commitMessage: '',
+    }
+  }
   store(files, event.issue, event.author, submission)
   return {
     outcome: 'accepted',

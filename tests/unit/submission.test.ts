@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  angleConventionOf,
   cornerMaskFromLinkTotals,
   directions,
   principalDirections,
@@ -27,6 +28,28 @@ const vrhpSubmission: Submission = {
   provenance: { input: 'typed', linkData: null },
 }
 
+const totals: RenderedTotals = {
+  leftHorizontal: 97,
+  leftVertical: 97,
+  rightHorizontal: 97,
+  rightVertical: 97,
+  binocularHorizontal: 109,
+  binocularHorizontalOverlap: 84,
+  binocularVertical: 98,
+  binocularVerticalOverlap: 95,
+  binocularDiagonal: 122,
+}
+const vrhpLinked: Submission = {
+  ...vrhpSubmission,
+  ceiling: { source: 'link', totals },
+  provenance: { input: 'link', linkData: 'BAeG' },
+}
+const withLeftUp = (submission: Submission, up: number): Submission => ({
+  ...submission,
+  measures: { ...submission.measures, left: { ...submission.measures.left, up } },
+})
+const otherSubmission = withAtlas({ headset: 'other', otherHeadsetName: 'Meta Boba 3 prototype' })
+
 describe('directions', () => {
   it('lists sixteen directions with the eight principal ones every other place', () => {
     expect(directions).toHaveLength(16)
@@ -43,6 +66,13 @@ describe('submissionProblem', () => {
       measures: { ...atlasSubmission.measures, left: { ...atlasSubmission.measures.left, 'up-up-left': 50 } },
     })],
     ['no IPD and empty free text', withAtlas({ ipd: null, note: '', facialInterface: '' })],
+    ['a headset missing from the catalog, with its name', otherSubmission],
+    ['a FOV Atlas angle straight behind the head', withLeftUp(atlasSubmission, 180)],
+    ['a typed angle straight behind the head', withLeftUp(vrhpSubmission, 180)],
+    ['a VR Headset Picker link angle just below 90°', withLeftUp(vrhpLinked, 89.99)],
+    ['a measured ceiling beyond 90° from straight ahead', withAtlas({
+      ceiling: { source: 'measured', left: { left: 120, right: 42, up: 44, down: 54 }, right: { left: 42, right: 120, up: 44, down: 54 }, canting: 30 },
+    })],
   ])('accepts %s', (_description, submission) => {
     expect(submissionProblem(submission)).toBeNull()
   })
@@ -57,10 +87,19 @@ describe('submissionProblem', () => {
     ['headset-invalid', withAtlas({ headset: 'beyond-' })],
     ['headset-invalid', withAtlas({ headset: 'beyond--2' })],
     ['headset-invalid', withAtlas({ headset: 'b'.repeat(49) })],
+    ['headset-invalid', withAtlas({ headset: 'pimax-dream-air-max' })],
+    ['headset-name-unexpected', withAtlas({ otherHeadsetName: 'Bigscreen Beyond 2' })],
+    ['headset-name-missing', { ...otherSubmission, otherHeadsetName: '' }],
+    ['headset-name-missing', { ...otherSubmission, otherHeadsetName: '   ' }],
+    ['headset-name-too-long', { ...otherSubmission, otherHeadsetName: 'x'.repeat(81) }],
+    ['headset-name-markup', { ...otherSubmission, otherHeadsetName: '<b>Boba</b>' }],
+    ['headset-name-control-character', { ...otherSubmission, otherHeadsetName: 'Boba\n3' }],
     ['missing-direction', withAtlas(leftEye(atlasLeftWithoutUp))],
     ['unexpected-direction', withAtlas(leftEye({ ...atlasSubmission.measures.left, forward: 10 }))],
     ['unexpected-direction', { ...vrhpSubmission, measures: { ...vrhpSubmission.measures, right: { ...vrhpSubmission.measures.right, 'up-left': 50 } } }],
-    ['angle-out-of-range', withAtlas(leftEye({ ...atlasSubmission.measures.left, up: 90.5 }))],
+    ['angle-out-of-range', withLeftUp(atlasSubmission, 180.01)],
+    ['angle-out-of-range', withLeftUp(vrhpSubmission, 180.01)],
+    ['angle-out-of-range', withLeftUp(vrhpLinked, 90)],
     ['angle-out-of-range', withAtlas(leftEye({ ...atlasSubmission.measures.left, up: -1 }))],
     ['angle-out-of-range', withAtlas(leftEye({ ...atlasSubmission.measures.left, up: 42.125 }))],
     ['angle-out-of-range', withAtlas(leftEye({ ...atlasSubmission.measures.left, up: Number.NaN }))],
@@ -70,7 +109,7 @@ describe('submissionProblem', () => {
     ['ceiling-out-of-range', withAtlas({ ceiling: { ...atlasSubmission.ceiling, canting: 46 } as Submission['ceiling'] })],
     ['ceiling-out-of-range', withAtlas({ ceiling: { ...atlasSubmission.ceiling, canting: Number.NaN } as Submission['ceiling'] })],
     ['ceiling-out-of-range', withAtlas({
-      ceiling: { source: 'measured', left: { left: 91, right: 42, up: 44, down: 54 }, right: { left: 42, right: 55, up: 44, down: 54 }, canting: 0 },
+      ceiling: { source: 'measured', left: { left: 180.5, right: 42, up: 44, down: 54 }, right: { left: 42, right: 55, up: 44, down: 54 }, canting: 0 },
     })],
     ['corner-mask-not-allowed', { ...testHmdSubmission, cornerMask: 'on' }],
     ['corner-mask-not-allowed', withAtlas({ cornerMask: 'off-probably' })],
@@ -90,24 +129,24 @@ describe('submissionProblem', () => {
   })
 })
 
-describe('cornerMaskFromLinkTotals', () => {
-  const totals = (binocularDiagonal: number): RenderedTotals => ({
-    leftHorizontal: 97,
-    leftVertical: 97,
-    rightHorizontal: 97,
-    rightVertical: 97,
-    binocularHorizontal: 109,
-    binocularHorizontalOverlap: 84,
-    binocularVertical: 98,
-    binocularVerticalOverlap: 95,
-    binocularDiagonal,
+describe('angleConventionOf', () => {
+  it.each([
+    ['projected', 'vrhp', 'link'],
+    ['radial', 'vrhp', 'typed'],
+    ['radial', 'atlas', 'measured'],
+    ['radial', 'wimfov', 'link'],
+    ['radial', 'testhmd', 'typed'],
+  ] as const)('is %s for %s values from %s input', (expected, tool, input) => {
+    expect(angleConventionOf(tool, input)).toBe(expected)
   })
+})
 
+describe('cornerMaskFromLinkTotals', () => {
   it.each([
     ['unknown', 'without a model figure', 130, undefined],
     ['unknown', 'within the margin of the masked figure', 117.3, 114.3],
     ['off-probably', 'clearly above the masked figure', 120.17, 114.3],
   ])('is %s %s', (expected, _description, diagonal, masked) => {
-    expect(cornerMaskFromLinkTotals(totals(diagonal), masked)).toBe(expected)
+    expect(cornerMaskFromLinkTotals({ ...totals, binocularDiagonal: diagonal }, masked)).toBe(expected)
   })
 })

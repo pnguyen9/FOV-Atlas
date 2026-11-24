@@ -3,6 +3,12 @@ name: Submission
 # Stores, replaces or withdraws a measure submitted as an issue. Issue bodies and comments are
 # attacker-controlled: they only ever reach the script through the event file, never through an
 # expression inside `run:`.
+#
+# A headset missing from the catalog (`other`) is checked but never stored: the issue gets the
+# `new-headset` label and stays open. Once the model is in the catalog, a maintainer sets the
+# issue's headset field to its id and empties the name field; that edit, an edit by the author,
+# or a `/recheck` comment from someone with write access (the script checks the comment's
+# author_association) processes the issue again.
 on:
   issues:
     types: [opened, edited]
@@ -23,7 +29,8 @@ jobs:
       contains(github.event.issue.labels.*.name, 'submission') &&
       !contains(github.event.issue.labels.*.name, 'withdrawn') &&
       !github.event.issue.pull_request &&
-      (github.event_name == 'issues' || startsWith(github.event.comment.body, '/withdraw'))
+      (github.event_name == 'issues' || startsWith(github.event.comment.body, '/withdraw') ||
+      startsWith(github.event.comment.body, '/recheck'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -85,6 +92,8 @@ jobs:
       OUTCOME: ${{ needs.process.outputs.outcome }}
       MESSAGE: ${{ needs.process.outputs.message }}
       MARKED_INVALID: ${{ contains(github.event.issue.labels.*.name, 'invalid') }}
+      MARKED_NEW_HEADSET: ${{ contains(github.event.issue.labels.*.name, 'new-headset') }}
+      WAS_CLOSED: ${{ github.event.issue.state == 'closed' }}
     steps:
       - run: |
           set -euo pipefail
@@ -92,10 +101,18 @@ jobs:
           case "$OUTCOME" in
             accepted)
               if [ "$MARKED_INVALID" = true ]; then gh issue edit "$ISSUE" --remove-label invalid; fi
+              if [ "$MARKED_NEW_HEADSET" = true ]; then gh issue edit "$ISSUE" --remove-label new-headset; fi
               gh issue close "$ISSUE" --reason completed
               ;;
             invalid)
               gh issue edit "$ISSUE" --add-label invalid
+              if [ "$MARKED_NEW_HEADSET" = true ]; then gh issue edit "$ISSUE" --remove-label new-headset; fi
+              ;;
+            new-headset)
+              if [ "$MARKED_INVALID" = true ]; then gh issue edit "$ISSUE" --remove-label invalid; fi
+              gh issue edit "$ISSUE" --add-label new-headset
+              # Open issues with this label are the maintainers' queue.
+              if [ "$WAS_CLOSED" = true ]; then gh issue reopen "$ISSUE"; fi
               ;;
             withdrawn)
               gh issue edit "$ISSUE" --add-label withdrawn

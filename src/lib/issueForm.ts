@@ -12,13 +12,14 @@
  * goes through the same checks as a fresh one.
  */
 
+import { catalogHeadset, maskedDiagonalOf, otherHeadset } from './headsets.ts'
 import {
   cornerMaskFromLinkTotals,
   cornerMaskStates,
   directions,
   eyeDepths,
   gazes,
-  isHeadsetId,
+  headsetProblem,
   noseBridges,
   submissionProblem,
   tools,
@@ -33,7 +34,7 @@ import {
   type Tool,
 } from './submission.ts'
 import { testHmdMeasures, testHmdTotals } from './testHmd.ts'
-import { decodeVrhpLink, extractResultsParameter, type VrhpDecodeError } from './vrhpLink.ts'
+import { decodeVrhpLink, extractResultsParameter, type VrhpDecodeError, type VrhpMeasure } from './vrhpLink.ts'
 import {
   formatWimfovPoints,
   parseWimfovLink,
@@ -46,6 +47,7 @@ import {
 export const issueFields = [
   { id: 'tool', label: 'Measuring tool' },
   { id: 'headset', label: 'Headset model' },
+  { id: 'headset-name', label: 'Headset name, if not listed' },
   { id: 'measure', label: 'Measure' },
   { id: 'wimfov-link', label: 'WIMFOV read-only link' },
   { id: 'eye-depth', label: 'Eyes vs brow' },
@@ -101,7 +103,7 @@ export type IssueFormResult =
 export interface ParseOptions {
   /** The fetched WIMFOV result page, when the issue gives a WIMFOV read-only link. */
   readonly wimfovPage?: string | undefined
-  /** The model's binocular diagonal with its corner mask, when known. */
+  /** The model's binocular diagonal with its corner mask, when known; the catalog's by default. */
   readonly maskedDiagonalOf?: (headset: string) => number | undefined
 }
 
@@ -242,8 +244,9 @@ function vrhpMeasure(text: string, maskedDiagonal: number | undefined): MeasureR
     ok: true,
     decoded: {
       measures,
-      ceiling: { source: 'link', totals: rendered },
-      cornerMask: cornerMaskFromLinkTotals(rendered, maskedDiagonal),
+      ...(rendered === null
+        ? { ceiling: { source: 'model' }, cornerMask: 'unknown' }
+        : { ceiling: { source: 'link', totals: rendered }, cornerMask: cornerMaskFromLinkTotals(rendered, maskedDiagonal) }),
       provenance: { input: 'link', linkData: extractResultsParameter(text) },
       reportedHeadset: headsetName,
     },
@@ -304,7 +307,7 @@ function decodeMeasure(tool: Tool, fields: IssueFields, options: ParseOptions): 
   if (tool === 'wimfov') return wimfovMeasure(text, fields['wimfov-link'], options.wimfovPage)
   if (text === '') return failure('measure-missing')
   if (tool === 'atlas') return atlasMeasure(text)
-  if (tool === 'vrhp') return vrhpMeasure(text, options.maskedDiagonalOf?.(fields.headset))
+  if (tool === 'vrhp') return vrhpMeasure(text, (options.maskedDiagonalOf ?? maskedDiagonalOf)(fields.headset))
   return testHmdMeasure(text)
 }
 
@@ -319,7 +322,8 @@ export function submissionFromFields(fields: IssueFields, options: ParseOptions 
   const reject = (error: IssueError): IssueParseResult => ({ ok: false, error })
   const tool = choiceOf(fields.tool, tools)
   if (tool === null) return reject('tool-invalid')
-  if (!isHeadsetId(fields.headset)) return reject('headset-invalid')
+  const headsetError = headsetProblem(fields.headset, fields['headset-name'])
+  if (headsetError !== null) return reject(headsetError)
   const eyeDepth = choiceOf(fields['eye-depth'], eyeDepths)
   if (eyeDepth === null) return reject('eye-depth-invalid')
   const noseBridge = choiceOf(fields['nose-bridge'], noseBridges)
@@ -337,6 +341,7 @@ export function submissionFromFields(fields: IssueFields, options: ParseOptions 
   const submission: Submission = {
     tool,
     headset: fields.headset,
+    otherHeadsetName: fields['headset-name'],
     ...measure.decoded,
     face: { eyeDepth, noseBridge },
     tuning: { physicallyModded: modded === 'yes', driverTuned: tuned === 'yes', details: fields['tuning-details'] },
@@ -392,6 +397,7 @@ export function issueFieldsOf(submission: Submission): IssueFields {
   return {
     tool: submission.tool,
     headset: submission.headset,
+    'headset-name': submission.otherHeadsetName,
     measure: measureText(submission),
     'wimfov-link': wimfovLink,
     'eye-depth': submission.face.eyeDepth,
@@ -417,10 +423,25 @@ export function buildIssueUrl(submission: Submission): IssueUrlResult {
   const fields = issueFieldsOf(submission)
   const parameters: [string, string][] = [
     ['template', issueTemplate],
-    ['title', `Measure: ${submission.headset} (${submission.tool})`],
+    ['title', `Measure: ${submission.headset === otherHeadset ? submission.otherHeadsetName : submission.headset} (${submission.tool})`],
     ...Object.entries(fields).filter(([, value]) => value !== ''),
   ]
   const query = parameters.map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('&')
   const url = `${newIssueUrl}?${query}`
   return url.length > maximumUrlLength ? { ok: false, error: 'url-too-long' } : { ok: true, url }
+}
+
+export interface HeadsetChoice {
+  readonly headset: string
+  /** The name to type in when `headset` is `other`, else empty. */
+  readonly otherHeadsetName: string
+}
+
+/**
+ * The headset a VR Headset Picker link preselects: its id when the catalog has it, else `other`
+ * with the link's name, or nothing when the link names no headset this form would accept.
+ */
+export function headsetChoiceOfVrhpLink({ headsetId, headsetName }: VrhpMeasure): HeadsetChoice | null {
+  if (catalogHeadset(headsetId) !== undefined) return { headset: headsetId, otherHeadsetName: '' }
+  return headsetProblem(otherHeadset, headsetName) === null ? { headset: otherHeadset, otherHeadsetName: headsetName } : null
 }

@@ -38,6 +38,11 @@ describe('parseWimfovPoints', () => {
     expect(result.ok && result.measures.left.up).toBe(38.25)
   })
 
+  it('accepts angles beyond 90°, up to straight behind', () => {
+    const wide = parseWimfovPoints(wimfovPoints.replace('38,', '95.5,').replace('50,', '180,'))
+    expect(wide.ok && [wide.measures.left.up, wide.measures.left.left]).toEqual([95.5, 180])
+  })
+
   it('formats measures back into the same text', () => {
     const result = parseWimfovPoints(wimfovPoints)
     expect(result.ok && formatWimfovPoints(result.measures)).toBe(wimfovPoints)
@@ -51,13 +56,13 @@ describe('parseWimfovPoints', () => {
     ['wimfov-points-invalid', `${wimfovPoints}|${wimfovLeftRaw.join(',')}`],
     ['wimfov-points-invalid', wimfovPoints.replace('38,', '-38,')],
     ['wimfov-points-invalid', wimfovPoints.replace('38,', '38.123,')],
-    ['wimfov-points-invalid', wimfovPoints.replace('38,', '138,')],
+    ['wimfov-points-invalid', wimfovPoints.replace('38,', '1038,')],
     ['wimfov-points-invalid', wimfovPoints.replace('38,', '38 ,')],
     ['wimfov-points-invalid', '{"points": 5}'],
     ['wimfov-points-invalid', '{"points": "1,2"'],
     ['wimfov-points-invalid', '{}'],
     ['wimfov-points-invalid', '{"other":"x"}'],
-    ['wimfov-angle-out-of-range', wimfovPoints.replace('38,', '90.5,')],
+    ['wimfov-angle-out-of-range', wimfovPoints.replace('38,', '180.01,')],
   ])('rejects input with %s', (error, input) => {
     expect(parseWimfovPoints(input)).toEqual({ ok: false, error })
   })
