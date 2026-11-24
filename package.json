@@ -1,0 +1,44 @@
+{
+  "name": "fov-atlas",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Unlicense",
+  "description": "Community database of the field of view people actually see in VR headsets",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "vue-tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run test:coverage && npm run build"
+  },
+  "engines": {
+    "node": "^22.22.2 || >=24.15.0"
+  },
+  "dependencies": {
+    "d3-scale": "4.0.3",
+    "d3-shape": "3.2.1",
+    "vue": "3.5.45"
+  },
+  "devDependencies": {
+    "@types/d3-scale": "4.0.9",
+    "@types/d3-shape": "3.2.0",
+    "@types/node": "26.6.6",
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vitest/coverage-v8": "5.1.0",
+    "@vue/eslint-config-typescript": "14.9.0",
+    "@vue/test-utils": "2.5.1",
+    "eslint": "10.14.0",
+    "eslint-plugin-security": "4.2.1",
+    "eslint-plugin-vue": "10.12.1",
+    "jsdom": "31.0.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2",
+    "vite": "8.3.7",
+    "vitest": "5.1.0",
+    "vue-tsc": "3.3.14"
+  }
+}
