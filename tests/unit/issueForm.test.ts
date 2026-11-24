@@ -5,6 +5,7 @@ import {
   headsetChoiceOfVrhpLink,
   issueFields,
   issueFieldsOf,
+  issueUrlOfFields,
   maximumBodyLength,
   newIssueUrl,
   parseIssueBody,
@@ -257,6 +258,19 @@ describe('buildIssueUrl', () => {
       note: '€'.repeat(500),
     }
     expect(buildIssueUrl(submission)).toEqual({ ok: false, error: 'url-too-long' })
+  })
+})
+
+describe('issueUrlOfFields', () => {
+  it('builds the link from fields the Action checks later, such as a WIMFOV read-only link', () => {
+    const fields = fieldsWith({ tool: 'wimfov', measure: '', 'wimfov-link': wimfovResultLink(wimfovResultId) })
+    const result = issueUrlOfFields(fields)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const parameters = new URL(result.url).searchParams
+    expect(parameters.get('wimfov-link')).toBe(wimfovResultLink(wimfovResultId))
+    expect(parameters.has('measure')).toBe(false)
+    expect(parameters.get('title')).toBe(`Measure: ${atlasFields.headset} (wimfov)`)
   })
 })
 

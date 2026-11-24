@@ -1,0 +1,301 @@
+/* Site-wide colours, page frame and the controls every page shares. */
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --text: #16191f;
+  --muted: #5d6675;
+  --border: #d9dee6;
+  --accent: #2a63d6;
+  --accent-text: #ffffff;
+  --accent-soft: #e3ecfc;
+  --note-bg: #fff6dc;
+  --note-text: #6b4f00;
+  --problem: #b3261e;
+  --success: #1e7b3a;
+  --grid: #c9d0da;
+  --left-eye: #2a63d6;
+  --right-eye: #c2410c;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418;
+    --surface: #1a1e24;
+    --surface-2: #232830;
+    --text: #e8ebf0;
+    --muted: #9aa3b2;
+    --border: #2f3540;
+    --accent: #6d9bff;
+    --accent-text: #0d1320;
+    --accent-soft: #1f2b45;
+    --note-bg: #2e2710;
+    --note-text: #e9c766;
+    --problem: #ff8a80;
+    --success: #6fd28e;
+    --grid: #3a414d;
+    --left-eye: #6d9bff;
+    --right-eye: #fb923c;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+h1 {
+  font-size: 28px;
+  line-height: 1.25;
+  margin: 0 0 8px;
+}
+h2 {
+  font-size: 20px;
+  margin: 28px 0 10px;
+}
+h3 {
+  font-size: 16px;
+  margin: 18px 0 8px;
+}
+
+code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.92em;
+  background: var(--surface-2);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.site-header .bar {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  align-items: center;
+}
+.brand {
+  font-weight: 700;
+  font-size: 17px;
+  text-decoration: none;
+  color: var(--text);
+}
+.brand span {
+  color: var(--accent);
+}
+.site-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.site-header nav a {
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--muted);
+}
+.site-header nav a:hover {
+  color: var(--text);
+}
+.site-header nav a.current {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+}
+main:focus {
+  outline: none;
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 13px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.card h2:first-child {
+  margin-top: 0;
+}
+.note {
+  background: var(--note-bg);
+  color: var(--note-text);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+.note a {
+  color: inherit;
+  font-weight: 600;
+}
+.problem {
+  color: var(--problem);
+}
+.success {
+  color: var(--success);
+}
+
+.button {
+  display: inline-block;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: 9px;
+  padding: 8px 14px;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.button.ghost {
+  background: transparent;
+  color: var(--accent);
+}
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+input[type='text'],
+input[type='url'],
+textarea,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  max-width: 100%;
+}
+textarea {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+input[type='text'],
+input[type='url'] {
+  width: 100%;
+}
+input.short {
+  width: 8em;
+}
+
+.field {
+  display: block;
+  margin-bottom: 14px;
+}
+.field-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 6px;
+  padding: 0;
+}
+.inline-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+.inline-fields .field {
+  flex: 1 1 180px;
+}
+
+.step-fieldset {
+  border: 0;
+  margin: 0 0 14px;
+  padding: 0;
+  min-width: 0;
+}
+.step-fieldset > legend {
+  padding: 0;
+}
+.step-fieldset > legend > h2:first-child {
+  margin-top: 0;
+}
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  border: 0;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.option-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.option-card.centered {
+  align-items: center;
+  text-align: center;
+}
+.option-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.option-card:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* The whole card is the control; the radio stays for keyboards and screen readers. */
+.option-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.site-footer {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  font-size: 13px;
+}
+.site-footer a {
+  color: var(--muted);
+}

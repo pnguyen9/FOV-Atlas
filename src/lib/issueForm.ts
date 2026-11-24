@@ -416,19 +416,27 @@ export type IssueUrlResult =
   | { readonly ok: true; readonly url: string }
   | { readonly ok: false; readonly error: SubmissionError | 'url-too-long' }
 
-/** The prefilled "new issue" link; the visitor only has to press Create. */
-export function buildIssueUrl(submission: Submission): IssueUrlResult {
-  const problem = submissionProblem(submission)
-  if (problem !== null) return { ok: false, error: problem }
-  const fields = issueFieldsOf(submission)
+/**
+ * The prefilled "new issue" link for fields that were already checked. A WIMFOV read-only link
+ * can only be checked by the Action, which fetches the result page, so the site builds the link
+ * from fields in that case.
+ */
+export function issueUrlOfFields(fields: IssueFields): IssueUrlResult {
+  const headsetLabel = fields.headset === otherHeadset ? fields['headset-name'] : fields.headset
   const parameters: [string, string][] = [
     ['template', issueTemplate],
-    ['title', `Measure: ${submission.headset === otherHeadset ? submission.otherHeadsetName : submission.headset} (${submission.tool})`],
+    ['title', `Measure: ${headsetLabel} (${fields.tool})`],
     ...Object.entries(fields).filter(([, value]) => value !== ''),
   ]
   const query = parameters.map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('&')
   const url = `${newIssueUrl}?${query}`
   return url.length > maximumUrlLength ? { ok: false, error: 'url-too-long' } : { ok: true, url }
+}
+
+/** The prefilled "new issue" link; the visitor only has to press Create. */
+export function buildIssueUrl(submission: Submission): IssueUrlResult {
+  const problem = submissionProblem(submission)
+  return problem === null ? issueUrlOfFields(issueFieldsOf(submission)) : { ok: false, error: problem }
 }
 
 export interface HeadsetChoice {

@@ -12,6 +12,12 @@ import type { RenderedTotals } from './vrhpLink.ts'
 
 export const tools = ['atlas', 'vrhp', 'wimfov', 'testhmd'] as const
 export type Tool = (typeof tools)[number]
+export const toolNames: Readonly<Record<Tool, string>> = {
+  atlas: 'FOV Atlas',
+  vrhp: 'VR Headset Picker',
+  wimfov: 'WIMFOV',
+  testhmd: 'TestHMD',
+}
 
 /**
  * Sixteen directions in radial order, from up toward the wearer's left and around. Every other

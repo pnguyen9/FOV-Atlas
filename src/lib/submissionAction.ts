@@ -13,7 +13,7 @@
 import { otherHeadset } from './headsets.ts'
 import { parseIssueBody, type IssueError, type ParseOptions } from './issueForm.ts'
 import type { PlainTextProblem } from './plainText.ts'
-import type { Submission, TextField, Tool } from './submission.ts'
+import { toolNames, type Submission, type TextField, type Tool } from './submission.ts'
 import {
   aggregatePages,
   aggregatePath,
@@ -120,13 +120,6 @@ export function readEvent(eventName: string, payload: unknown): ActionEvent | nu
     }
   }
   return null
-}
-
-const toolNames: Readonly<Record<Tool, string>> = {
-  atlas: 'FOV Atlas',
-  vrhp: 'VR Headset Picker',
-  wimfov: 'WIMFOV',
-  testhmd: 'TestHMD',
 }
 
 const textFieldNames: readonly (readonly [TextField, string])[] = [

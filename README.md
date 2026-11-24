@@ -34,6 +34,11 @@ The first mockup of the pages lives in [docs/mockup](docs/mockup/index.html).
 
 ## Credits
 
+The way FOV Atlas measures is heavily inspired by [VR Headset Picker](https://vrheadsetpicker.com)'s
+measure, a great way of doing it. Showing a field of view as a radar chart is inspired by
+[WIMFOV](https://boll.itch.io/wimfov). The "what you see" view, how a field of view looks in VR,
+comes from an idea by Reddit user Heliosurge.
+
 I described the problem and gave some technical specifications. The entire coding was done by
 Claude Code, and the whole design and navigation of the site were its suggestions.
 
