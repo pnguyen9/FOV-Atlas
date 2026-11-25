@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "tool": "vrhp",
+  "headset": "bigscreen-beyond-2",
+  "count": 1,
+  "cells": {
+    "almost-flush|low|modded|fixed": {
+      "left": {
+        "left": {
+          "count": 1,
+          "sum": 54.98,
+          "sumsq": 3022.8004,
+          "max": 54.98
+        },
+        "right": {
+          "count": 1,
+          "sum": 41.97,
+          "sumsq": 1761.4809,
+          "max": 41.97
+        },
+        "up": {
+          "count": 1,
+          "sum": 43.04,
+          "sumsq": 1852.4416,
+          "max": 43.04
+        },
+        "down": {
+          "count": 1,
+          "sum": 53.89,
+          "sumsq": 2904.1321,
+          "max": 53.89
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 59.04,
+          "sumsq": 3485.7216,
+          "max": 59.04
+        }
+      },
+      "right": {
+        "left": {
+          "count": 1,
+          "sum": 41.49,
+          "sumsq": 1721.4201,
+          "max": 41.49
+        },
+        "right": {
+          "count": 1,
+          "sum": 54.26,
+          "sumsq": 2944.1476,
+          "max": 54.26
+        },
+        "up": {
+          "count": 1,
+          "sum": 44.17,
+          "sumsq": 1950.9889,
+          "max": 44.17
+        },
+        "down": {
+          "count": 1,
+          "sum": 52.5,
+          "sumsq": 2756.25,
+          "max": 52.5
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 52.03,
+          "sumsq": 2707.1209,
+          "max": 52.03
+        }
+      },
+      "figures": {
+        "leftWidth": {
+          "count": 1,
+          "sum": 96.95,
+          "sumsq": 9399.3025,
+          "max": 96.95
+        },
+        "leftHeight": {
+          "count": 1,
+          "sum": 96.93,
+          "sumsq": 9395.4249,
+          "max": 96.93
+        },
+        "rightWidth": {
+          "count": 1,
+          "sum": 95.75,
+          "sumsq": 9168.0625,
+          "max": 95.75
+        },
+        "rightHeight": {
+          "count": 1,
+          "sum": 96.67,
+          "sumsq": 9345.0889,
+          "max": 96.67
+        },
+        "renderedHorizontal": {
+          "count": 1,
+          "sum": 109.24,
+          "sumsq": 11933.3776,
+          "max": 109.24
+        },
+        "renderedOverlap": {
+          "count": 1,
+          "sum": 84.33,
+          "sumsq": 7111.5489,
+          "max": 84.33
+        },
+        "renderedLeftWidth": {
+          "count": 1,
+          "sum": 96.95,
+          "sumsq": 9399.3025,
+          "max": 96.95
+        },
+        "renderedLeftHeight": {
+          "count": 1,
+          "sum": 96.93,
+          "sumsq": 9395.4249,
+          "max": 96.93
+        },
+        "renderedRightWidth": {
+          "count": 1,
+          "sum": 96.62,
+          "sumsq": 9335.4244,
+          "max": 96.62
+        },
+        "renderedRightHeight": {
+          "count": 1,
+          "sum": 96.67,
+          "sumsq": 9345.0889,
+          "max": 96.67
+        },
+        "leftWidthPastRendered": {
+          "count": 1,
+          "sum": 0,
+          "sumsq": 0,
+          "max": 0
+        },
+        "leftHeightPastRendered": {
+          "count": 1,
+          "sum": 0,
+          "sumsq": 0,
+          "max": 0
+        },
+        "rightWidthPastRendered": {
+          "count": 1,
+          "sum": -0.87,
+          "sumsq": 0.7569,
+          "max": -0.87
+        },
+        "rightHeightPastRendered": {
+          "count": 1,
+          "sum": 0,
+          "sumsq": 0,
+          "max": 0
+        }
+      }
+    }
+  }
+}
