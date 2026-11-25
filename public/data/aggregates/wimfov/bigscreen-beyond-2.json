@@ -2,8 +2,226 @@
   "version": 1,
   "tool": "wimfov",
   "headset": "bigscreen-beyond-2",
-  "count": 1,
+  "count": 2,
   "cells": {
+    "almost-flush|low|modded|fixed": {
+      "left": {
+        "up": {
+          "count": 1,
+          "sum": 41,
+          "sumsq": 1681,
+          "max": 41
+        },
+        "left": {
+          "count": 1,
+          "sum": 54,
+          "sumsq": 2916,
+          "max": 54
+        },
+        "down": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "right": {
+          "count": 1,
+          "sum": 40,
+          "sumsq": 1600,
+          "max": 40
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 59,
+          "sumsq": 3481,
+          "max": 59
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 50,
+          "sumsq": 2500,
+          "max": 50
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 42,
+          "sumsq": 1764,
+          "max": 42
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 49,
+          "sumsq": 2401,
+          "max": 49
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 59,
+          "sumsq": 3481,
+          "max": 59
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 58,
+          "sumsq": 3364,
+          "max": 58
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 53,
+          "sumsq": 2809,
+          "max": 53
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 46,
+          "sumsq": 2116,
+          "max": 46
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 42,
+          "sumsq": 1764,
+          "max": 42
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 43,
+          "sumsq": 1849,
+          "max": 43
+        }
+      },
+      "right": {
+        "up": {
+          "count": 1,
+          "sum": 42,
+          "sumsq": 1764,
+          "max": 42
+        },
+        "left": {
+          "count": 1,
+          "sum": 41,
+          "sumsq": 1681,
+          "max": 41
+        },
+        "down": {
+          "count": 1,
+          "sum": 51,
+          "sumsq": 2601,
+          "max": 51
+        },
+        "right": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 42,
+          "sumsq": 1764,
+          "max": 42
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 48,
+          "sumsq": 2304,
+          "max": 48
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 51,
+          "sumsq": 2601,
+          "max": 51
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 43,
+          "sumsq": 1849,
+          "max": 43
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 42,
+          "sumsq": 1764,
+          "max": 42
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 46,
+          "sumsq": 2116,
+          "max": 46
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 51,
+          "sumsq": 2601,
+          "max": 51
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 53,
+          "sumsq": 2809,
+          "max": 53
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 48,
+          "sumsq": 2304,
+          "max": 48
+        }
+      },
+      "figures": {
+        "horizontal": {
+          "count": 1,
+          "sum": 106,
+          "sumsq": 11236,
+          "max": 106
+        },
+        "vertical": {
+          "count": 1,
+          "sum": 93,
+          "sumsq": 8649,
+          "max": 93
+        },
+        "overlap": {
+          "count": 1,
+          "sum": 81,
+          "sumsq": 6561,
+          "max": 81
+        }
+      }
+    },
     "almost-flush|low|stock|fixed": {
       "left": {
         "up": {
