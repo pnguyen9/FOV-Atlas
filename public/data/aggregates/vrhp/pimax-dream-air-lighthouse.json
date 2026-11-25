@@ -2,154 +2,154 @@
   "version": 1,
   "tool": "vrhp",
   "headset": "pimax-dream-air-lighthouse",
-  "count": 4,
+  "count": 5,
   "cells": {
     "almost-flush|low|both|fixed": {
       "left": {
         "left": {
-          "count": 1,
-          "sum": 52.5,
-          "sumsq": 2756.25,
-          "max": 52.5
+          "count": 2,
+          "sum": 108.86,
+          "sumsq": 5932.6996,
+          "max": 56.36
         },
         "right": {
-          "count": 1,
-          "sum": 52.5,
-          "sumsq": 2756.25,
+          "count": 2,
+          "sum": 104.14,
+          "sumsq": 5422.9396,
           "max": 52.5
         },
         "up": {
-          "count": 1,
-          "sum": 47.5,
-          "sumsq": 2256.25,
+          "count": 2,
+          "sum": 94.93,
+          "sumsq": 4505.8549,
           "max": 47.5
         },
         "down": {
-          "count": 1,
-          "sum": 47.5,
-          "sumsq": 2256.25,
-          "max": 47.5
+          "count": 2,
+          "sum": 96.07,
+          "sumsq": 4615.2949,
+          "max": 48.57
         },
         "down-left": {
-          "count": 1,
-          "sum": 59.53,
-          "sumsq": 3543.8209,
-          "max": 59.53
+          "count": 2,
+          "sum": 121.55,
+          "sumsq": 7390.3013,
+          "max": 62.02
         }
       },
       "right": {
         "left": {
-          "count": 1,
-          "sum": 52.5,
-          "sumsq": 2756.25,
+          "count": 2,
+          "sum": 104.14,
+          "sumsq": 5422.9396,
           "max": 52.5
         },
         "right": {
-          "count": 1,
-          "sum": 52.5,
-          "sumsq": 2756.25,
-          "max": 52.5
+          "count": 2,
+          "sum": 108.86,
+          "sumsq": 5932.6996,
+          "max": 56.36
         },
         "up": {
-          "count": 1,
-          "sum": 47.5,
-          "sumsq": 2256.25,
+          "count": 2,
+          "sum": 94.93,
+          "sumsq": 4505.8549,
           "max": 47.5
         },
         "down": {
-          "count": 1,
-          "sum": 47.5,
-          "sumsq": 2256.25,
-          "max": 47.5
+          "count": 2,
+          "sum": 96.07,
+          "sumsq": 4615.2949,
+          "max": 48.57
         },
         "up-right": {
-          "count": 1,
-          "sum": 59.53,
-          "sumsq": 3543.8209,
-          "max": 59.53
+          "count": 2,
+          "sum": 121.21,
+          "sumsq": 7348.2433,
+          "max": 61.68
         }
       },
       "figures": {
         "leftWidth": {
-          "count": 1,
-          "sum": 105,
-          "sumsq": 11025,
-          "max": 105
+          "count": 2,
+          "sum": 213,
+          "sumsq": 22689,
+          "max": 108
         },
         "leftHeight": {
-          "count": 1,
-          "sum": 95,
-          "sumsq": 9025,
-          "max": 95
+          "count": 2,
+          "sum": 191,
+          "sumsq": 18241,
+          "max": 96
         },
         "rightWidth": {
-          "count": 1,
-          "sum": 105,
-          "sumsq": 11025,
-          "max": 105
+          "count": 2,
+          "sum": 213,
+          "sumsq": 22689,
+          "max": 108
         },
         "rightHeight": {
-          "count": 1,
-          "sum": 95,
-          "sumsq": 9025,
-          "max": 95
+          "count": 2,
+          "sum": 191,
+          "sumsq": 18241,
+          "max": 96
         },
         "renderedHorizontal": {
-          "count": 1,
-          "sum": 110.2,
-          "sumsq": 12144.04,
-          "max": 110.2
+          "count": 2,
+          "sum": 226.91,
+          "sumsq": 25765.2641,
+          "max": 116.71
         },
         "renderedOverlap": {
-          "count": 1,
-          "sum": 99.8,
-          "sumsq": 9960.04,
+          "count": 2,
+          "sum": 199.09,
+          "sumsq": 19818.5441,
           "max": 99.8
         },
         "renderedLeftWidth": {
-          "count": 1,
-          "sum": 105,
-          "sumsq": 11025,
-          "max": 105
+          "count": 2,
+          "sum": 213,
+          "sumsq": 22689,
+          "max": 108
         },
         "renderedLeftHeight": {
-          "count": 1,
-          "sum": 95,
-          "sumsq": 9025,
-          "max": 95
+          "count": 2,
+          "sum": 191,
+          "sumsq": 18241,
+          "max": 96
         },
         "renderedRightWidth": {
-          "count": 1,
-          "sum": 105,
-          "sumsq": 11025,
-          "max": 105
+          "count": 2,
+          "sum": 213,
+          "sumsq": 22689,
+          "max": 108
         },
         "renderedRightHeight": {
-          "count": 1,
-          "sum": 95,
-          "sumsq": 9025,
-          "max": 95
+          "count": 2,
+          "sum": 191,
+          "sumsq": 18241,
+          "max": 96
         },
         "leftWidthPastRendered": {
-          "count": 1,
+          "count": 2,
           "sum": 0,
           "sumsq": 0,
           "max": 0
         },
         "leftHeightPastRendered": {
-          "count": 1,
+          "count": 2,
           "sum": 0,
           "sumsq": 0,
           "max": 0
         },
         "rightWidthPastRendered": {
-          "count": 1,
+          "count": 2,
           "sum": 0,
           "sumsq": 0,
           "max": 0
         },
         "rightHeightPastRendered": {
-          "count": 1,
+          "count": 2,
           "sum": 0,
           "sumsq": 0,
           "max": 0
