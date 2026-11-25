@@ -370,7 +370,7 @@ describe('ComparePage radar', () => {
     expect(wrapper.text()).toContain('measured on the Bigscreen Beyond 2')
     expect(wrapper.find('.curve.emphasised').classes()).toContain('series-2')
     expect(wrapper.find('.scene image').attributes('href')).toBe('/scenes/living-room.webp')
-    expect(wrapper.text()).toContain('The living room is a 360° photo')
+    expect(wrapper.text()).toContain('The living room and the cockpit are 360° photos')
     await clickButton(wrapper, 'Grid void')
     expect(compareState.radar.scene).toBe('void')
     expect(wrapper.find('.scene image').exists()).toBe(false)

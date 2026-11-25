@@ -200,7 +200,7 @@ function gridVoid(): Item[] {
   return items
 }
 
-export const sceneNames = ['void', 'room'] as const
+export const sceneNames = ['void', 'room', 'cockpit'] as const
 export type SceneName = (typeof sceneNames)[number]
 
 const scenes: ReadonlyMap<SceneName, Scene> = new Map([
@@ -214,6 +214,18 @@ const scenes: ReadonlyMap<SceneName, Scene> = new Map([
       items: () => [],
       // "Anniversary Lounge" by Greg Zaal, Poly Haven, CC0.
       photo: 'scenes/living-room.webp',
+    },
+  ],
+  [
+    'cockpit',
+    {
+      name: 'Cockpit',
+      sky: ['#d9dcdc', '#c4c7c6'],
+      ground: '#3a3d40',
+      items: () => [],
+      // "Eesti Lennundusmuuseum. Hävitaja F-4C Phantom II kabiin" by Lauri Veerde, Wikimedia Commons, CC BY-SA 4.0.
+      // The reprojected image is shared under the same licence.
+      photo: 'scenes/cockpit.webp',
     },
   ],
 ])

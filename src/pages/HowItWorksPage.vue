@@ -222,6 +222,20 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
           by Greg Zaal, from Poly Haven (CC0).
         </li>
         <li>
+          Its cockpit is the 360° photo
+          <a
+            href="https://commons.wikimedia.org/wiki/File:Eesti_Lennundusmuuseum._H%C3%A4vitaja_F-4C_Phantom_II_kabiin.jpg"
+            target="_blank"
+            rel="noopener noreferrer"
+          >cockpit of an F-4 Phantom II</a>
+          at the Estonian Aviation Museum by Lauri Veerde, from Wikimedia Commons, under
+          <a
+            href="https://creativecommons.org/licenses/by-sa/4.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >CC BY-SA 4.0</a>. The site shows it reprojected, and that image is shared under the same licence.
+        </li>
+        <li>
           The headset list follows VR Headset Picker's names for each model, so its links can preselect the headset.
         </li>
         <li>

@@ -70,5 +70,7 @@ describe('scenes', () => {
   it('shows the living room as a photo, with no shapes over it', () => {
     expect(sceneOf('room')).toMatchObject({ name: 'Living room', photo: 'scenes/living-room.webp' })
     expect(sceneShapes('room', 90, scale)).toEqual([])
+    expect(sceneOf('cockpit')).toMatchObject({ name: 'Cockpit', photo: 'scenes/cockpit.webp' })
+    expect(sceneShapes('cockpit', 90, scale)).toEqual([])
   })
 })

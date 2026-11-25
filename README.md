@@ -39,7 +39,11 @@ measure, a great way of doing it. Showing a field of view as a radar chart is in
 [WIMFOV](https://boll.itch.io/wimfov). The "what you see" view, how a field of view looks in VR,
 comes from an idea by Reddit user Heliosurge. Its living room is the 360° photo
 [Anniversary Lounge](https://polyhaven.com/a/anniversary_lounge) by Greg Zaal, from
-[Poly Haven](https://polyhaven.com) (CC0).
+[Poly Haven](https://polyhaven.com) (CC0). Its cockpit is the 360° photo of the
+[cockpit of an F-4 Phantom II](https://commons.wikimedia.org/wiki/File:Eesti_Lennundusmuuseum._H%C3%A4vitaja_F-4C_Phantom_II_kabiin.jpg)
+at the Estonian Aviation Museum by Lauri Veerde, from Wikimedia Commons, under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); `public/scenes/cockpit.webp` is
+that photo reprojected and is shared under the same licence.
 
 I described the problem and gave some technical specifications. The entire coding was done by
 Claude Code, and the whole design and navigation of the site were its suggestions.

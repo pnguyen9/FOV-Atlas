@@ -11,6 +11,11 @@ The living room comes from the tonemapped JPG of https://polyhaven.com/a/anniver
   python3 -I scripts/reproject-scene.py anniversary_lounge.jpg public/scenes/living-room.webp \
       --ahead 0.4156 --size 3072 --quality 64
 
+The cockpit comes from the 3840-pixel copy Wikimedia Commons serves of
+https://commons.wikimedia.org/wiki/File:Eesti_Lennundusmuuseum._H%C3%A4vitaja_F-4C_Phantom_II_kabiin.jpg
+(Lauri Veerde, CC BY-SA 4.0; the output stays under that licence):
+  python3 -I scripts/reproject-scene.py f4.jpg public/scenes/cockpit.webp --ahead 0.5 --size 2560 --quality 58
+
 `--ahead` is the column straight ahead, as a share of the source's width (0.5 is the photo's
 centre); the horizon stays the photo's middle row, so a level photo stays level.
 

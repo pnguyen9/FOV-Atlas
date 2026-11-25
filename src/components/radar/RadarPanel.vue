@@ -262,7 +262,7 @@ onBeforeUnmount(() => {
       >
         You're looking straight ahead. Clear: inside {{ through.seeText }} ({{ eyeWords[eyeMode] }}). Dimmed: there, but
         outside it. Each ring is 10° further from straight ahead, so straight edges bend as in a fisheye photo. The living
-        room is a 360° photo, the grid void a sketch.
+        room and the cockpit are 360° photos, the grid void a sketch.
       </p>
     </template>
     <div
