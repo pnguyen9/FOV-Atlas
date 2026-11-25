@@ -2,8 +2,226 @@
   "version": 1,
   "tool": "wimfov",
   "headset": "pimax-dream-air-lighthouse",
-  "count": 3,
+  "count": 4,
   "cells": {
+    "almost-flush|low|both|fixed": {
+      "left": {
+        "up": {
+          "count": 1,
+          "sum": 45,
+          "sumsq": 2025,
+          "max": 45
+        },
+        "left": {
+          "count": 1,
+          "sum": 53,
+          "sumsq": 2809,
+          "max": 53
+        },
+        "down": {
+          "count": 1,
+          "sum": 45,
+          "sumsq": 2025,
+          "max": 45
+        },
+        "right": {
+          "count": 1,
+          "sum": 48,
+          "sumsq": 2304,
+          "max": 48
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 62,
+          "sumsq": 3844,
+          "max": 62
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 62,
+          "sumsq": 3844,
+          "max": 62
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 58,
+          "sumsq": 3364,
+          "max": 58
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 58,
+          "sumsq": 3364,
+          "max": 58
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 54,
+          "sumsq": 2916,
+          "max": 54
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 60,
+          "sumsq": 3600,
+          "max": 60
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 60,
+          "sumsq": 3600,
+          "max": 60
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 54,
+          "sumsq": 2916,
+          "max": 54
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        }
+      },
+      "right": {
+        "up": {
+          "count": 1,
+          "sum": 45,
+          "sumsq": 2025,
+          "max": 45
+        },
+        "left": {
+          "count": 1,
+          "sum": 48,
+          "sumsq": 2304,
+          "max": 48
+        },
+        "down": {
+          "count": 1,
+          "sum": 45,
+          "sumsq": 2025,
+          "max": 45
+        },
+        "right": {
+          "count": 1,
+          "sum": 53,
+          "sumsq": 2809,
+          "max": 53
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 58,
+          "sumsq": 3364,
+          "max": 58
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 58,
+          "sumsq": 3364,
+          "max": 58
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 62,
+          "sumsq": 3844,
+          "max": 62
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 62,
+          "sumsq": 3844,
+          "max": 62
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 54,
+          "sumsq": 2916,
+          "max": 54
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 60,
+          "sumsq": 3600,
+          "max": 60
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 60,
+          "sumsq": 3600,
+          "max": 60
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 54,
+          "sumsq": 2916,
+          "max": 54
+        }
+      },
+      "figures": {
+        "horizontal": {
+          "count": 1,
+          "sum": 106,
+          "sumsq": 11236,
+          "max": 106
+        },
+        "vertical": {
+          "count": 1,
+          "sum": 90,
+          "sumsq": 8100,
+          "max": 90
+        },
+        "overlap": {
+          "count": 1,
+          "sum": 96,
+          "sumsq": 9216,
+          "max": 96
+        }
+      }
+    },
     "almost-flush|low|stock|fixed": {
       "left": {
         "up": {
