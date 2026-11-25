@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "tool": "vrhp",
+  "headset": "htc-vive-pro",
+  "count": 1,
+  "cells": {
+    "almost-flush|low|modded|fixed": {
+      "left": {
+        "left": {
+          "count": 1,
+          "sum": 53.39,
+          "sumsq": 2850.4921,
+          "max": 53.39
+        },
+        "right": {
+          "count": 1,
+          "sum": 50.24,
+          "sumsq": 2524.0576,
+          "max": 50.24
+        },
+        "up": {
+          "count": 1,
+          "sum": 54.08,
+          "sumsq": 2924.6464,
+          "max": 54.08
+        },
+        "down": {
+          "count": 1,
+          "sum": 54.65,
+          "sumsq": 2986.6225,
+          "max": 54.65
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 54.59,
+          "sumsq": 2980.0681,
+          "max": 54.59
+        }
+      },
+      "right": {
+        "left": {
+          "count": 1,
+          "sum": 50.33,
+          "sumsq": 2533.1089,
+          "max": 50.33
+        },
+        "right": {
+          "count": 1,
+          "sum": 53.49,
+          "sumsq": 2861.1801,
+          "max": 53.49
+        },
+        "up": {
+          "count": 1,
+          "sum": 54.16,
+          "sumsq": 2933.3056,
+          "max": 54.16
+        },
+        "down": {
+          "count": 1,
+          "sum": 54.75,
+          "sumsq": 2997.5625,
+          "max": 54.75
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 54.76,
+          "sumsq": 2998.6576,
+          "max": 54.76
+        }
+      },
+      "figures": {
+        "leftWidth": {
+          "count": 1,
+          "sum": 103.63,
+          "sumsq": 10739.1769,
+          "max": 103.63
+        },
+        "leftHeight": {
+          "count": 1,
+          "sum": 108.73,
+          "sumsq": 11822.2129,
+          "max": 108.73
+        },
+        "rightWidth": {
+          "count": 1,
+          "sum": 103.82,
+          "sumsq": 10778.5924,
+          "max": 103.82
+        },
+        "rightHeight": {
+          "count": 1,
+          "sum": 108.91,
+          "sumsq": 11861.3881,
+          "max": 108.91
+        },
+        "renderedHorizontal": {
+          "count": 1,
+          "sum": 106.88,
+          "sumsq": 11423.3344,
+          "max": 106.88
+        },
+        "renderedOverlap": {
+          "count": 1,
+          "sum": 90.32,
+          "sumsq": 8157.7024,
+          "max": 90.32
+        },
+        "renderedLeftWidth": {
+          "count": 1,
+          "sum": 98.51,
+          "sumsq": 9704.2201,
+          "max": 98.51
+        },
+        "renderedLeftHeight": {
+          "count": 1,
+          "sum": 107.5,
+          "sumsq": 11556.25,
+          "max": 107.5
+        },
+        "renderedRightWidth": {
+          "count": 1,
+          "sum": 98.7,
+          "sumsq": 9741.69,
+          "max": 98.7
+        },
+        "renderedRightHeight": {
+          "count": 1,
+          "sum": 107.68,
+          "sumsq": 11594.9824,
+          "max": 107.68
+        },
+        "leftWidthPastRendered": {
+          "count": 1,
+          "sum": 5.12,
+          "sumsq": 26.2144,
+          "max": 5.12
+        },
+        "leftHeightPastRendered": {
+          "count": 1,
+          "sum": 1.23,
+          "sumsq": 1.5129,
+          "max": 1.23
+        },
+        "rightWidthPastRendered": {
+          "count": 1,
+          "sum": 5.12,
+          "sumsq": 26.2144,
+          "max": 5.12
+        },
+        "rightHeightPastRendered": {
+          "count": 1,
+          "sum": 1.23,
+          "sumsq": 1.5129,
+          "max": 1.23
+        }
+      }
+    }
+  }
+}

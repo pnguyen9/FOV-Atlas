@@ -13,6 +13,10 @@
       "htc-vive": {
         "count": 1,
         "pages": 1
+      },
+      "htc-vive-pro": {
+        "count": 1,
+        "pages": 1
       }
     },
     "wimfov": {
