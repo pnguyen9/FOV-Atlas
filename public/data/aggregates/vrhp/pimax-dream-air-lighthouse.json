@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "tool": "vrhp",
+  "headset": "pimax-dream-air-lighthouse",
+  "count": 1,
+  "cells": {
+    "almost-flush|low|stock|fixed": {
+      "left": {
+        "left": {
+          "count": 1,
+          "sum": 54.4,
+          "sumsq": 2959.36,
+          "max": 54.4
+        },
+        "right": {
+          "count": 1,
+          "sum": 45.54,
+          "sumsq": 2073.8916,
+          "max": 45.54
+        },
+        "up": {
+          "count": 1,
+          "sum": 44.55,
+          "sumsq": 1984.7025,
+          "max": 44.55
+        },
+        "down": {
+          "count": 1,
+          "sum": 44.55,
+          "sumsq": 1984.7025,
+          "max": 44.55
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 57.06,
+          "sumsq": 3255.8436,
+          "max": 57.06
+        }
+      },
+      "right": {
+        "left": {
+          "count": 1,
+          "sum": 45.54,
+          "sumsq": 2073.8916,
+          "max": 45.54
+        },
+        "right": {
+          "count": 1,
+          "sum": 54.4,
+          "sumsq": 2959.36,
+          "max": 54.4
+        },
+        "up": {
+          "count": 1,
+          "sum": 44.55,
+          "sumsq": 1984.7025,
+          "max": 44.55
+        },
+        "down": {
+          "count": 1,
+          "sum": 44.55,
+          "sumsq": 1984.7025,
+          "max": 44.55
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 57.06,
+          "sumsq": 3255.8436,
+          "max": 57.06
+        }
+      },
+      "figures": {
+        "leftWidth": {
+          "count": 1,
+          "sum": 99.94,
+          "sumsq": 9988.0036,
+          "max": 99.94
+        },
+        "leftHeight": {
+          "count": 1,
+          "sum": 89.1,
+          "sumsq": 7938.81,
+          "max": 89.1
+        },
+        "rightWidth": {
+          "count": 1,
+          "sum": 99.94,
+          "sumsq": 9988.0036,
+          "max": 99.94
+        },
+        "rightHeight": {
+          "count": 1,
+          "sum": 89.1,
+          "sumsq": 7938.81,
+          "max": 89.1
+        },
+        "renderedHorizontal": {
+          "count": 1,
+          "sum": 110.15,
+          "sumsq": 12133.0225,
+          "max": 110.15
+        },
+        "renderedOverlap": {
+          "count": 1,
+          "sum": 91.08,
+          "sumsq": 8295.5664,
+          "max": 91.08
+        },
+        "renderedLeftWidth": {
+          "count": 1,
+          "sum": 100.62,
+          "sumsq": 10124.3844,
+          "max": 100.62
+        },
+        "renderedLeftHeight": {
+          "count": 1,
+          "sum": 89.09,
+          "sumsq": 7937.0281,
+          "max": 89.09
+        },
+        "renderedRightWidth": {
+          "count": 1,
+          "sum": 100.62,
+          "sumsq": 10124.3844,
+          "max": 100.62
+        },
+        "renderedRightHeight": {
+          "count": 1,
+          "sum": 89.09,
+          "sumsq": 7937.0281,
+          "max": 89.09
+        },
+        "leftWidthPastRendered": {
+          "count": 1,
+          "sum": -0.68,
+          "sumsq": 0.4624,
+          "max": -0.68
+        },
+        "leftHeightPastRendered": {
+          "count": 1,
+          "sum": 0.01,
+          "sumsq": 0.0001,
+          "max": 0.01
+        },
+        "rightWidthPastRendered": {
+          "count": 1,
+          "sum": -0.68,
+          "sumsq": 0.4624,
+          "max": -0.68
+        },
+        "rightHeightPastRendered": {
+          "count": 1,
+          "sum": 0.01,
+          "sumsq": 0.0001,
+          "max": 0.01
+        }
+      }
+    }
+  }
+}
