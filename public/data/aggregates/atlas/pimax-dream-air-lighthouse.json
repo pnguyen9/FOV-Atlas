@@ -2,7 +2,7 @@
   "version": 3,
   "tool": "atlas",
   "headset": "pimax-dream-air-lighthouse",
-  "count": 2,
+  "count": 3,
   "cells": {
     "almost-flush|low|both|fixed": {
       "left": {
@@ -307,6 +307,314 @@
               "right-up-right": 60.82,
               "up-right": 58.22,
               "up-up-right": 50.21
+            }
+          }
+        }
+      }
+    },
+    "almost-flush|low|tuned|fixed": {
+      "left": {
+        "up": {
+          "count": 1,
+          "sum": 43.98,
+          "sumsq": 1934.2404,
+          "max": 43.98
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 46.65,
+          "sumsq": 2176.2225,
+          "max": 46.65
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 54.7,
+          "sumsq": 2992.09,
+          "max": 54.7
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 53.19,
+          "sumsq": 2829.1761,
+          "max": 53.19
+        },
+        "left": {
+          "count": 1,
+          "sum": 51,
+          "sumsq": 2601,
+          "max": 51
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 53.19,
+          "sumsq": 2829.1761,
+          "max": 53.19
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 54.7,
+          "sumsq": 2992.09,
+          "max": 54.7
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 46.65,
+          "sumsq": 2176.2225,
+          "max": 46.65
+        },
+        "down": {
+          "count": 1,
+          "sum": 43.98,
+          "sumsq": 1934.2404,
+          "max": 43.98
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 45.85,
+          "sumsq": 2102.2225,
+          "max": 45.85
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 52.86,
+          "sumsq": 2794.1796,
+          "max": 52.86
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 49.25,
+          "sumsq": 2425.5625,
+          "max": 49.25
+        },
+        "right": {
+          "count": 1,
+          "sum": 47,
+          "sumsq": 2209,
+          "max": 47
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 49.25,
+          "sumsq": 2425.5625,
+          "max": 49.25
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 52.86,
+          "sumsq": 2794.1796,
+          "max": 52.86
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 45.85,
+          "sumsq": 2102.2225,
+          "max": 45.85
+        }
+      },
+      "right": {
+        "up": {
+          "count": 1,
+          "sum": 43.98,
+          "sumsq": 1934.2404,
+          "max": 43.98
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 45.85,
+          "sumsq": 2102.2225,
+          "max": 45.85
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 52.86,
+          "sumsq": 2794.1796,
+          "max": 52.86
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 49.25,
+          "sumsq": 2425.5625,
+          "max": 49.25
+        },
+        "left": {
+          "count": 1,
+          "sum": 47,
+          "sumsq": 2209,
+          "max": 47
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 49.25,
+          "sumsq": 2425.5625,
+          "max": 49.25
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 52.86,
+          "sumsq": 2794.1796,
+          "max": 52.86
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 45.85,
+          "sumsq": 2102.2225,
+          "max": 45.85
+        },
+        "down": {
+          "count": 1,
+          "sum": 43.98,
+          "sumsq": 1934.2404,
+          "max": 43.98
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 46.65,
+          "sumsq": 2176.2225,
+          "max": 46.65
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 54.7,
+          "sumsq": 2992.09,
+          "max": 54.7
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 53.19,
+          "sumsq": 2829.1761,
+          "max": 53.19
+        },
+        "right": {
+          "count": 1,
+          "sum": 51,
+          "sumsq": 2601,
+          "max": 51
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 53.19,
+          "sumsq": 2829.1761,
+          "max": 53.19
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 54.7,
+          "sumsq": 2992.09,
+          "max": 54.7
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 46.65,
+          "sumsq": 2176.2225,
+          "max": 46.65
+        }
+      },
+      "figures": {
+        "horizontal": {
+          "count": 1,
+          "sum": 102,
+          "sumsq": 10404,
+          "max": 102
+        },
+        "vertical": {
+          "count": 1,
+          "sum": 87.96,
+          "sumsq": 7736.9616,
+          "max": 87.96
+        },
+        "overlap": {
+          "count": 1,
+          "sum": 94,
+          "sumsq": 8836,
+          "max": 94
+        },
+        "area": {
+          "count": 1,
+          "sum": 36.52,
+          "sumsq": 1333.7104,
+          "max": 36.52
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 33.62,
+          "sumsq": 1130.3044,
+          "max": 33.62
+        },
+        "renderedHorizontal": {
+          "count": 1,
+          "sum": 102,
+          "sumsq": 10404,
+          "max": 102
+        },
+        "renderedOverlap": {
+          "count": 1,
+          "sum": 94,
+          "sumsq": 8836,
+          "max": 94
+        },
+        "horizontalPastRendered": {
+          "count": 1,
+          "sum": 0,
+          "sumsq": 0,
+          "max": 0
+        }
+      },
+      "leaders": {
+        "highest": {
+          "issue": 29,
+          "author": "pnguyen9",
+          "rank": [
+            3652,
+            10200,
+            8796,
+            158192
+          ],
+          "figures": {
+            "horizontal": 102,
+            "vertical": 87.96,
+            "overlap": 94,
+            "area": 36.52,
+            "overlapArea": 33.62,
+            "renderedHorizontal": 102,
+            "renderedOverlap": 94,
+            "horizontalPastRendered": 0
+          },
+          "measures": {
+            "left": {
+              "up": 43.98,
+              "up-up-left": 46.65,
+              "up-left": 54.7,
+              "left-up-left": 53.19,
+              "left": 51,
+              "left-down-left": 53.19,
+              "down-left": 54.7,
+              "down-down-left": 46.65,
+              "down": 43.98,
+              "down-down-right": 45.85,
+              "down-right": 52.86,
+              "right-down-right": 49.25,
+              "right": 47,
+              "right-up-right": 49.25,
+              "up-right": 52.86,
+              "up-up-right": 45.85
+            },
+            "right": {
+              "up": 43.98,
+              "up-up-left": 45.85,
+              "up-left": 52.86,
+              "left-up-left": 49.25,
+              "left": 47,
+              "left-down-left": 49.25,
+              "down-left": 52.86,
+              "down-down-left": 45.85,
+              "down": 43.98,
+              "down-down-right": 46.65,
+              "down-right": 54.7,
+              "right-down-right": 53.19,
+              "right": 51,
+              "right-up-right": 53.19,
+              "up-right": 54.7,
+              "up-up-right": 46.65
             }
           }
         }
