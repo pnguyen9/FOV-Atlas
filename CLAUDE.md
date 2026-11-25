@@ -9,6 +9,8 @@ Node version in `.nvmrc` (`nvm use`).
 
 - `npm run check`: lint (warnings fail), typecheck, unit tests with coverage thresholds, build.
 - `npm run dev` / `npm run preview` (preview serves the built site with its CSP).
+- Publishing: push a `v*` tag (`git tag v1.2.0 && git push origin v1.2.0`). Pushes to main are
+  only checked; the site always runs the latest tag's code with main's data (`.github/workflows/ci.yml`).
 
 ## Rules
 

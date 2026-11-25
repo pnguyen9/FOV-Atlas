@@ -1,10 +1,19 @@
 name: CI
 
+# Pushes to main are checked but not published. The site is published on each release tag (v1.0.0…),
+# so what is online is always a tagged version, never work in progress on main.
+# The submission workflow redeploys after it stores or removes a measure. Such a run changes only
+# data files, which the Action has already checked, so it skips the code checks.
+# Every publication builds the latest release tag's code with main's data: measures accepted since
+# the tag go online without publishing untagged code. A change to the data format therefore needs
+# a new tag before the Action writes data in that format.
+# Once, in the repository's settings: Environments → github-pages → Deployment branches and tags
+# must allow the tags `v*` (add a tag rule). By default the environment accepts the default branch
+# alone and refuses a run started by a tag.
 on:
   push:
     branches: [main]
-  # The submission workflow redeploys after it stores or removes a measure. Such a run changes
-  # only data files, which the Action has already checked, so it skips the code checks.
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       data_only:
@@ -16,16 +25,13 @@ on:
 permissions:
   contents: read
 
-# A burst of submissions triggers one run each. A running deploy is left to finish; GitHub keeps
-# only the newest waiting run per group and cancels the older waiting ones, and that newest run
-# builds everything committed before it.
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   check:
+    if: ${{ !inputs.data_only }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: check-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -36,18 +42,49 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Audit shipped dependencies
-        if: ${{ !inputs.data_only }}
         run: npm audit --omit=dev --audit-level=low
-      - if: ${{ !inputs.data_only }}
-        run: npm run check
-      - if: ${{ inputs.data_only }}
-        run: npm run build
+      - run: npm run check
+
+  build:
+    needs: check
+    # Runs after a passed check, or without one for a data-only redeploy.
+    if: ${{ !cancelled() && !failure() && (github.ref_type == 'tag' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    # A burst of submissions triggers one run each. A running publication is left to finish;
+    # GitHub keeps only the newest waiting run and cancels the older waiting ones, and that newest
+    # run builds everything committed before it.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Latest release code with main's data
+        run: |
+          release=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+          if [ -z "$release" ]; then echo 'No release tag (v*) to publish' >&2; exit 1; fi
+          echo "Publishing $release"
+          git fetch --quiet origin main
+          git checkout --quiet "$release"
+          # Replaced as a whole, so measures withdrawn on main are gone here too.
+          rm -rf public/data
+          if git cat-file -e FETCH_HEAD:public/data 2>/dev/null; then
+            git checkout --quiet FETCH_HEAD -- public/data
+          fi
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
 
   deploy:
-    needs: check
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       pages: write
