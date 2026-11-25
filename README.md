@@ -37,9 +37,7 @@ The first mockup of the pages lives in [docs/mockup](docs/mockup/index.html).
 The way FOV Atlas measures is heavily inspired by [VR Headset Picker](https://vrheadsetpicker.com)'s
 measure, a great way of doing it. Showing a field of view as a radar chart is inspired by
 [WIMFOV](https://boll.itch.io/wimfov). The "what you see" view, how a field of view looks in VR,
-comes from an idea by Reddit user Heliosurge. Its living room is the 360° photo
-[Anniversary Lounge](https://polyhaven.com/a/anniversary_lounge) by Greg Zaal, from
-[Poly Haven](https://polyhaven.com) (CC0). Its cockpit is the 360° photo of the
+comes from an idea by Reddit user Heliosurge. Its cockpit is the 360° photo of the
 [cockpit of an F-4 Phantom II](https://commons.wikimedia.org/wiki/File:Eesti_Lennundusmuuseum._H%C3%A4vitaja_F-4C_Phantom_II_kabiin.jpg)
 at the Estonian Aviation Museum by Lauri Veerde, from Wikimedia Commons, under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); `public/scenes/cockpit.webp` is

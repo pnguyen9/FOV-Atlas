@@ -69,8 +69,11 @@ describe('scenes', () => {
     expect(shapes.some((shape) => shape.fill === 'none' && shape.strokeOpacity === 0.7)).toBe(true)
     expect(shapes.some((shape) => shape.fill !== 'none' && shape.stroke === undefined)).toBe(true)
   })
-  it('shows the living room and the cockpit as photos', () => {
-    expect(sceneOf('room')).toMatchObject({ kind: 'photo', name: 'Living room', photo: 'scenes/living-room.webp' })
+  it('sketches the living room and shows the cockpit as a photo', () => {
+    const room = sceneOf('room')
+    if (room.kind !== 'sketch') throw new Error('The living room is a sketch')
+    expect(room.name).toBe('Living room')
+    expect(sceneShapes(room, 90, scale).some((shape) => shape.fill !== 'none' && shape.stroke === '#fafafa')).toBe(true)
     expect(sceneOf('cockpit')).toMatchObject({ kind: 'photo', name: 'Cockpit', photo: 'scenes/cockpit.webp' })
   })
 })

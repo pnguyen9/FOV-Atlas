@@ -18,6 +18,7 @@ interface Polygon {
   readonly kind: 'polygon'
   readonly points: readonly Point3[]
   readonly fill: string
+  readonly outline?: Outline
 }
 
 interface Segment {
@@ -150,9 +151,19 @@ export function scenePath(points: readonly Point3[], closed: boolean, scale: Rad
   return `M${path}${closed ? 'Z' : ''}`
 }
 
-const polygon = (points: readonly Point3[], fill: string): Polygon => ({ kind: 'polygon', points, fill })
+interface Outline {
+  readonly stroke: string
+  readonly strokeWidth: number
+}
 
-const segment = (start: Point3, end: Point3, stroke: string, strokeWidth: number, strokeOpacity: number): Segment => ({
+const polygon = (points: readonly Point3[], fill: string, outline?: Outline): Polygon => ({
+  kind: 'polygon',
+  points,
+  fill,
+  ...(outline && { outline }),
+})
+
+const segment = (start: Point3, end: Point3, stroke: string, strokeWidth: number, strokeOpacity = 1): Segment => ({
   kind: 'segment',
   start,
   end,
@@ -195,6 +206,16 @@ function box(low: Point3, high: Point3, colours: BoxColours): Polygon[] {
   })
 }
 
+/** A horizontal disc, such as a ceiling light. */
+function flatDisc(centre: Point3, radius: number, fill: string): Polygon {
+  const [across, height, depth] = centre
+  const points = Array.from({ length: 24 }, (_, pointIndex): Point3 => {
+    const angle = (pointIndex / 24) * 2 * Math.PI
+    return [across + radius * Math.cos(angle), height, depth + radius * Math.sin(angle)]
+  })
+  return polygon(points, fill)
+}
+
 function gridVoid(): Item[] {
   const floor = -1.6
   const gridColour = '#2f6fd6'
@@ -211,22 +232,55 @@ function gridVoid(): Item[] {
   return items
 }
 
+function livingRoom(): Item[] {
+  const floor = -1.15
+  const ceiling = 1.35
+  const side = 2.6
+  const front = 3.6
+  const items: Item[] = [
+    polygon([[-side, ceiling, 0], [side, ceiling, 0], [side, ceiling, front], [-side, ceiling, front]], '#efebe4'),
+    polygon([[-side, floor, front], [side, floor, front], [side, ceiling, front], [-side, ceiling, front]], '#d8cdbd'),
+    polygon([[-side, floor, 0], [-side, floor, front], [-side, ceiling, front], [-side, ceiling, 0]], '#c9bca8'),
+    polygon([[side, floor, 0], [side, floor, front], [side, ceiling, front], [side, ceiling, 0]], '#cdc1af'),
+    polygon([[-side, floor, 0], [side, floor, 0], [side, floor, front], [-side, floor, front]], '#9a7650'),
+  ]
+  for (let board = 0; board < 25; board += 1) {
+    const across = -2.4 + board * 0.2
+    items.push(segment([across, floor, 0], [across, floor, front], '#86643f', 0.7))
+  }
+  items.push(
+    polygon([[-1.3, floor + 0.01, 0.8], [1.3, floor + 0.01, 0.8], [1.3, floor + 0.01, 2.6], [-1.3, floor + 0.01, 2.6]], '#7d3f3a'),
+    polygon([[-side + 0.01, -0.4, 1], [-side + 0.01, -0.4, 2.6], [-side + 0.01, 0.9, 2.6], [-side + 0.01, 0.9, 1]], '#bfe0f7', {
+      stroke: '#fafafa',
+      strokeWidth: 4,
+    }),
+    segment([-side + 0.01, -0.4, 1.8], [-side + 0.01, 0.9, 1.8], '#fafafa', 3),
+    segment([-side + 0.01, 0.25, 1], [-side + 0.01, 0.25, 2.6], '#fafafa', 3),
+    polygon([[side - 0.01, floor, 2.2], [side - 0.01, floor, 3.1], [side - 0.01, 0.85, 3.1], [side - 0.01, 0.85, 2.2]], '#a9825a', {
+      stroke: '#8a6640',
+      strokeWidth: 2,
+    }),
+    ...box([2.2, floor, 0.6], [side, 0.7, 1.6], { top: '#6b4c32', side: '#6b4c32', front: '#5a3f29' }),
+  )
+  for (const height of [-0.6, -0.1, 0.4]) items.push(segment([2.2, height, 0.6], [2.2, height, 1.6], '#3f2c1c', 2.5))
+  items.push(
+    ...box([-1.1, floor, 3.2], [1.1, -0.65, front], { top: '#5e4630', side: '#4d3926', front: '#4d3926' }),
+    polygon([[-0.9, -0.45, front - 0.02], [0.9, -0.45, front - 0.02], [0.9, 0.55, front - 0.02], [-0.9, 0.55, front - 0.02]], '#121417'),
+    polygon([[-0.86, -0.41, front - 0.03], [0.86, -0.41, front - 0.03], [0.86, 0.51, front - 0.03], [-0.86, 0.51, front - 0.03]], '#22344a'),
+    segment([-2.1, floor, 3.1], [-2.1, 0.4, 3.1], '#333333', 2),
+    ...box([-2.3, 0.4, 2.9], [-1.9, 0.75, 3.3], { top: '#f3e3c0', side: '#ecd7ab', front: '#f3e3c0' }),
+    flatDisc([0, ceiling - 0.01, 2], 0.25, '#fff8e1'),
+    ...box([-0.6, floor, 1.2], [0.6, -0.75, 1.8], { top: '#6e5236', side: '#55402a', front: '#5d4630' }),
+  )
+  return items
+}
+
 export const sceneNames = ['void', 'room', 'cockpit'] as const
 export type SceneName = (typeof sceneNames)[number]
 
 const scenes: ReadonlyMap<SceneName, Scene> = new Map([
   ['void', { kind: 'sketch', name: 'Grid void', sky: ['#03060d', '#0b1630'], ground: '#060a12', items: gridVoid }],
-  [
-    'room',
-    {
-      kind: 'photo',
-      name: 'Living room',
-      sky: ['#efe3bd', '#e3d3a4'],
-      ground: '#9b8c78',
-      // "Anniversary Lounge" by Greg Zaal, Poly Haven, CC0.
-      photo: 'scenes/living-room.webp',
-    },
-  ],
+  ['room', { kind: 'sketch', name: 'Living room', sky: ['#efebe4', '#efebe4'], ground: '#9a7650', items: livingRoom }],
   [
     'cockpit',
     {
@@ -259,7 +313,7 @@ function shapeOf(item: Item, scale: RadialScale): SceneShape | null {
   }
   const clipped = clipPolygon(item.points)
   if (clipped.length < 3) return null
-  return { path: scenePath(clipped, true, scale), fill: item.fill }
+  return { path: scenePath(clipped, true, scale), fill: item.fill, ...item.outline }
 }
 
 /** Projecting a scene is the slow part, so each scene is projected once per chart reach. */

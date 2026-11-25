@@ -7,10 +7,6 @@ The output is a square image holding a disc whose radius is `--limit` degrees fr
 the chart places it so that its edge sits at that angle on the radar's scale. The projection is
 linear in angle, so the one image fits every reach the chart is drawn at.
 
-The living room comes from the tonemapped JPG of https://polyhaven.com/a/anniversary_lounge (CC0):
-  python3 -I scripts/reproject-scene.py anniversary_lounge.jpg public/scenes/living-room.webp \
-      --ahead 0.4156 --size 3072 --quality 64
-
 The cockpit comes from the 3840-pixel copy Wikimedia Commons serves of
 https://commons.wikimedia.org/wiki/File:Eesti_Lennundusmuuseum._H%C3%A4vitaja_F-4C_Phantom_II_kabiin.jpg
 (Lauri Veerde, CC BY-SA 4.0; the output stays under that licence):
@@ -28,8 +24,6 @@ import math
 import numpy
 from PIL import Image
 
-# Poly Haven's tonemapped JPGs are 8192 pixels wide, past Pillow's guard against decompression bombs.
-Image.MAX_IMAGE_PIXELS = 8192 * 4096
 # Rendered larger and scaled down, so each output pixel averages several samples of the source.
 SUPERSAMPLING = 2
 # Never seen: the chart clips the image to its plot, which never reaches past the disc.

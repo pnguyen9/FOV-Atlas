@@ -213,15 +213,6 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
         </li>
         <li>The “what you see” view, how a field of view looks in VR, comes from an idea by Reddit user Heliosurge.</li>
         <li>
-          Its living room is the 360° photo
-          <a
-            href="https://polyhaven.com/a/anniversary_lounge"
-            target="_blank"
-            rel="noopener noreferrer"
-          >Anniversary Lounge</a>
-          by Greg Zaal, from Poly Haven (CC0).
-        </li>
-        <li>
           Its cockpit is the 360° photo
           <a
             href="https://commons.wikimedia.org/wiki/File:Eesti_Lennundusmuuseum._H%C3%A4vitaja_F-4C_Phantom_II_kabiin.jpg"
