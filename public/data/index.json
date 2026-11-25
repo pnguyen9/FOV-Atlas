@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "headsets": {
+    "vrhp": {
+      "bigscreen-beyond": {
+        "count": 1,
+        "pages": 1
+      }
+    }
+  }
+}
