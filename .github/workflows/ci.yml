@@ -85,6 +85,8 @@ jobs:
 
   deploy:
     needs: build
+    # A data-only run skips check, and a skipped ancestor makes the default success() false.
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
