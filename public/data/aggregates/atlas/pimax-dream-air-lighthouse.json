@@ -1,0 +1,244 @@
+{
+  "version": 1,
+  "tool": "atlas",
+  "headset": "pimax-dream-air-lighthouse",
+  "count": 1,
+  "cells": {
+    "almost-flush|low|both|fixed": {
+      "left": {
+        "up": {
+          "count": 1,
+          "sum": 44.9,
+          "sumsq": 2016.01,
+          "max": 44.9
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 50.21,
+          "sumsq": 2521.0441,
+          "max": 50.21
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 58.22,
+          "sumsq": 3389.5684,
+          "max": 58.22
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 60.82,
+          "sumsq": 3699.0724,
+          "max": 60.82
+        },
+        "left": {
+          "count": 1,
+          "sum": 56.67,
+          "sumsq": 3211.4889,
+          "max": 56.67
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 60.82,
+          "sumsq": 3699.0724,
+          "max": 60.82
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 59.3,
+          "sumsq": 3516.49,
+          "max": 59.3
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 51.36,
+          "sumsq": 2637.8496,
+          "max": 51.36
+        },
+        "down": {
+          "count": 1,
+          "sum": 46.04,
+          "sumsq": 2119.6816,
+          "max": 46.04
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 50.21,
+          "sumsq": 2521.0441,
+          "max": 50.21
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 56.75,
+          "sumsq": 3220.5625,
+          "max": 56.75
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 51.37,
+          "sumsq": 2638.8769,
+          "max": 51.37
+        },
+        "right": {
+          "count": 1,
+          "sum": 46.96,
+          "sumsq": 2205.2416,
+          "max": 46.96
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 51.37,
+          "sumsq": 2638.8769,
+          "max": 51.37
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 55.74,
+          "sumsq": 3106.9476,
+          "max": 55.74
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 49.1,
+          "sumsq": 2410.81,
+          "max": 49.1
+        }
+      },
+      "right": {
+        "up": {
+          "count": 1,
+          "sum": 44.9,
+          "sumsq": 2016.01,
+          "max": 44.9
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 49.1,
+          "sumsq": 2410.81,
+          "max": 49.1
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 55.74,
+          "sumsq": 3106.9476,
+          "max": 55.74
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 51.37,
+          "sumsq": 2638.8769,
+          "max": 51.37
+        },
+        "left": {
+          "count": 1,
+          "sum": 46.96,
+          "sumsq": 2205.2416,
+          "max": 46.96
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 51.37,
+          "sumsq": 2638.8769,
+          "max": 51.37
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 56.75,
+          "sumsq": 3220.5625,
+          "max": 56.75
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 50.21,
+          "sumsq": 2521.0441,
+          "max": 50.21
+        },
+        "down": {
+          "count": 1,
+          "sum": 46.04,
+          "sumsq": 2119.6816,
+          "max": 46.04
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 51.36,
+          "sumsq": 2637.8496,
+          "max": 51.36
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 59.3,
+          "sumsq": 3516.49,
+          "max": 59.3
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 60.82,
+          "sumsq": 3699.0724,
+          "max": 60.82
+        },
+        "right": {
+          "count": 1,
+          "sum": 56.67,
+          "sumsq": 3211.4889,
+          "max": 56.67
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 60.82,
+          "sumsq": 3699.0724,
+          "max": 60.82
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 58.22,
+          "sumsq": 3389.5684,
+          "max": 58.22
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 50.21,
+          "sumsq": 2521.0441,
+          "max": 50.21
+        }
+      },
+      "figures": {
+        "horizontal": {
+          "count": 1,
+          "sum": 113.34,
+          "sumsq": 12845.9556,
+          "max": 113.34
+        },
+        "vertical": {
+          "count": 1,
+          "sum": 90.94,
+          "sumsq": 8270.0836,
+          "max": 90.94
+        },
+        "overlap": {
+          "count": 1,
+          "sum": 93.92,
+          "sumsq": 8820.9664,
+          "max": 93.92
+        },
+        "renderedHorizontal": {
+          "count": 1,
+          "sum": 117.7,
+          "sumsq": 13853.29,
+          "max": 117.7
+        },
+        "renderedOverlap": {
+          "count": 1,
+          "sum": 98.28,
+          "sumsq": 9658.9584,
+          "max": 98.28
+        },
+        "horizontalPastRendered": {
+          "count": 1,
+          "sum": -4.36,
+          "sumsq": 19.0096,
+          "max": -4.36
+        }
+      }
+    }
+  }
+}
