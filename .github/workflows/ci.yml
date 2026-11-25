@@ -3,8 +3,14 @@ name: CI
 on:
   push:
     branches: [main]
-  # The submission workflow redeploys after it stores or removes a measure.
+  # The submission workflow redeploys after it stores or removes a measure. Such a run changes
+  # only data files, which the Action has already checked, so it skips the code checks.
   workflow_dispatch:
+    inputs:
+      data_only:
+        description: Skip lint, typecheck, tests and audit; build and deploy only
+        type: boolean
+        default: false
 
 # Every job starts read-only; only the deploy job is granted Pages rights.
 permissions:
@@ -30,8 +36,12 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Audit shipped dependencies
+        if: ${{ !inputs.data_only }}
         run: npm audit --omit=dev --audit-level=low
-      - run: npm run check
+      - if: ${{ !inputs.data_only }}
+        run: npm run check
+      - if: ${{ inputs.data_only }}
+        run: npm run build
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist

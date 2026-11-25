@@ -9,6 +9,7 @@
  * result. Issues are public, so only the exact read-only form `…/wimfov/?id=<id>` is accepted.
  */
 
+import { isPlainObject, parseJson } from './json.ts'
 import { plainTextProblem } from './plainText.ts'
 import { maximumRadialDegrees, type Direction, type EyeMeasure, type EyeMeasures } from './submission.ts'
 
@@ -78,13 +79,8 @@ function parsePointsText(points: string): WimfovPointsResult {
 }
 
 function pointsOfJson(text: string): string | null {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    return null
-  }
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
+  const parsed = parseJson(text)
+  if (!isPlainObject(parsed)) return null
   const points: unknown = Object.getOwnPropertyDescriptor(parsed, 'points')?.value
   return typeof points === 'string' ? points : null
 }
@@ -139,13 +135,8 @@ export function parseWimfovPage(html: string, expectedResultId: string): WimfovP
   const literal = end < 0 ? '' : html.slice(dataStart, end)
   if (!pageDataPattern.test(literal)) return unrecognised
 
-  let data: unknown
-  try {
-    data = JSON.parse(literal)
-  } catch {
-    return unrecognised
-  }
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) return unrecognised
+  const data = parseJson(literal)
+  if (!isPlainObject(data)) return unrecognised
   const field = (name: string): unknown => Object.getOwnPropertyDescriptor(data, name)?.value
   const [resultId, points, model = ''] = [field('sid'), field('points'), field('model')]
   if (typeof points !== 'string' || typeof model !== 'string') return unrecognised

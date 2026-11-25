@@ -5,50 +5,15 @@
  * people find their own measures by name.
  */
 import { computed } from 'vue'
-import { eyeDepthOptions, noseBridgeOptions } from '../../components/faceFit.ts'
-import { formatDegrees, gazeLabelOf, tuningLabelOf } from '../../components/measureLabels.ts'
+import { eyeDepthOptions, faceFitOptionOf, noseBridgeOptions, type FaceFitOption } from '../../components/faceFit.ts'
+import { gazeLabelOf, tuningLabelOf } from '../../components/measureLabels.ts'
 import { ceilingWords, cornerMaskWords } from '../../lib/ceiling.ts'
 import { figuresOfMeasure } from '../../lib/fovStats.ts'
 import { issueUrl } from '../../lib/issueForm.ts'
-import type { Tool } from '../../lib/submission.ts'
-import { tuningOf, type FigureName } from '../../lib/submissionStore.ts'
+import type { EyeDepth, NoseBridge, Tool } from '../../lib/submission.ts'
+import { tuningOf, type StoredEntry } from '../../lib/submissionStore.ts'
+import { cellParts, measureListColumnsFor, type CompareRow } from '../compare/columns.ts'
 import type { ListedEntry } from './listedEntry.ts'
-
-interface FigureColumn {
-  readonly label: string
-  readonly title: string
-  /** One figure, or the left and right eye's, shown in one cell as left / right. */
-  readonly figures: readonly FigureName[]
-  /** Gaps are stored as measured minus rendered and shown the other way round. */
-  readonly gap?: boolean
-}
-
-const bothEyes: readonly FigureColumn[] = [
-  { label: 'Horiz.', title: 'Horizontal, both eyes', figures: ['horizontal'] },
-  { label: 'Vert.', title: 'Vertical, the taller eye', figures: ['vertical'] },
-  { label: 'Overlap', title: 'Width both eyes see at once', figures: ['overlap'] },
-]
-const figureColumns: ReadonlyMap<Tool, readonly FigureColumn[]> = new Map([
-  [
-    'atlas',
-    [...bothEyes, { label: 'Gap', title: 'Rendered horizontal of this headset minus the horizontal measured', figures: ['horizontalPastRendered'], gap: true }],
-  ],
-  ['wimfov', bothEyes],
-  ['testhmd', bothEyes.slice(0, 2)],
-  [
-    'vrhp',
-    [
-      { label: 'Width L / R', title: 'Width of the left eye / the right eye', figures: ['leftWidth', 'rightWidth'] },
-      { label: 'Height L / R', title: 'Height of the left eye / the right eye', figures: ['leftHeight', 'rightHeight'] },
-      {
-        label: 'Gap L / R',
-        title: 'Width of each eye’s picture, as the link reports it, minus the width measured; left eye / right eye',
-        figures: ['leftWidthPastRendered', 'rightWidthPastRendered'],
-        gap: true,
-      },
-    ],
-  ],
-])
 
 const props = defineProps<{
   readonly tool: Tool
@@ -59,27 +24,36 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ toggle: [issue: number] }>()
 
-const columns = computed(() => figureColumns.get(props.tool) ?? [])
+const columns = computed(() => measureListColumnsFor(props.tool))
 
-const rows = computed(() =>
-  props.entries.map(({ issue, entry }) => {
-    const summaries = new Map(Object.entries(figuresOfMeasure(entry.submission).summaries))
-    return {
-      issue,
-      entry,
-      // Each value but the last ends with the separator, so a narrow cell wraps only between them.
-      figures: columns.value.map(({ figures, gap }) =>
-        figures.map((figure, figureIndex) => {
-          const value = summaries.get(figure)?.mean
-          const text = formatDegrees(gap === true && value !== undefined ? -value : value)
-          return figureIndex < figures.length - 1 ? `${text} /` : text
-        }),
-      ),
-      eyeDepth: eyeDepthOptions.find((option) => option.value === entry.submission.face.eyeDepth),
-      noseBridge: noseBridgeOptions.find((option) => option.value === entry.submission.face.noseBridge),
-    }
-  }),
-)
+interface EntryCells {
+  /** Per figure column, its parts; each but the last ends with the separator, so a narrow cell wraps only between them. */
+  readonly figures: readonly (readonly string[])[]
+  readonly eyeDepth: FaceFitOption<EyeDepth> | undefined
+  readonly noseBridge: FaceFitOption<NoseBridge> | undefined
+}
+
+/** A stored entry never changes, so its cells are worked out once, when it is first listed. */
+const cellsByEntry = new WeakMap<StoredEntry, EntryCells>()
+
+function cellsOf(entry: StoredEntry): EntryCells {
+  const known = cellsByEntry.get(entry)
+  if (known !== undefined) return known
+  const { submission } = entry
+  const row: CompareRow = { key: submission.headset, headset: submission.headset, name: '', figures: figuresOfMeasure(submission), total: 1 }
+  const cells: EntryCells = {
+    figures: measureListColumnsFor(submission.tool).map((column) => {
+      const parts = cellParts(column, row)
+      return parts.map((text, partIndex) => (partIndex < parts.length - 1 ? `${text} /` : text))
+    }),
+    eyeDepth: faceFitOptionOf(eyeDepthOptions, submission.face.eyeDepth),
+    noseBridge: faceFitOptionOf(noseBridgeOptions, submission.face.noseBridge),
+  }
+  cellsByEntry.set(entry, cells)
+  return cells
+}
+
+const rows = computed(() => props.entries.map(({ issue, entry }) => ({ issue, entry, ...cellsOf(entry) })))
 </script>
 
 <template>
@@ -128,7 +102,7 @@ const rows = computed(() =>
           </th>
           <th
             v-for="column in columns"
-            :key="column.label"
+            :key="column.id"
             scope="col"
             :title="column.title"
           >

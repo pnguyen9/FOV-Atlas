@@ -59,6 +59,7 @@ describe('positions', () => {
     expect(rings.map((ring) => ring.degrees)).toEqual([10, 20, 30, 40, 50, 60, 70])
     expect(rings.filter((ring) => ring.major).map((ring) => ring.degrees)).toEqual([30, 60])
     expect(rings.at(-1)?.radius).toBe(plotRadius)
+    expect(ringsOf(95, scale, 30).map((ring) => ring.degrees)).toEqual([30, 60, 90])
   })
 
   it('draws a spoke per principal direction', () => {

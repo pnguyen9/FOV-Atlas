@@ -4,7 +4,7 @@
  * the filters next to measures ticked in the list, every published measure, the model's averaged
  * rendered field of view, and its catalog entry.
  */
-import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { formatCell, headlineColumnsFor, type CompareRow } from './compare/columns.ts'
 import { compareState, seriesSlotCount, togglePick, type SeriesPick } from './compare/compareState.ts'
 import CatalogInfo from './headset/CatalogInfo.vue'
@@ -12,19 +12,20 @@ import DirectionStats from './headset/DirectionStats.vue'
 import RenderedAverageSection from './headset/RenderedAverageSection.vue'
 import type { ListedEntry } from './headset/listedEntry.ts'
 import SubmissionList from './headset/SubmissionList.vue'
+import { useDataIndex } from './dataIndex.ts'
+import DataIndexState from '../components/DataIndexState.vue'
 import FilterPanel from '../components/FilterPanel.vue'
 import RadarOptions from '../components/radar/RadarOptions.vue'
 import RadarPanel from '../components/radar/RadarPanel.vue'
-import { aggregateSeries, keptSeries, measureRenderedNote, type RadarSeries } from '../components/radar/radarSeries.ts'
+import { aggregateSeries, keptSeries, measureSeries, type RadarSeries } from '../components/radar/radarSeries.ts'
 import SegmentedControl from '../components/SegmentedControl.vue'
-import { drawsRenderedOutline, renderedFrameOf } from '../lib/ceiling.ts'
 import { combineCells, figuresOfCombined, submissionMatches } from '../lib/fovStats.ts'
 import { catalogHeadset } from '../lib/headsets.ts'
 import { routeHref } from '../lib/hashRoute.ts'
 import type { RenderedAverage } from '../lib/renderedAverage.ts'
-import { headsetsOf, loadAggregate, loadIndex, loadPage, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
-import { toolNameOf, tools, type Tool } from '../lib/submission.ts'
-import type { Aggregate, DataIndex } from '../lib/submissionStore.ts'
+import { loadAggregate, loadedValue, loadPage, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
+import { showsRenderedAverage, toolNameOf, tools, type Tool } from '../lib/submission.ts'
+import { headsetsOf, type Aggregate } from '../lib/submissionStore.ts'
 
 const props = defineProps<{ readonly headset: string }>()
 
@@ -33,15 +34,11 @@ const firstMeasureSlot = 2
 
 const catalog = computed(() => catalogHeadset(props.headset))
 
-const index = ref<Loaded<DataIndex> | null>(null)
-onMounted(async () => {
-  index.value = await loadIndex()
-})
+const index = useDataIndex()
 
 const availableTools = computed(() => {
-  if (index.value?.ok !== true) return []
-  const dataIndex = index.value.value
-  return tools.filter((tool) => headsetsOf(dataIndex, tool).has(props.headset))
+  const dataIndex = loadedValue(index.value)
+  return dataIndex === null ? [] : tools.filter((tool) => headsetsOf(dataIndex, tool).has(props.headset))
 })
 const chosenTool = ref<Tool | null>(null)
 const tool = computed<Tool | null>(() => {
@@ -52,20 +49,24 @@ const tool = computed<Tool | null>(() => {
 })
 const toolOptions = computed(() => availableTools.value.map((available) => ({ value: available, label: toolNameOf(available) })))
 
+/** Shown for the tools that show it, and while the model has no measure at all. */
+const showsAverage = computed(() => tool.value === null || showsRenderedAverage(tool.value))
+
 /** Null while loading or when the model has none; the section tells which. */
 const average = shallowRef<Loaded<RenderedAverage | null> | null>(null)
 
 watch(
-  [index, () => props.headset],
-  async ([loadedIndex, headset]) => {
+  [index, () => props.headset, showsAverage],
+  async ([loadedIndex, headset, shown]) => {
     average.value = null
-    if (loadedIndex?.ok !== true) return
-    const loaded = await loadRenderedAverage(loadedIndex.value, headset)
-    if (headset === props.headset) average.value = loaded
+    const dataIndex = loadedValue(loadedIndex)
+    if (dataIndex === null || !shown) return
+    const loaded = await loadRenderedAverage(dataIndex, headset)
+    if (headset === props.headset && showsAverage.value) average.value = loaded
   },
   { immediate: true },
 )
-const modelAverage = computed(() => (average.value?.ok === true ? average.value.value : null))
+const modelAverage = computed(() => loadedValue(average.value))
 
 const aggregate = shallowRef<Loaded<Aggregate> | null>(null)
 const entries = shallowRef<ListedEntry[]>([])
@@ -106,8 +107,9 @@ watch(
     pageFailed.value = false
     loadingPage.value = false
     nextPage.value = -1
-    if (currentTool === null || index.value?.ok !== true) return
-    const summary = headsetsOf(index.value.value, currentTool).get(headset)
+    const dataIndex = loadedValue(index.value)
+    if (currentTool === null || dataIndex === null) return
+    const summary = headsetsOf(dataIndex, currentTool).get(headset)
     nextPage.value = (summary?.pages ?? 0) - 1
     const [loadedAggregate] = await Promise.all([loadAggregate(currentTool, headset), loadOlder()])
     if (started === generation) aggregate.value = loadedAggregate
@@ -115,9 +117,12 @@ watch(
   { immediate: true },
 )
 
-const combined = computed(() => (aggregate.value?.ok === true ? combineCells(aggregate.value.value, compareState.filters) : null))
+const combined = computed(() => {
+  const loaded = loadedValue(aggregate.value)
+  return loaded === null ? null : combineCells(loaded, compareState.filters)
+})
 const figures = computed(() => (combined.value === null ? null : figuresOfCombined(combined.value)))
-const totalCount = computed(() => (aggregate.value?.ok === true ? aggregate.value.value.count : 0))
+const totalCount = computed(() => loadedValue(aggregate.value)?.count ?? 0)
 
 const filterCounts = computed(() =>
   tool.value === null || combined.value === null
@@ -159,18 +164,16 @@ const radarSeries = computed<RadarSeries[]>(() => {
     const listed = entries.value.find(({ issue }) => String(issue) === pick.key)
     if (listed === undefined) continue
     const { submission, author } = listed.entry
-    series.push({
-      key: pick.key,
-      label: `${author} · issue #${pick.key}`,
-      name: `${author} #${pick.key}`,
-      colour: pick.slot,
-      measures: submission.measures,
-      meanMeasures: null,
-      rendered: renderedFrameOf(submission),
-      renderedNote: measureRenderedNote(`${author} #${pick.key}`, submission),
-      renderedWarning: null,
-      seeText: `the measure ${author} sent in issue #${pick.key}`,
-    })
+    series.push(
+      measureSeries({
+        key: pick.key,
+        label: `${author} · issue #${pick.key}`,
+        name: `${author} #${pick.key}`,
+        colour: pick.slot,
+        seeText: `the measure ${author} sent in issue #${pick.key}`,
+        submission,
+      }),
+    )
   }
   const kept = compareState.kept
   if (kept !== null && compareState.keptOnRadar && kept.tool === tool.value && kept.headset === props.headset) {
@@ -204,25 +207,14 @@ const headlines = computed(() => {
       No headset in the list has this address.
     </p>
     <template v-else>
+      <DataIndexState :index="index" />
       <p
-        v-if="index === null"
-        class="muted"
-      >
-        Loading the measures…
-      </p>
-      <p
-        v-else-if="!index.ok"
-        class="problem"
-      >
-        The measures couldn't be loaded. Try again in a moment.
-      </p>
-      <p
-        v-else-if="tool === null"
+        v-if="index?.ok === true && tool === null"
         class="note"
       >
-        No measures of this headset are published yet. <a href="#submit">Add the first one</a>.
+        No measures of this headset are published yet. <a :href="routeHref({ page: 'submit' })">Add the first one</a>.
       </p>
-      <template v-else>
+      <template v-else-if="tool !== null">
         <div class="control-group">
           <div class="field-label">
             Measuring tool
@@ -348,7 +340,7 @@ const headlines = computed(() => {
         </div>
       </template>
       <RenderedAverageSection
-        v-if="index?.ok === true && (tool === null || drawsRenderedOutline(tool))"
+        v-if="index?.ok === true && showsAverage"
         :average="average"
       />
       <CatalogInfo :headset="catalog" />

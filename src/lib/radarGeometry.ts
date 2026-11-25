@@ -86,9 +86,10 @@ export interface Ring {
   readonly major: boolean
 }
 
-export function ringsOf(reach: number, scale: RadialScale): Ring[] {
-  return Array.from({ length: Math.floor(reach / ringStepDegrees) }, (_, ringIndex) => {
-    const degrees = (ringIndex + 1) * ringStepDegrees
+/** A ring every `stepDegrees` out to `reach`. */
+export function ringsOf(reach: number, scale: RadialScale, stepDegrees = ringStepDegrees): Ring[] {
+  return Array.from({ length: Math.floor(reach / stepDegrees) }, (_, ringIndex) => {
+    const degrees = (ringIndex + 1) * stepDegrees
     return { degrees, radius: scale(degrees), major: degrees % 30 === 0 }
   })
 }

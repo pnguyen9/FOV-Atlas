@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, useTemplateRef, watch } from 'vue'
-import { formatDegrees } from '../components/measureLabels.ts'
+import { formatDegrees } from '../lib/degrees.ts'
 import MeasurePreview from '../components/MeasurePreview.vue'
 import { browserStorage, rememberAnswerMode, rememberedAnswerMode } from '../lib/answerModeMemory.ts'
 import type { AnswerMode } from '../lib/answerTargets.ts'

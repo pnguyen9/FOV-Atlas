@@ -9,7 +9,7 @@
  */
 
 import { onBeforeUnmount, readonly, ref, type Ref } from 'vue'
-import { maximumEncodedLength, measureParameterOfLink } from './measureFile.ts'
+import { maximumEncodedLength, measureParameter, measureParameterOfLink, measureRoute } from './measureFile.ts'
 import { isHeadsetId } from './submission.ts'
 
 export const pageNames = ['home', 'measure', 'compare', 'submit', 'method'] as const
@@ -47,7 +47,7 @@ export function parseRoute(hash: string): Route {
   if (path === 'measure') return { page: 'measure' }
   if (path === 'compare') return { page: 'compare', view: 'table', measure: null }
   if (path === 'compare/radar') return { page: 'compare', view: 'radar', measure: null }
-  if (path.startsWith('compare?')) {
+  if (path.startsWith(`${measureRoute}?`)) {
     const measure = measureParameterOfLink(`#${path}`)
     return measure === null ? notFound : { page: 'compare', view: 'table', measure }
   }
@@ -67,7 +67,7 @@ export function routeHref(route: Route): string {
       return `#headset/${route.headset}`
     case 'compare':
       if (route.view === 'radar') return '#compare/radar'
-      return route.measure === null ? '#compare' : `#compare?measure=${encodeURIComponent(route.measure)}`
+      return route.measure === null ? '#compare' : `#${measureRoute}?${measureParameter}=${encodeURIComponent(route.measure)}`
     case 'method':
       return route.section === null ? '#method' : `#method/${route.section}`
     case 'not-found':

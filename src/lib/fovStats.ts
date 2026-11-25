@@ -6,6 +6,7 @@
 
 import {
   directions,
+  measuresBothEyesAtOnce,
   type Direction,
   type EyeDepth,
   type EyeMeasure,
@@ -17,6 +18,7 @@ import {
 } from './submission.ts'
 import {
   cellKey,
+  cellKeyParts,
   figuresOf,
   type Aggregate,
   type CellStats,
@@ -34,17 +36,17 @@ export interface FilterChoices {
 }
 export type Filters = { readonly [Group in keyof FilterChoices]: readonly FilterChoices[Group][number][] }
 
-const allows = (chosen: readonly string[], value: string | undefined): boolean =>
-  chosen.length === 0 || (value !== undefined && chosen.includes(value))
+const allows = (chosen: readonly string[], value: string): boolean => chosen.length === 0 || chosen.includes(value)
 
 /** Whether an aggregate cell, keyed as `cellKey` builds it, passes every filter group. */
 export function cellMatches(key: string, filters: Filters): boolean {
-  const [eyeDepth, noseBridge, tuning, gaze] = key.split('|')
+  const parts = cellKeyParts(key)
   return (
-    allows(filters.eyeDepth, eyeDepth) &&
-    allows(filters.noseBridge, noseBridge) &&
-    allows(filters.tuning, tuning) &&
-    allows(filters.gaze, gaze)
+    parts !== null &&
+    allows(filters.eyeDepth, parts.eyeDepth) &&
+    allows(filters.noseBridge, parts.noseBridge) &&
+    allows(filters.tuning, parts.tuning) &&
+    allows(filters.gaze, parts.gaze)
   )
 }
 
@@ -134,9 +136,6 @@ export const shapeOf = (stats: CellStats, statistic: Statistic): EyeMeasures => 
 })
 
 export type EyeMode = 'left' | 'right' | 'union' | 'overlap'
-
-/** TestHMD measures both eyes at once, so only what both see together exists for it. */
-export const measuresBothEyesAtOnce = (tool: Tool): boolean => tool === 'testhmd'
 
 export function eyeModeFor(tool: Tool, mode: EyeMode): EyeMode {
   return measuresBothEyesAtOnce(tool) ? 'union' : mode

@@ -8,9 +8,8 @@ import { computed } from 'vue'
 import { columnsFor, formatCell, sortRows, type CompareColumnId, type CompareRow } from './columns.ts'
 import { compareState, seriesSlotCount, slotOf, togglePick } from './compareState.ts'
 import { routeHref } from '../../lib/hashRoute.ts'
-import { drawsRenderedOutline } from '../../lib/ceiling.ts'
 import { unitDifference, unitDifferenceWords } from '../../lib/renderedAverage.ts'
-import type { Tool } from '../../lib/submission.ts'
+import { angleOriginOf, readsOwnEdges, showsRenderedAverage, type Tool } from '../../lib/submission.ts'
 
 const props = defineProps<{
   readonly tool: Tool
@@ -212,7 +211,7 @@ const ariaSort = (id: CompareColumnId): 'ascending' | 'descending' | undefined =
     </button>
   </div>
   <p
-    v-if="tool === 'vrhp'"
+    v-if="angleOriginOf(tool) === 'picture'"
     class="small muted"
   >
     VR Headset Picker measures each eye from the centre of that eye's picture, so its widths and heights are per eye
@@ -220,13 +219,13 @@ const ariaSort = (id: CompareColumnId): 'ascending' | 'descending' | undefined =
     horizontal and overlap of both eyes are shown exactly as the link reports them.
   </p>
   <p
-    v-else-if="tool === 'atlas'"
+    v-else-if="readsOwnEdges(tool)"
     class="small muted"
   >
     Rendered figures are what each measurer's own headset reported drawing while they measured.
   </p>
   <p
-    v-if="drawsRenderedOutline(tool)"
+    v-if="showsRenderedAverage(tool)"
     class="small muted"
   >
     “Model average” columns give what headsets of the model report drawing, averaged over its FOV Atlas measures: a

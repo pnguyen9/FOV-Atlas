@@ -4,7 +4,7 @@
  * left eye keeps the left half, the right eye the right half, and both share the top and bottom.
  */
 
-import { hasAtMostDecimals, maximumRadialDegrees, type EyeMeasures } from './submission.ts'
+import { hasAtMostDecimals, maximumTotalDegrees, type EyeMeasures } from './submission.ts'
 
 export interface TestHmdTotals {
   readonly horizontal: number
@@ -14,9 +14,6 @@ export interface TestHmdTotals {
 export type TestHmdResult =
   | { readonly ok: true; readonly measures: EyeMeasures }
   | { readonly ok: false; readonly error: 'testhmd-out-of-range' }
-
-/** Each half is a radial angle, so a full turn is the most a total can span. */
-const maximumTotalDegrees = maximumRadialDegrees * 2
 
 /** One decimal on the total keeps each half within the two decimals every angle is stored with. */
 function isTotal(value: unknown): value is number {

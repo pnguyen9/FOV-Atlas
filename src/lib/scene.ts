@@ -8,6 +8,7 @@
  * the origin. Shapes are listed back to front so later ones paint over earlier ones.
  */
 
+import { degreesOf } from './ceiling.ts'
 import type { RadialScale } from './radarGeometry.ts'
 
 export type Point3 = readonly [across: number, height: number, depth: number]
@@ -61,7 +62,6 @@ const maximumSteps = 120
 /** Halvings when searching where an edge crosses the limit: far finer than a drawn pixel. */
 const cutSearchSteps = 24
 
-const toDegrees = (radians: number): number => (radians * 180) / Math.PI
 const length3 = (point: Point3): number => Math.hypot(...point)
 const between = (start: Point3, end: Point3, ratio: number): Point3 => [
   start[0] + (end[0] - start[0]) * ratio,
@@ -71,7 +71,7 @@ const between = (start: Point3, end: Point3, ratio: number): Point3 => [
 
 /** The angle between a point's direction and straight ahead, in degrees. */
 export function angleFromAhead(point: Point3): number {
-  return toDegrees(Math.acos(Math.max(-1, Math.min(1, point[2] / length3(point)))))
+  return degreesOf(Math.acos(Math.max(-1, Math.min(1, point[2] / length3(point)))))
 }
 const inView = (point: Point3): boolean => angleFromAhead(point) <= viewLimitDegrees
 
@@ -118,7 +118,7 @@ export function project(point: Point3, scale: RadialScale): readonly [number, nu
 
 function stepsBetween(start: Point3, end: Point3): number {
   const cosine = (start[0] * end[0] + start[1] * end[1] + start[2] * end[2]) / (length3(start) * length3(end))
-  const degrees = toDegrees(Math.acos(Math.max(-1, Math.min(1, cosine))))
+  const degrees = degreesOf(Math.acos(Math.max(-1, Math.min(1, cosine))))
   return Math.min(maximumSteps, Math.max(1, Math.ceil(degrees / stepDegrees)))
 }
 

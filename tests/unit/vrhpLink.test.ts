@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  base64UrlToBytes,
   decodeVrhpLink,
   extractResultsParameter,
   maximumInputLength,
@@ -19,18 +18,6 @@ describe('extractResultsParameter', () => {
     ['a link without a results parameter', 'https://example.test/', null],
   ])('handles %s', (_description, input, expected) => {
     expect(extractResultsParameter(input)).toBe(expected)
-  })
-})
-
-describe('base64UrlToBytes', () => {
-  it('decodes unpadded base64url with both url-safe characters', () => {
-    expect(Array.from(base64UrlToBytes('-_8') ?? [])).toEqual([0xfb, 0xff])
-  })
-  it.each([
-    ['characters outside the alphabet', 'ab+/'],
-    ['an impossible length', 'abcde'],
-  ])('rejects %s', (_description, input) => {
-    expect(base64UrlToBytes(input)).toBeNull()
   })
 })
 

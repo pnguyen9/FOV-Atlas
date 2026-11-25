@@ -8,6 +8,7 @@
 
 import { isFlatPicture } from './ceiling.ts'
 import { catalogHeadset, otherHeadset } from './headsets.ts'
+import { isFiniteNumber, isPlainObject, matches } from './json.ts'
 import { plainTextProblem, type PlainTextProblem } from './plainText.ts'
 import type { RenderedTotals } from './vrhpLink.ts'
 
@@ -150,6 +151,8 @@ export const leavesHeadsetOut = (kept: Pick<KeptSubmission, 'headset' | 'otherHe
  * format simply cannot express one, while a canted view still reaches past 90° in the head frame.
  */
 export const maximumRadialDegrees = 180
+/** A total across a view (a width, or both eyes' horizontal) adds two radial angles. */
+export const maximumTotalDegrees = maximumRadialDegrees * 2
 export const projectedLimitDegrees = 90
 export type AngleConvention = 'radial' | 'projected'
 export const maximumCantingDegrees = 45
@@ -196,6 +199,45 @@ const allowedCeilings: ReadonlyMap<Tool, readonly Ceiling['source'][]> = new Map
   ['testhmd', ['none']],
 ])
 
+/**
+ * What sets each tool's figures apart, for every page and check that treats tools differently.
+ *
+ * - `angleOrigin`: where the tool's angles start. VR Headset Picker measures each eye from the
+ *   centre of that eye's picture; every other tool from straight ahead of the head.
+ * - `showsRenderedAverage`: whether the model's averaged rendered field of view
+ *   (`renderedAverage.ts`) is shown beside the tool's figures, for the tools following hmdq's
+ *   definition. WIMFOV has its own standard.
+ * - `readsOwnEdges`: whether a measure reads each eye's rendered edges itself while measuring.
+ * - `bothEyesAtOnce`: whether the tool measures with both eyes open at once, so that only what
+ *   both see together exists.
+ */
+export interface ToolProfile {
+  readonly angleOrigin: 'head' | 'picture'
+  readonly showsRenderedAverage: boolean
+  readonly readsOwnEdges: boolean
+  readonly bothEyesAtOnce: boolean
+}
+
+const toolTraits: ReadonlyMap<Tool, Omit<ToolProfile, 'readsOwnEdges'>> = new Map([
+  ['atlas', { angleOrigin: 'head', showsRenderedAverage: true, bothEyesAtOnce: false }],
+  ['vrhp', { angleOrigin: 'picture', showsRenderedAverage: true, bothEyesAtOnce: false }],
+  ['wimfov', { angleOrigin: 'head', showsRenderedAverage: false, bothEyesAtOnce: false }],
+  ['testhmd', { angleOrigin: 'head', showsRenderedAverage: true, bothEyesAtOnce: true }],
+])
+
+export const toolProfiles: ReadonlyMap<Tool, ToolProfile> = new Map(
+  [...toolTraits].map(([tool, traits]) => [tool, { ...traits, readsOwnEdges: allowedCeilings.get(tool)?.includes('measured') === true }]),
+)
+
+/** An unknown tool (never stored, refused by every parser) is treated as plainly as possible. */
+const unknownToolProfile: ToolProfile = { angleOrigin: 'head', showsRenderedAverage: false, readsOwnEdges: false, bothEyesAtOnce: false }
+const profileOf = (tool: Tool): ToolProfile => toolProfiles.get(tool) ?? unknownToolProfile
+
+export const angleOriginOf = (tool: Tool): ToolProfile['angleOrigin'] => profileOf(tool).angleOrigin
+export const showsRenderedAverage = (tool: Tool): boolean => profileOf(tool).showsRenderedAverage
+export const readsOwnEdges = (tool: Tool): boolean => profileOf(tool).readsOwnEdges
+export const measuresBothEyesAtOnce = (tool: Tool): boolean => profileOf(tool).bothEyesAtOnce
+
 const allowedCornerMasks: ReadonlyMap<Ceiling['source'], readonly CornerMask[]> = new Map([
   ['measured', ['on', 'unknown']],
   ['link', ['unknown']],
@@ -241,10 +283,33 @@ export function isAngle(value: unknown, convention: AngleConvention): value is n
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && withinLimit && hasAtMostDecimals(value, 2)
 }
 
-/** Only angles decoded from a VR Headset Picker link are projected; everything else is radial. */
+/**
+ * Only angles decoded from a VR Headset Picker link, which measures from each picture's centre,
+ * are projected; everything else is radial.
+ */
 export function angleConventionOf(tool: Tool, input: InputKind): AngleConvention {
-  return tool === 'vrhp' && input === 'link' ? 'projected' : 'radial'
+  return angleOriginOf(tool) === 'picture' && input === 'link' ? 'projected' : 'radial'
 }
+
+const ipdPattern = /^\d{2}(?:\.\d)?$/
+
+/** A typed lens IPD: empty, or millimetres with at most one decimal, within `ipdRange`. */
+export function ipdProblem(text: string): 'ipd-invalid' | 'ipd-out-of-range' | null {
+  if (text === '') return null
+  if (!ipdPattern.test(text)) return 'ipd-invalid'
+  const ipd = Number(text)
+  return ipd >= ipdRange.minimum && ipd <= ipdRange.maximum ? null : 'ipd-out-of-range'
+}
+
+/** One eye's angles keyed by direction, each a finite number; ranges are left to the tool's rules. */
+export const isEyeShape = (value: unknown): value is EyeMeasure =>
+  isPlainObject(value) &&
+  Object.entries(value).every(([direction, angle]) => (directions as readonly string[]).includes(direction) && isFiniteNumber(angle))
+
+/** Exactly the four principal edges, each a finite number. */
+export const isEdgesShape = matches({ left: isFiniteNumber, right: isFiniteNumber, up: isFiniteNumber, down: isFiniteNumber }) as (
+  value: unknown,
+) => value is EdgeAngles
 
 export function isHeadsetId(value: string): boolean {
   return (
@@ -310,7 +375,7 @@ function measureProblem(submission: KeptSubmission, headsetLeftOut: boolean): Su
   const convention = angleConventionOf(tool, submission.provenance.input)
   const eyeError = eyeProblem(measures.left, rules.left, convention) ?? eyeProblem(measures.right, rules.right, convention)
   if (eyeError !== null) return eyeError
-  if (tool === 'testhmd' && !testHmdSymmetric(measures)) return 'testhmd-not-symmetric'
+  if (measuresBothEyesAtOnce(tool) && !testHmdSymmetric(measures)) return 'testhmd-not-symmetric'
   if (allowedCeilings.get(tool)?.includes(ceiling.source) !== true) return 'ceiling-not-allowed'
   const ceilingError = ceilingProblem(ceiling)
   if (ceilingError !== null) return ceilingError

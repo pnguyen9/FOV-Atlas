@@ -10,11 +10,12 @@
  */
 
 import { catalogHeadset, otherHeadset } from './headsets.ts'
-import { atlasMeasureText, headsetChoiceOfVrhpLink, issueUrlOfFields, submissionFromFields, type IssueError, type IssueFields } from './issueForm.ts'
+import { headsetChoiceOfVrhpLink, issueUrlOfFields, measureFieldsOf, submissionFromFields, type IssueError, type IssueFields } from './issueForm.ts'
 import type { AtlasMeasure } from './measureSession.ts'
 import { plainTextProblem } from './plainText.ts'
 import {
   headsetProblem,
+  ipdProblem,
   ipdRange,
   keptSubmissionProblem,
   textLimits,
@@ -27,7 +28,7 @@ import {
 } from './submission.ts'
 import { testHmdMeasures } from './testHmd.ts'
 import { decodeVrhpLink, extractResultsParameter, type VrhpDecodeError, type VrhpMeasure } from './vrhpLink.ts'
-import { formatWimfovPoints, parseWimfovLink, parseWimfovPoints, wimfovOrigin, wimfovResultLink, type WimfovError } from './wimfov.ts'
+import { parseWimfovLink, parseWimfovPoints, wimfovOrigin, type WimfovError } from './wimfov.ts'
 
 /** The tools picked in the Tool step. FOV Atlas is not among them: its measure comes from the measuring page. */
 export const importTools = ['vrhp', 'wimfov', 'testhmd'] as const
@@ -234,8 +235,6 @@ export const faceReady = (draft: MeasureDraft): boolean => draft.eyeDepth !== nu
 
 export type SetupField = 'tuningDetails' | 'ipd' | 'facialInterface' | 'note'
 
-const ipdPattern = /^\d{2}(?:\.\d)?$/
-
 function textMessage(text: string, maximumLength: number, multiline: boolean): string | undefined {
   const problem = plainTextProblem(text, { maximumLength, multiline })
   if (problem === null) return undefined
@@ -245,9 +244,7 @@ function textMessage(text: string, maximumLength: number, multiline: boolean): s
 }
 
 function ipdMessage(text: string): string | undefined {
-  const ipd = text.trim()
-  const valid = ipd === '' || (ipdPattern.test(ipd) && Number(ipd) >= ipdRange.minimum && Number(ipd) <= ipdRange.maximum)
-  return valid
+  return ipdProblem(text.trim()) === null
     ? undefined
     : `Between ${String(ipdRange.minimum)} and ${String(ipdRange.maximum)} mm, with at most one decimal, or leave it empty.`
 }
@@ -290,23 +287,6 @@ export function furthestStep(draft: MeasureDraft): StepIndex {
   return incomplete ?? lastStep
 }
 
-function measureFields(values: Values): Pick<IssueFields, 'measure' | 'wimfov-link'> {
-  switch (values.kind) {
-    case 'atlas': {
-      const { measures, ceiling, cornerMask } = values.measure
-      return { measure: atlasMeasureText(measures, ceiling, cornerMask), 'wimfov-link': '' }
-    }
-    case 'vrhp':
-      return { measure: values.results, 'wimfov-link': '' }
-    case 'wimfov-link':
-      return { measure: '', 'wimfov-link': wimfovResultLink(values.resultId) }
-    case 'wimfov-points':
-      return { measure: formatWimfovPoints(values.measures), 'wimfov-link': '' }
-    case 'testhmd':
-      return { measure: JSON.stringify({ horizontal: values.horizontal, vertical: values.vertical }), 'wimfov-link': '' }
-  }
-}
-
 type FieldsResult =
   | { readonly ok: true; readonly fields: IssueFields; readonly values: Values }
   | { readonly ok: false; readonly error: 'incomplete' }
@@ -318,7 +298,7 @@ function fieldsOf(draft: MeasureDraft): FieldsResult {
     tool: draft.tool,
     headset: draft.headset,
     'headset-name': draft.headset === otherHeadset ? draft.otherHeadsetName.trim() : '',
-    ...measureFields(result.values),
+    ...measureFieldsOf(result.values),
     'eye-depth': draft.eyeDepth ?? '',
     'nose-bridge': draft.noseBridge ?? '',
     modded: draft.physicallyModded ? 'yes' : 'no',

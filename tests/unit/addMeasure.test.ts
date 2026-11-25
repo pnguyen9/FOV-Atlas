@@ -215,7 +215,7 @@ describe('ReviewStep', () => {
     const { wrapper } = mountStep(ReviewStep, { ...complete, tool: 'wimfov', wimfovLink: wimfovResultLink(wimfovResultId) })
     const text = wrapper.text()
     expect(text).toContain('Boba 3 (not listed yet)')
-    expect(text).toContain('Stared at the centre')
+    expect(text).toContain('Stared ahead')
     expect(text).toContain('64 mm')
     expect(text).toContain('read from the WIMFOV link')
   })
@@ -232,7 +232,7 @@ describe('ReviewStep', () => {
       gaze: 'free',
     })
     expect(wrapper.text()).toContain('HTC Vive')
-    expect(wrapper.text()).toContain('Looked toward the marker')
+    expect(wrapper.text()).toContain('Looked around')
     expect(wrapper.text()).not.toContain('read from the WIMFOV link')
   })
 

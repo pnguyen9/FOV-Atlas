@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { Submission } from '../../src/lib/submission'
 import {
+  accumulate,
   aggregatePages,
   aggregatePath,
   bothEyeFiguresOf,
   figuresOf,
   cellKey,
+  cellKeyParts,
+  headsetsOf,
+  statOf,
+  type Accumulator,
   emptyIndex,
   emptyLookup,
   emptyPage,
@@ -85,6 +90,39 @@ describe('cellKey', () => {
 
   it('joins the face fit, tuning and gaze', () => {
     expect(cellKey(atlasSubmission)).toBe('in-between|low|tuned|fixed')
+  })
+
+  it('splits a key back into its parts', () => {
+    expect(cellKeyParts(cellKey(atlasSubmission))).toEqual({ eyeDepth: 'in-between', noseBridge: 'low', tuning: 'tuned', gaze: 'fixed' })
+  })
+
+  it.each([
+    ['too few parts', 'in-between|low|tuned'],
+    ['too many parts', 'in-between|low|tuned|fixed|more'],
+    ['an unknown eye depth', 'sunken|low|tuned|fixed'],
+    ['an unknown nose bridge', 'in-between|flat|tuned|fixed'],
+    ['an unknown tuning', 'in-between|low|overclocked|fixed'],
+    ['an unknown gaze', 'in-between|low|tuned|sideways'],
+  ])('refuses a key with %s', (_description, key) => {
+    expect(cellKeyParts(key)).toBeNull()
+  })
+})
+
+describe('accumulate', () => {
+  it('keeps exact sums in hundredths, with the lowest and highest', () => {
+    const accumulators = new Map<string, Accumulator>()
+    for (const degrees of [0.1, 0.2, 0.3]) accumulate(accumulators, 'value', degrees)
+    const accumulator = accumulators.get('value')
+    expect(accumulator).toEqual({ count: 3, sum: 60, sumsq: 1400, min: 10, max: 30 })
+    expect(accumulator === undefined ? null : statOf(accumulator)).toEqual({ count: 3, sum: 0.6, sumsq: 0.14, max: 0.3 })
+  })
+})
+
+describe('headsetsOf', () => {
+  it('lists a tool’s headsets, none for a tool without measures', () => {
+    const index = withSummary(emptyIndex(), 'atlas', 'bigscreen-beyond-2', { count: 1, pages: 1 })
+    expect([...headsetsOf(index, 'atlas')]).toEqual([['bigscreen-beyond-2', { count: 1, pages: 1 }]])
+    expect(headsetsOf(emptyIndex(), 'vrhp').size).toBe(0)
   })
 })
 

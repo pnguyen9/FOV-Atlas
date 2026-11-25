@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { columnsFor, defaultColumnsFor, formatCell, headlineColumnsFor, sortRows, type CompareRow } from '../../src/pages/compare/columns'
+import {
+  cellParts,
+  columnsFor,
+  defaultColumnsFor,
+  formatCell,
+  headlineColumnsFor,
+  measureListColumnsFor,
+  sortRows,
+  type CompareRow,
+} from '../../src/pages/compare/columns'
+import { eyeDepthOptions, faceFitLabelOf, faceFitOptionOf } from '../../src/components/faceFit'
 import { figuresOfMeasure } from '../../src/lib/fovStats'
 import { tools, type Submission } from '../../src/lib/submission'
-import { formatDegrees, gazeLabelOf, headsetName, tuningLabelOf } from '../../src/components/measureLabels'
+import { gazeLabelOf, headsetName, tuningLabelOf } from '../../src/components/measureLabels'
 import { renderedAverageOf } from '../../src/lib/renderedAverage'
 import { atlasBeyond, atlasBeyondSecond, testHmdQuest, vrhpBeyond, vrhpIndex, wimfovBeyond } from './siteFixtures'
 
@@ -108,13 +118,46 @@ describe('Compare columns', () => {
   })
 })
 
+describe('measure list columns', () => {
+  const listOf = (row: CompareRow, tool: typeof tools[number]): [string, string, string[]][] =>
+    measureListColumnsFor(tool).map((column) => [column.label, column.title, cellParts(column, row)])
+
+  it('lists each single measure’s figures in short words, both eyes apart', () => {
+    expect(listOf(beyond, 'vrhp')).toEqual([
+      ['Width L / R', 'Width of the left eye / the right eye', ['97.0°', '95.8°']],
+      ['Height L / R', 'Height of the left eye / the right eye', ['96.9°', '96.7°']],
+      [
+        'Gap L / R',
+        'Width of each eye’s picture, as the link reports it, minus the width measured; left eye / right eye',
+        ['0.0°', '0.9°'],
+      ],
+    ])
+    expect(listOf(index, 'vrhp').at(-1)?.[2]).toEqual(['—', '—'])
+  })
+
+  it('lists both eyes’ figures for the tools measuring from the head', () => {
+    expect(measureListColumnsFor('atlas').map((column) => column.label)).toEqual(['Horiz.', 'Vert.', 'Overlap', 'Gap'])
+    expect(measureListColumnsFor('wimfov').map((column) => column.label)).toEqual(['Horiz.', 'Vert.', 'Overlap'])
+    expect(measureListColumnsFor('testhmd').map((column) => column.label)).toEqual(['Horiz.', 'Vert.'])
+    expect(listOf(rowOf('Quest', testHmdQuest), 'testhmd').map(([, , parts]) => parts)).toEqual(
+      measureListColumnsFor('testhmd').map((column) => [formatCell(column, rowOf('Quest', testHmdQuest))]),
+    )
+  })
+})
+
+describe('face fit labels', () => {
+  it('words an answer, or nothing while it isn’t given', () => {
+    expect(faceFitLabelOf(eyeDepthOptions, 'deep-set')).toBe('Deep-set')
+    expect(faceFitLabelOf(eyeDepthOptions, null)).toBe('')
+    expect(faceFitOptionOf(eyeDepthOptions, 'almost-flush')?.hint).toBe('Eyes and brow almost level')
+  })
+})
+
 describe('measure labels', () => {
   it('names headsets, tunings and gazes', () => {
     expect(headsetName({ headset: 'other', otherHeadsetName: 'Boba 3' })).toBe('Boba 3')
     expect(headsetName({ headset: 'not-listed', otherHeadsetName: '' })).toBe('not-listed')
     expect(tuningLabelOf('both')).toBe('Modded + tuned')
     expect(gazeLabelOf('free')).toBe('Looked around')
-    expect(formatDegrees(undefined)).toBe('—')
-    expect(formatDegrees(Number.NaN)).toBe('—')
   })
 })

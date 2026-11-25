@@ -154,6 +154,47 @@ export const headsetMessages: ReadonlyMap<MessageName, readonly string[]> = new 
   ['no-press', ['No press has reached this page.', 'To answer with your head instead,', 'look at the arrow below and hold.']],
 ])
 
+/**
+ * The clip matrix of what stays in front of one view's eye, kept while the view's projection and
+ * its turn from the head stay the same, which they usually do for a whole session.
+ */
+interface HeadMatrix {
+  readonly projection: Float32Array
+  offset: Quaternion | null
+  readonly matrix: Float32Array
+}
+
+/** Below this, a change in a view's turn from the head is rounding in the pose arithmetic, far below a pixel. */
+const offsetTolerance = 1e-6
+
+const sameOffset = (first: Quaternion, second: Quaternion): boolean =>
+  Math.abs(first.scalar - second.scalar) <= offsetTolerance &&
+  Math.abs(first.vector.right - second.vector.right) <= offsetTolerance &&
+  Math.abs(first.vector.up - second.vector.up) <= offsetTolerance &&
+  Math.abs(first.vector.back - second.vector.back) <= offsetTolerance
+
+const matrixSide = 4
+
+function sameProjection(held: Float32Array, projection: ArrayLike<number>): boolean {
+  for (let column = 0; column < matrixSide; column += 1) {
+    for (let row = 0; row < matrixSide; row += 1) {
+      if (held[column * matrixSide + row] !== projection[column * matrixSide + row]) return false
+    }
+  }
+  return true
+}
+
+function headMatrixOf(held: Map<string, HeadMatrix>, view: XrViewLike, offset: Quaternion): Float32Array {
+  const cached = held.get(view.eye) ?? { projection: new Float32Array(16), offset: null, matrix: new Float32Array(16) }
+  held.set(view.eye, cached)
+  if (cached.offset === null || !sameOffset(cached.offset, offset) || !sameProjection(cached.projection, view.projectionMatrix)) {
+    clipMatrix(view.projectionMatrix, offset, cached.matrix)
+    cached.projection.set(view.projectionMatrix)
+    cached.offset = offset
+  }
+  return cached.matrix
+}
+
 interface Running {
   flow: FlowState
   ceiling: Ceiling
@@ -232,7 +273,7 @@ export async function runMeasure(
     }
     return pictures.get(name) ?? null
   }
-  const headMatrix = new Float32Array(16)
+  const headMatrices = new Map<string, HeadMatrix>()
   const roomMatrix = new Float32Array(16)
   let running: Running | null = null
   let reported: FlowState | null = null
@@ -301,7 +342,7 @@ export async function runMeasure(
       // While getting ready both eyes see the dot; once asking, only the eye being measured.
       if (viewport === null || viewport === undefined || (probe !== null && view.eye !== probe.eye)) continue
       const viewOrientation = quaternionOf(view.transform.orientation)
-      clipMatrix(view.projectionMatrix, relativeOrientation(head, viewOrientation), headMatrix)
+      const headMatrix = headMatrixOf(headMatrices, view, relativeOrientation(head, viewOrientation))
       clipMatrix(view.projectionMatrix, viewOrientation, roomMatrix)
       renderer.draw(viewport, headMatrix, scene.head)
       renderer.draw(viewport, headMatrix, scene.ready)

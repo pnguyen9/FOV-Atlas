@@ -2,9 +2,18 @@ import { describe, expect, it } from 'vitest'
 import {
   toolNameOf,
   angleConventionOf,
+  angleOriginOf,
   directions,
+  ipdProblem,
+  isEdgesShape,
+  isEyeShape,
+  maximumTotalDegrees,
+  measuresBothEyesAtOnce,
   principalDirections,
+  readsOwnEdges,
+  showsRenderedAverage,
   submissionProblem,
+  tools,
   type Submission,
   type Tool,
 } from '../../src/lib/submission'
@@ -158,5 +167,70 @@ describe('toolNameOf', () => {
   it('names each tool', () => {
     expect(toolNameOf('vrhp')).toBe('VR Headset Picker')
     expect(toolNameOf('atlas')).toBe('FOV Atlas')
+  })
+})
+
+describe('tool profiles', () => {
+  it('starts VR Headset Picker angles from each picture, every other tool from the head', () => {
+    expect(tools.filter((tool) => angleOriginOf(tool) === 'picture')).toEqual(['vrhp'])
+  })
+  it('shows the averaged rendered field of view for every tool following hmdq’s definition, never WIMFOV', () => {
+    expect(tools.filter(showsRenderedAverage)).toEqual(['atlas', 'vrhp', 'testhmd'])
+  })
+  it('reads each eye’s edges only while measuring with FOV Atlas', () => {
+    expect(tools.filter(readsOwnEdges)).toEqual(['atlas'])
+  })
+  it('measures both eyes at once only with TestHMD', () => {
+    expect(tools.filter(measuresBothEyesAtOnce)).toEqual(['testhmd'])
+  })
+  it('treats an unknown tool as plainly as possible', () => {
+    const unknown = 'nonsense' as Tool
+    expect([angleOriginOf(unknown), showsRenderedAverage(unknown), readsOwnEdges(unknown), measuresBothEyesAtOnce(unknown)]).toEqual([
+      'head',
+      false,
+      false,
+      false,
+    ])
+  })
+  it('lets a total span two radial angles', () => {
+    expect(maximumTotalDegrees).toBe(360)
+  })
+})
+
+describe('ipdProblem', () => {
+  it.each([
+    [null, ''],
+    [null, '63'],
+    [null, '63.5'],
+    [null, '45'],
+    [null, '85'],
+    ['ipd-invalid', '63.55'],
+    ['ipd-invalid', '6'],
+    ['ipd-invalid', ' 63'],
+    ['ipd-invalid', '63mm'],
+    ['ipd-out-of-range', '44.9'],
+    ['ipd-out-of-range', '85.1'],
+  ] as const)('is %s for %j', (expected, text) => {
+    expect(ipdProblem(text)).toBe(expected)
+  })
+})
+
+describe('shape checks', () => {
+  it('accepts an eye of known directions with finite angles', () => {
+    expect(isEyeShape({ left: 50, 'up-up-left': 40.5 })).toBe(true)
+    expect(isEyeShape({})).toBe(true)
+  })
+  it.each([
+    ['an unknown direction', { sideways: 50 }],
+    ['a text angle', { left: '50' }],
+    ['an infinite angle', { left: Number.POSITIVE_INFINITY }],
+    ['an array', [50]],
+  ])('refuses an eye with %s', (_description, value) => {
+    expect(isEyeShape(value)).toBe(false)
+  })
+  it('accepts exactly four finite edges', () => {
+    expect(isEdgesShape({ left: 1, right: 2, up: 3, down: 4 })).toBe(true)
+    expect(isEdgesShape({ left: 1, right: 2, up: 3 })).toBe(false)
+    expect(isEdgesShape({ left: 1, right: 2, up: 3, down: Number.NaN })).toBe(false)
   })
 })

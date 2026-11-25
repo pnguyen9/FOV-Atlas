@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** The model's averaged rendered field of view: mean, spread and count per value, and how much units differ. */
 import { computed } from 'vue'
-import { formatDegrees } from '../../components/measureLabels.ts'
+import { formatDegrees } from '../../lib/degrees.ts'
 import {
   renderedSummaries,
   renderedValueLabelOf,
@@ -9,14 +9,14 @@ import {
   unitDifferenceWords,
   type RenderedAverage,
 } from '../../lib/renderedAverage.ts'
-import type { Loaded } from '../../lib/siteData.ts'
+import { loadedValue, type Loaded } from '../../lib/siteData.ts'
 
 const props = defineProps<{
   /** Null while loading; a loaded null when the model has no average. */
   readonly average: Loaded<RenderedAverage | null> | null
 }>()
 
-const loadedAverage = computed(() => (props.average?.ok === true ? props.average.value : null))
+const loadedAverage = computed(() => loadedValue(props.average))
 
 const rows = computed(() =>
   loadedAverage.value === null

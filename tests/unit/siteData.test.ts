@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   dataUrl,
-  headsetsOf,
   loadAggregate,
   loadIndex,
   loadPage,
   loadRenderedAverage,
+  loadedValue,
   maximumFileLength,
   parseAggregate,
   type Fetcher,
@@ -78,6 +78,51 @@ describe('loadIndex', () => {
     ['an index of the wrong shape', () => Promise.resolve(respond(200, '{"version":1,"headsets":{"atlas":{"../x":{"count":1,"pages":1}}}}')), 'invalid'],
   ] satisfies [string, Fetcher, string][])('refuses %s', async (_description, fetcher, error) => {
     expect(await loadIndex({ baseUrl, fetcher })).toEqual({ ok: false, error })
+  })
+})
+
+describe('loaded files', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('fetches a file once for every page that asks, at once or later', async () => {
+    const fetcher = fakeFetcher({ '/FOV-Atlas/data/index.json': serialize(index) })
+    const [first, second] = await Promise.all([loadIndex({ baseUrl, fetcher }), loadIndex({ baseUrl, fetcher })])
+    expect(second).toEqual(first)
+    expect(await loadIndex({ baseUrl, fetcher })).toEqual(first)
+    expect(fetcher.calls).toEqual(['/FOV-Atlas/data/index.json'])
+  })
+
+  it('tries a failed file again', async () => {
+    let failing = true
+    const calls: string[] = []
+    const fetcher: Fetcher = (url) => {
+      calls.push(url)
+      return Promise.resolve(failing ? respond(500) : respond(200, serialize(index)))
+    }
+    expect(await loadIndex({ baseUrl, fetcher })).toEqual({ ok: false, error: 'http' })
+    failing = false
+    expect(await loadIndex({ baseUrl, fetcher })).toEqual({ ok: true, value: index })
+    expect(await loadIndex({ baseUrl, fetcher })).toEqual({ ok: true, value: index })
+    expect(calls).toHaveLength(2)
+  })
+
+  it('keeps the files of each stand-in network apart', async () => {
+    const first = fakeFetcher({ '/FOV-Atlas/data/index.json': serialize(index) })
+    const second = fakeFetcher({})
+    expect((await loadIndex({ baseUrl, fetcher: first })).ok).toBe(true)
+    expect(await loadIndex({ baseUrl, fetcher: second })).toEqual({ ok: true, value: emptyIndex() })
+    expect(second.calls).toEqual(['/FOV-Atlas/data/index.json'])
+  })
+})
+
+describe('loadedValue', () => {
+  it('gives the value of a file that loaded, null otherwise', () => {
+    expect(loadedValue({ ok: true, value: 3 })).toBe(3)
+    expect(loadedValue({ ok: false, error: 'network' })).toBeNull()
+    expect(loadedValue(null)).toBeNull()
+    expect(loadedValue(undefined)).toBeNull()
   })
 })
 
@@ -221,9 +266,4 @@ describe('parseAggregate', () => {
   })
 })
 
-describe('headsetsOf', () => {
-  it('lists a tool’s headsets, none for a tool without measures', () => {
-    expect([...headsetsOf(index as never, 'atlas')]).toEqual([['bigscreen-beyond-2', { count: 1, pages: 1 }]])
-    expect(headsetsOf(emptyIndex(), 'vrhp').size).toBe(0)
-  })
-})
+

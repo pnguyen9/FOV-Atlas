@@ -11,19 +11,23 @@
  * fit, tuning and gaze out (see `KeptSubmission`); everything else follows the submission rules.
  */
 
-import { base64UrlToBytes } from './vrhpLink.ts'
+import { base64UrlToBytes, bytesToBase64Url } from './base64url.ts'
+import { isBoolean, isFiniteNumber, isPlainObject, isString, matches, oneOf, parseJson } from './json.ts'
 import {
   cornerMaskStates,
-  directions,
   eyeDepths,
   gazes,
   inputKinds,
+  isEdgesShape,
+  isEyeShape,
   noseBridges,
   keptSubmissionProblem,
+  maximumTotalDegrees,
   tools,
   type KeptSubmission,
   type SubmissionError,
 } from './submission.ts'
+import { totalNames } from './vrhpLink.ts'
 
 export const measureFormat = 'fov-atlas-measure'
 export const measureFormatVersion = 1
@@ -31,8 +35,10 @@ export const measureFormatVersion = 1
 export const maximumMeasureTextLength = 8192
 /** The measure's base64url text grows by a third over the JSON. */
 export const maximumEncodedLength = Math.ceil((maximumMeasureTextLength * 4) / 3)
-const measureParameter = 'measure'
-const measureRoute = 'compare'
+/** The query parameter carrying a kept measure in a link. */
+export const measureParameter = 'measure'
+/** The Compare page's route, which a kept measure's link opens; `hashRoute.ts` reads and builds it from here. */
+export const measureRoute = 'compare'
 
 export interface MeasureFile {
   readonly format: typeof measureFormat
@@ -60,11 +66,6 @@ export function encodeMeasureText(submission: KeptSubmission): string {
   return `${JSON.stringify(file, null, 2)}\n`
 }
 
-function bytesToBase64Url(bytes: Uint8Array): string {
-  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
-  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
-}
-
 /** The `measure` value of a link: the compact JSON, UTF-8, base64url. */
 export function encodeMeasureParameter(submission: KeptSubmission): string {
   const file: MeasureFile = { format: measureFormat, version: measureFormatVersion, submission }
@@ -77,53 +78,9 @@ export function measureLink(submission: KeptSubmission, siteUrl: string): string
   return `${page}#${measureRoute}?${measureParameter}=${encodeMeasureParameter(submission)}`
 }
 
-type Shape = Readonly<Record<string, (value: unknown) => boolean>>
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-const isString = (value: unknown): value is string => typeof value === 'string'
-const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean'
-const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value)
-const oneOf =
-  (choices: readonly unknown[]) =>
-  (value: unknown): boolean =>
-    choices.includes(value)
-
-/** Exactly these keys, each passing its check. */
-const matches =
-  (shape: Shape) =>
-  (value: unknown): boolean => {
-    if (!isPlainObject(value)) return false
-    const checks = new Map(Object.entries(shape))
-    const entries = Object.entries(value)
-    return entries.length === checks.size && entries.every(([key, item]) => checks.get(key)?.(item) === true)
-  }
-
-/** Angle ranges are left to the submission rules, which know each tool's convention. */
-const isEye = (value: unknown): boolean =>
-  isPlainObject(value) &&
-  Object.entries(value).every(([direction, angle]) => (directions as readonly string[]).includes(direction) && isFiniteNumber(angle))
-
-const isEdges = matches({ left: isFiniteNumber, right: isFiniteNumber, up: isFiniteNumber, down: isFiniteNumber })
-
 /** Rendered totals are not range-checked by the submission rules, so they are checked here. */
-const maximumTotalDegrees = 360
 const isTotal = (value: unknown): boolean => isFiniteNumber(value) && value >= 0 && value <= maximumTotalDegrees
-const isTotals = matches(
-  Object.fromEntries(
-    [
-      'leftHorizontal',
-      'leftVertical',
-      'rightHorizontal',
-      'rightVertical',
-      'binocularHorizontal',
-      'binocularHorizontalOverlap',
-      'binocularVertical',
-      'binocularVerticalOverlap',
-      'binocularDiagonal',
-    ].map((name) => [name, isTotal]),
-  ),
-)
+const isTotals = matches(Object.fromEntries(totalNames.map((name) => [name, isTotal])))
 
 function isCeiling(value: unknown): boolean {
   if (!isPlainObject(value)) return false
@@ -133,7 +90,7 @@ function isCeiling(value: unknown): boolean {
     case 'link':
       return matches({ source: isString, totals: isTotals })(value)
     case 'measured':
-      return matches({ source: isString, left: isEdges, right: isEdges, canting: isFiniteNumber })(value)
+      return matches({ source: isString, left: isEdgesShape, right: isEdgesShape, canting: isFiniteNumber })(value)
     default:
       return false
   }
@@ -143,7 +100,8 @@ const isSubmissionShape = matches({
   tool: oneOf(tools),
   headset: isString,
   otherHeadsetName: isString,
-  measures: matches({ left: isEye, right: isEye }),
+  // Angle ranges are left to the submission rules, which know each tool's convention.
+  measures: matches({ left: isEyeShape, right: isEyeShape }),
   ceiling: isCeiling,
   cornerMask: oneOf(cornerMaskStates),
   provenance: matches({ input: oneOf(inputKinds), linkData: (value) => value === null || isString(value) }),
@@ -161,12 +119,8 @@ const reject = (error: MeasureFileError): MeasureFileResult => ({ ok: false, err
 /** Reads a measure file's text, as saved or copied. */
 export function parseMeasureText(text: string): MeasureFileResult {
   if (text.length > maximumMeasureTextLength) return reject('too-long')
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    return reject('not-json')
-  }
+  const parsed = parseJson(text)
+  if (parsed === undefined) return reject('not-json')
   if (!isPlainObject(parsed) || parsed.format !== measureFormat) return reject('not-a-measure')
   if (parsed.version !== measureFormatVersion) return reject('unsupported-version')
   if (Object.keys(parsed).length !== 3 || !isSubmissionShape(parsed.submission)) return reject('shape-invalid')

@@ -2,7 +2,7 @@
 import { onMounted, useTemplateRef, watch } from 'vue'
 import FaceFitDrawing from '../components/FaceFitDrawing.vue'
 import { eyeDepthOptions } from '../components/faceFit.ts'
-import type { MethodSection } from '../lib/hashRoute.ts'
+import { routeHref, type MethodSection } from '../lib/hashRoute.ts'
 
 const props = withDefaults(defineProps<{ readonly section?: MethodSection | null }>(), { section: null })
 const credits = useTemplateRef<HTMLElement>('credits')
@@ -178,7 +178,7 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
         rel="noopener noreferrer"
       >GitHub account</a>. The GitHub
       name a measure is posted under is shown next to it, and a <code>/withdraw</code> comment on the issue removes it
-      at any time. <a href="#submit">Add a measure</a>.
+      at any time. <a :href="routeHref({ page: 'submit' })">Add a measure</a>.
     </p>
     <p>
       No GitHub account? You can still measure, keep the result as a link, a text or a file, and compare with it. It

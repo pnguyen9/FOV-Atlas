@@ -42,8 +42,9 @@ describe('cellMatches', () => {
   ])('needs every group to pass: %s', (_group, filters) => {
     expect(cellMatches(key, filters)).toBe(false)
   })
-  it('refuses a key missing the filtered part', () => {
+  it('refuses a key cellKey cannot build', () => {
     expect(cellMatches('deep-set', { ...anyFilters, gaze: ['free'] })).toBe(false)
+    expect(cellMatches('deep-set', anyFilters)).toBe(false)
   })
   it('filters single submissions the same way', () => {
     expect(submissionMatches(vrhpBeyondDeepSet, { ...anyFilters, tuning: ['modded'] })).toBe(true)

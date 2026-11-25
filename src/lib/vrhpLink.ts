@@ -10,7 +10,9 @@
  * section lengths, the range of every angle, and the text of the name and id. Anything unexpected
  * is rejected, never repaired.
  */
+import { base64UrlToBytes, isBase64Url } from './base64url.ts'
 import { plainTextProblem } from './plainText.ts'
+import { maximumTotalDegrees, projectedLimitDegrees } from './submission.ts'
 
 const supportedVersion = 4
 const headerBytes = 2
@@ -24,17 +26,11 @@ const anglesEnd = headerBytes + angleCount * 2
 /** Longer than any real link; caps the work done on hostile input. */
 export const maximumInputLength = 2048
 /**
- * Angles are stored per rendered view in hmdq's tangent convention, where 90° from the view's
- * axis lies at infinity, so the format cannot hold 90 or more.
- */
-const projectedLimitDegrees = 90
-/**
  * Angles are signed: left and down are negative. Per eye: left edge, right edge, up, down, then the
  * left eye's down-left diagonal or the right eye's up-right diagonal. An edge on the wrong side of
  * the view's centre is rejected.
  */
 const expectedAngleSigns = [-1, 1, 1, -1, -1, -1, 1, 1, -1, 1] as const
-const maximumTotalDegrees = 360
 const maximumHeadsetNameLength = 128
 const headsetIdPattern = /^[a-z0-9._-]{1,96}$/
 
@@ -86,27 +82,17 @@ export type VrhpDecodeError =
   | 'headset-id-invalid'
   | 'trailing-data'
 
-const base64UrlPattern = /^[A-Za-z0-9_-]+$/
-
 /** Accepts a full share link or the bare `results` value. */
 export function extractResultsParameter(input: string): string | null {
   const trimmed = input.trim()
-  if (base64UrlPattern.test(trimmed)) return trimmed
+  if (isBase64Url(trimmed)) return trimmed
   const url = URL.parse(trimmed)
   if (url?.protocol !== 'https:') return null
   return url.searchParams.get('results')
 }
 
-export function base64UrlToBytes(encoded: string): Uint8Array | null {
-  if (!base64UrlPattern.test(encoded) || encoded.length % 4 === 1) return null
-  const standard = encoded.replaceAll('-', '+').replaceAll('_', '/')
-  const padded = standard + '='.repeat((4 - (standard.length % 4)) % 4)
-  // The alphabet and length checks above guarantee atob accepts the padded string.
-  const binary = atob(padded)
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0))
-}
-
-const totalNames = [
+/** The rendered totals in the order the link stores them. */
+export const totalNames = [
   'leftHorizontal',
   'leftVertical',
   'rightHorizontal',

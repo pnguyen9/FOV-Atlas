@@ -5,30 +5,32 @@
  * again before use: its size, and the frame and every number the pages compute with. A file that
  * fails a check is refused as a whole. Before the first measure is accepted the site has no data
  * at all, and a missing index simply means an empty site.
+ *
+ * Each file is fetched once per visit and shared by every page that reads it, so moving between
+ * Compare and the headset pages, or between tools, loads nothing twice.
  */
 
+import { isCount, isPlainObject, isPositiveCount, parseJson } from './json.ts'
 import {
   aggregatePath,
+  cellKeyParts,
   dataRoot,
   emptyIndex,
   figureNames,
+  formatVersion,
   indexPath,
-  isPlainObject,
   pagePath,
-  parseJson,
   parseIndex,
   parsePage,
   signedFigures,
-  tunings,
   type Aggregate,
   type CellStats,
   type DataIndex,
-  type HeadsetSummary,
   type Page,
   type Stat,
 } from './submissionStore.ts'
 import { parseRenderedAverage, renderedPath, type RenderedAverage } from './renderedAverage.ts'
-import { directions, eyeDepths, gazes, isHeadsetId, noseBridges, tools, type Tool } from './submission.ts'
+import { directions, isHeadsetId, maximumTotalDegrees, tools, type Tool } from './submission.ts'
 
 /** The part of a fetch Response this module reads, so tests can stand in for the network. */
 export interface FetchedResponse {
@@ -47,11 +49,15 @@ export interface LoadOptions {
 export type DataError = 'network' | 'not-found' | 'http' | 'too-large' | 'invalid' | 'bad-request'
 export type Loaded<Value> = { readonly ok: true; readonly value: Value } | { readonly ok: false; readonly error: DataError }
 
+/** The value of a file that loaded, or null while it loads or when it failed. */
+export function loadedValue<Value>(loaded: Loaded<Value> | null | undefined): Value | null {
+  return loaded?.ok === true ? loaded.value : null
+}
+
 /** Far above any file the store writes (a full page is about 100 kB); caps what is parsed. */
 export const maximumFileLength = 2_000_000
-const formatVersion = 1
 /** Every stored angle is at most a half turn, and figures add two of them. */
-const maximumStatDegrees = 360
+const maximumStatDegrees = maximumTotalDegrees
 
 /** `public/`, which the build copies to the site's root. */
 const publishedPrefix = dataRoot.slice(0, dataRoot.lastIndexOf('/') + 1)
@@ -62,11 +68,30 @@ export function dataUrl(storePath: string, baseUrl: string): string {
   return `${base}${storePath.slice(publishedPrefix.length)}`
 }
 
-const defaultFetcher: Fetcher = (url, init) => fetch(url, init)
+/**
+ * Each file's load, kept from its start for the rest of the visit, so that pages asking at once
+ * share one request. Kept per fetch function, so that a stand-in network never shares answers
+ * with another. A failed load is dropped, so the next request tries again.
+ */
+const loadsByFetcher = new WeakMap<object, Map<string, Promise<Loaded<string>>>>()
 
-async function loadText(storePath: string, options: LoadOptions): Promise<Loaded<string>> {
-  const fetcher = options.fetcher ?? defaultFetcher
+function loadText(storePath: string, options: LoadOptions): Promise<Loaded<string>> {
+  // The global is read on every call, so that a test standing in for it gets its own loads.
+  const fetcher: Fetcher = options.fetcher ?? fetch
   const url = dataUrl(storePath, options.baseUrl ?? import.meta.env.BASE_URL)
+  const loads = loadsByFetcher.get(fetcher) ?? new Map<string, Promise<Loaded<string>>>()
+  loadsByFetcher.set(fetcher, loads)
+  const started = loads.get(url)
+  if (started !== undefined) return started
+  const load = fetchText(url, fetcher)
+  loads.set(url, load)
+  void load.then((loaded) => {
+    if (!loaded.ok && loads.get(url) === load) loads.delete(url)
+  })
+  return load
+}
+
+async function fetchText(url: string, fetcher: Fetcher): Promise<Loaded<string>> {
   let response: FetchedResponse
   let text: string
   try {
@@ -84,11 +109,6 @@ function checked<Value>(loaded: Loaded<string>, parse: (json: string) => Value |
   if (!loaded.ok) return loaded
   const value = parse(loaded.value)
   return value === null ? { ok: false, error: 'invalid' } : { ok: true, value }
-}
-
-/** The headsets measured with a tool and their summaries; empty when the tool has none. */
-export function headsetsOf(index: DataIndex, tool: Tool): ReadonlyMap<string, HeadsetSummary> {
-  return new Map(Object.entries(new Map(Object.entries(index.headsets)).get(tool) ?? {}))
 }
 
 const badRequest = { ok: false, error: 'bad-request' } as const
@@ -125,7 +145,7 @@ export async function loadAggregate(tool: Tool, headset: string, options: LoadOp
 }
 
 export async function loadPage(tool: Tool, headset: string, page: number, options: LoadOptions = {}): Promise<Loaded<Page>> {
-  if (!tools.includes(tool) || !isHeadsetId(headset) || !Number.isSafeInteger(page) || page < 0) return badRequest
+  if (!tools.includes(tool) || !isHeadsetId(headset) || !isCount(page)) return badRequest
   return checked(await loadText(pagePath(tool, headset, page), options), (json) => parsePage(json, tool, headset, page))
 }
 
@@ -136,12 +156,11 @@ const isDegrees = (value: unknown, limit: number, signed = false): value is numb
 function isStat(value: unknown, signed: boolean): value is Stat {
   if (!isPlainObject(value) || Object.keys(value).length !== 4) return false
   const { count, sum, sumsq, max } = value
-  if (!Number.isSafeInteger(count) || (count as number) <= 0) return false
-  const total = count as number
+  if (!isPositiveCount(count)) return false
   return (
     isDegrees(max, maximumStatDegrees, signed) &&
-    isDegrees(sum, maximumStatDegrees * total, signed) &&
-    isDegrees(sumsq, maximumStatDegrees * maximumStatDegrees * total)
+    isDegrees(sum, maximumStatDegrees * count, signed) &&
+    isDegrees(sumsq, maximumStatDegrees * maximumStatDegrees * count)
   )
 }
 
@@ -163,18 +182,6 @@ function isCell(value: unknown): value is CellStats {
   )
 }
 
-function isCellKey(key: string): boolean {
-  const parts = key.split('|')
-  const [eyeDepth = '', noseBridge = '', tuning = '', gaze = ''] = parts
-  return (
-    parts.length === 4 &&
-    (eyeDepths as readonly string[]).includes(eyeDepth) &&
-    (noseBridges as readonly string[]).includes(noseBridge) &&
-    (tunings as readonly string[]).includes(tuning) &&
-    (gazes as readonly string[]).includes(gaze)
-  )
-}
-
 /**
  * The compare pages compute means, spreads and maxima straight from these numbers, so every cell
  * key and every statistic is checked, not only the frame.
@@ -184,7 +191,7 @@ export function parseAggregate(json: string, tool: Tool, headset: string): Aggre
   if (!isPlainObject(aggregate)) return null
   const { version, count, cells } = aggregate
   if (version !== formatVersion || aggregate.tool !== tool || aggregate.headset !== headset) return null
-  if (!Number.isSafeInteger(count) || (count as number) < 0 || !isPlainObject(cells)) return null
-  const cellsValid = Object.entries(cells).every(([key, cell]) => isCellKey(key) && isCell(cell))
+  if (!isCount(count) || !isPlainObject(cells)) return null
+  const cellsValid = Object.entries(cells).every(([key, cell]) => cellKeyParts(key) !== null && isCell(cell))
   return cellsValid ? (aggregate as unknown as Aggregate) : null
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { issueFieldsOf, submissionFromFields } from '../../src/lib/issueForm'
+import { submissionFromFields } from '../../src/lib/issueForm'
 import {
   encodeMeasureParameter,
   encodeMeasureText,
@@ -13,7 +13,7 @@ import {
   parseMeasureText,
 } from '../../src/lib/measureFile'
 import type { KeptSubmission, Submission } from '../../src/lib/submission'
-import { atlasSubmission, encodeVrhpPayload, testHmdSubmission } from './fixtures'
+import { atlasSubmission, encodeVrhpPayload, issueFieldsOf, testHmdSubmission } from './fixtures'
 
 const vrhpParsed = submissionFromFields({ ...issueFieldsOf(atlasSubmission), tool: 'vrhp', measure: encodeVrhpPayload() })
 if (!vrhpParsed.ok) throw new Error(vrhpParsed.error)

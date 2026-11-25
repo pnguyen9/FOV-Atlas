@@ -6,6 +6,7 @@
  * (`renderedAverage.ts`) as a reference, in each tool's own terms; WIMFOV has its own standard.
  */
 
+import { formatDegrees } from '../../lib/degrees.ts'
 import type { Figures, Summary } from '../../lib/fovStats.ts'
 import { renderedMean, type RenderedAverage, type RenderedValueName } from '../../lib/renderedAverage.ts'
 import type { Tool } from '../../lib/submission.ts'
@@ -66,6 +67,8 @@ export interface Column {
   readonly value: (row: CompareRow) => number | undefined
   /** The cell's text, when it shows more than `value`. */
   readonly display?: (row: CompareRow) => string
+  /** The left and right eye's figures of a column showing both in one cell. */
+  readonly pair?: readonly [Column['value'], Column['value']]
 }
 
 const summaryOf = (row: CompareRow, figure: FigureName): Summary | undefined =>
@@ -116,8 +119,6 @@ const averagedGap =
     return average === undefined || value === undefined ? undefined : average - value
   }
 
-const formatValue = (value: number | undefined): string => (value === undefined ? '—' : `${value.toFixed(1)}°`)
-
 /**
  * Both eyes' figure in one cell, left then right, which keeps per-eye tables narrow. It sorts by
  * the mean of the two, or by the one present.
@@ -134,8 +135,9 @@ function eyePairColumn(id: CompareColumnId, label: string, title: string, left: 
     },
     display: (row) => {
       const [leftValue, rightValue] = [left(row), right(row)]
-      return leftValue === undefined && rightValue === undefined ? '—' : `${formatValue(leftValue)} / ${formatValue(rightValue)}`
+      return leftValue === undefined && rightValue === undefined ? '—' : `${formatDegrees(leftValue)} / ${formatDegrees(rightValue)}`
     },
+    pair: [left, right],
   }
 }
 
@@ -326,17 +328,19 @@ const toolWords: ReadonlyMap<Tool, ReadonlyMap<CompareColumnId, Pick<Column, 'la
   ],
 ])
 
+type ColumnWords = ReadonlyMap<CompareColumnId, Pick<Column, 'label' | 'title'>>
+
 const columnsById = new Map(allColumns.map((column) => [column.id, column]))
-const columnsOf = (tool: Tool, ids: readonly CompareColumnId[]): Column[] =>
+const columnsOf = (ids: readonly CompareColumnId[], words: ColumnWords | undefined): Column[] =>
   ids.flatMap((id) => {
     const column = columnsById.get(id)
-    const words = toolWords.get(tool)?.get(id)
+    const own = words?.get(id)
     if (column === undefined) return []
-    return [words === undefined ? column : { ...column, ...words }]
+    return [own === undefined ? column : { ...column, ...own }]
   })
 
 /** Every column the tool's figures can fill, in table order. */
-export const columnsFor = (tool: Tool): Column[] => columnsOf(tool, toolColumns.get(tool)?.available ?? [])
+export const columnsFor = (tool: Tool): Column[] => columnsOf(toolColumns.get(tool)?.available ?? [], toolWords.get(tool))
 
 const headlineIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
   ['atlas', ['highestHorizontal', 'meanHorizontal', 'renderedHorizontal', 'renderedGap']],
@@ -346,7 +350,34 @@ const headlineIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
 ])
 
 /** The few figures a headset page leads with for the tool. */
-export const headlineColumnsFor = (tool: Tool): Column[] => columnsOf(tool, headlineIds.get(tool) ?? [])
+export const headlineColumnsFor = (tool: Tool): Column[] => columnsOf(headlineIds.get(tool) ?? [], toolWords.get(tool))
+
+const measureListIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
+  ['atlas', ['highestHorizontal', 'highestVertical', 'highestOverlap', 'renderedGap']],
+  ['vrhp', ['highestWidth', 'highestHeight', 'widthGap']],
+  ['wimfov', ['highestHorizontal', 'highestVertical', 'highestOverlap']],
+  ['testhmd', ['highestHorizontal', 'highestVertical']],
+])
+
+/** Short words for a headset page's list, where each row is a single measure. */
+const measureListWords: ColumnWords = new Map([
+  ['highestHorizontal', { label: 'Horiz.', title: 'Horizontal, both eyes' }],
+  ['highestVertical', { label: 'Vert.', title: 'Vertical, the taller eye' }],
+  ['highestOverlap', { label: 'Overlap', title: 'Width both eyes see at once' }],
+  ['renderedGap', { label: 'Gap', title: 'Rendered horizontal of this headset minus the horizontal measured' }],
+  ['highestWidth', { label: 'Width L / R', title: 'Width of the left eye / the right eye' }],
+  ['highestHeight', { label: 'Height L / R', title: 'Height of the left eye / the right eye' }],
+  [
+    'widthGap',
+    {
+      label: 'Gap L / R',
+      title: 'Width of each eye’s picture, as the link reports it, minus the width measured; left eye / right eye',
+    },
+  ],
+])
+
+/** The figures a headset page lists for each single measure of the tool. */
+export const measureListColumnsFor = (tool: Tool): Column[] => columnsOf(measureListIds.get(tool) ?? [], measureListWords)
 
 /** The columns shown for the tool until the visitor picks others. */
 export const defaultColumnsFor = (tool: Tool): CompareColumnId[] => [...(toolColumns.get(tool)?.shown ?? [])]
@@ -355,7 +386,14 @@ export function formatCell(column: Column, row: CompareRow): string {
   if (column.display !== undefined) return column.display(row)
   const value = column.value(row)
   if (value === undefined) return '—'
-  return column.unit === '' ? String(value) : `${value.toFixed(1)}${column.unit === '%' ? ' %' : '°'}`
+  return column.unit === '' ? String(value) : formatDegrees(value, column.unit === '%' ? ' %' : '°')
+}
+
+/** A cell's text in parts: the left and right eye's figures apart for a column showing both, else the one text. */
+export function cellParts(column: Column, row: CompareRow): string[] {
+  if (column.pair === undefined) return [formatCell(column, row)]
+  const [left, right] = column.pair
+  return [formatDegrees(left(row)), formatDegrees(right(row))]
 }
 
 /** Rows ordered by a column; rows without that figure go last either way. */

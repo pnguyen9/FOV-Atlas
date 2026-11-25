@@ -12,11 +12,20 @@
  * combines across tools.
  */
 
+import { toCenti } from './degrees.ts'
+import { isCount, isPlainObject, isPositiveCount, parseJson } from './json.ts'
 import {
+  angleOriginOf,
+  eyeDepths,
+  gazes,
   isHeadsetId,
+  noseBridges,
   tools,
   type Direction,
+  type EyeDepth,
   type EyeMeasures,
+  type Gaze,
+  type NoseBridge,
   type Submission,
   type Tool,
 } from './submission.ts'
@@ -48,7 +57,8 @@ export function dataRootOf(path: string): string | null {
   return segments.every((segment) => /^[a-z0-9-]+$/.test(segment)) ? root : null
 }
 
-const formatVersion = 1
+/** The version every data file the store writes carries. */
+export const formatVersion = 1
 
 export interface StoredEntry {
   /** The issue author's public GitHub login, shown next to the measure. */
@@ -177,6 +187,31 @@ export function cellKey(submission: Submission): string {
   return [submission.face.eyeDepth, submission.face.noseBridge, tuningOf(submission), submission.gaze].join('|')
 }
 
+export interface CellKeyParts {
+  readonly eyeDepth: EyeDepth
+  readonly noseBridge: NoseBridge
+  readonly tuning: Tuning
+  readonly gaze: Gaze
+}
+
+/** The soft filter values a `cellKey` names, or null for a key `cellKey` can't build. */
+export function cellKeyParts(key: string): CellKeyParts | null {
+  const parts = key.split('|')
+  const [eyeDepth, noseBridge, tuning, gaze] = parts
+  const isOf = <Value extends string>(choices: readonly Value[], value: string | undefined): value is Value =>
+    (choices as readonly (string | undefined)[]).includes(value)
+  if (
+    parts.length !== 4 ||
+    !isOf(eyeDepths, eyeDepth) ||
+    !isOf(noseBridges, noseBridge) ||
+    !isOf(tunings, tuning) ||
+    !isOf(gazes, gaze)
+  ) {
+    return null
+  }
+  return { eyeDepth, noseBridge, tuning, gaze }
+}
+
 export const emptyPage = (tool: Tool, headset: string, page: number): Page => ({
   version: formatVersion,
   tool,
@@ -202,22 +237,10 @@ export function withLocation(lookup: IssueLookup, issue: number, location: Locat
 }
 
 const issuePattern = /^[1-9]\d*$/
-const isPageNumber = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0
-export const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-/** The parsed value, or null for text that is not JSON. */
-export function parseJson(json: string): unknown {
-  try {
-    return JSON.parse(json)
-  } catch {
-    return null
-  }
-}
 
 /** Pages are written only by the submission Action, so this checks the frame, not each value. */
 export function parsePage(json: string, tool: Tool, headset: string, pageNumber: number): Page | null {
-  const page = parseJson(json) as Partial<Page> | null
+  const page = parseJson(json) as Partial<Page> | null | undefined
   if (page?.version !== formatVersion || page.tool !== tool || page.headset !== headset || page.page !== pageNumber) return null
   const entries: unknown = page.entries
   if (!isPlainObject(entries)) return null
@@ -237,23 +260,21 @@ export function parsePage(json: string, tool: Tool, headset: string, pageNumber:
  * that belongs in this lookup.
  */
 export function parseLookup(json: string, lookupNumber: number): IssueLookup | null {
-  const lookup = parseJson(json) as Partial<IssueLookup> | null
+  const lookup = parseJson(json) as Partial<IssueLookup> | null | undefined
   if (lookup?.version !== formatVersion || lookup.lookup !== lookupNumber) return null
   const issues: unknown = lookup.issues
   if (!isPlainObject(issues)) return null
   const issuesValid = Object.entries(issues).every(([issue, location]) => {
     if (!issuePattern.test(issue) || lookupNumberOf(Number(issue)) !== lookupNumber || !isPlainObject(location)) return false
     const { tool, headset, page } = location
-    return tools.includes(tool as Tool) && typeof headset === 'string' && isHeadsetId(headset) && isPageNumber(page)
+    return tools.includes(tool as Tool) && typeof headset === 'string' && isHeadsetId(headset) && isCount(page)
   })
   return issuesValid ? (lookup as IssueLookup) : null
 }
 
-const isPositiveCount = (value: unknown): boolean => Number.isSafeInteger(value) && (value as number) > 0
-
 /** The index names the headset files to read, so its ids and numbers are checked in full. */
 export function parseIndex(json: string): DataIndex | null {
-  const index = parseJson(json) as Partial<DataIndex> | null
+  const index = parseJson(json) as Partial<DataIndex> | null | undefined
   const headsets: unknown = index?.headsets
   if (index?.version !== formatVersion || !isPlainObject(headsets)) return null
   const rendered: unknown = index.rendered
@@ -278,6 +299,11 @@ export function parseIndex(json: string): DataIndex | null {
   return headsetsValid ? (index as DataIndex) : null
 }
 
+/** The headsets measured with a tool and their summaries; empty when the tool has none. */
+export function headsetsOf(index: DataIndex, tool: Tool): ReadonlyMap<string, HeadsetSummary> {
+  return new Map(Object.entries(new Map(Object.entries(index.headsets)).get(tool) ?? {}))
+}
+
 export function withSummary(index: DataIndex, tool: Tool, headset: string, summary: HeadsetSummary | null): DataIndex {
   const byTool = new Map(Object.entries(index.headsets))
   const summaries = new Map(Object.entries(byTool.get(tool) ?? {}))
@@ -298,34 +324,32 @@ export function withRendered(index: DataIndex, headset: string, measures: number
   return { version, headsets, rendered: Object.fromEntries([...rendered].sort(([first], [second]) => first.localeCompare(second))) }
 }
 
-/** Hundredths of a degree, so that sums stay exact. */
-const toCenti = (degrees: number): number => Math.round(degrees * 100)
-
-interface Accumulator {
+/** Running sums of one value in hundredths of a degree (see `toCenti`), so that they stay exact. */
+export interface Accumulator {
   count: number
   sum: number
   sumsq: number
+  min: number
   max: number
 }
 
-function accumulate(accumulators: Map<string, Accumulator>, key: string, degrees: number): void {
+export function accumulate<Key>(accumulators: Map<Key, Accumulator>, key: Key, degrees: number): void {
   const centi = toCenti(degrees)
-  const accumulator = accumulators.get(key) ?? { count: 0, sum: 0, sumsq: 0, max: centi }
+  const accumulator = accumulators.get(key) ?? { count: 0, sum: 0, sumsq: 0, min: centi, max: centi }
   accumulator.count += 1
   accumulator.sum += centi
   accumulator.sumsq += centi * centi
+  accumulator.min = Math.min(accumulator.min, centi)
   accumulator.max = Math.max(accumulator.max, centi)
   accumulators.set(key, accumulator)
 }
 
+/** The accumulated value back in degrees; its lowest is `accumulator.min / 100` for files that keep it. */
+export const statOf = ({ count, sum, sumsq, max }: Accumulator): Stat => ({ count, sum: sum / 100, sumsq: sumsq / 10_000, max: max / 100 })
+
 function statsOf(accumulators: Map<string, Accumulator>, prefix: string): Record<string, Stat> {
   return Object.fromEntries(
-    [...accumulators]
-      .filter(([key]) => key.startsWith(prefix))
-      .map(([key, { count, sum, sumsq, max }]) => [
-        key.slice(prefix.length),
-        { count, sum: sum / 100, sumsq: sumsq / 10_000, max: max / 100 },
-      ]),
+    [...accumulators].filter(([key]) => key.startsWith(prefix)).map(([key, accumulator]) => [key.slice(prefix.length), statOf(accumulator)]),
   )
 }
 
@@ -391,7 +415,7 @@ function bothEyeFigures({ measures, ceiling }: Pick<Submission, 'measures' | 'ce
 
 /** The figures a measure adds to its cell, and the site shows for a single measure. */
 export function figuresOf(submission: Pick<Submission, 'tool' | 'measures' | 'ceiling'>): Figures {
-  return submission.tool === 'vrhp' ? perEyeFigures(submission) : bothEyeFigures(submission)
+  return angleOriginOf(submission.tool) === 'picture' ? perEyeFigures(submission) : bothEyeFigures(submission)
 }
 
 function cellOf(submissions: readonly Submission[]): CellStats {

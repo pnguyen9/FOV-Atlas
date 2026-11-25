@@ -18,6 +18,7 @@ import {
   recorder,
   readyByHead,
   straightHeadset,
+  turnedHeadset,
 } from './xrFixtures'
 
 const byHead: MeasureOptions = { choice: 'principal', mode: 'head' }
@@ -270,6 +271,26 @@ describe('runMeasure', () => {
     expect(environment.viewport).not.toHaveBeenCalledWith(1000, 0, 1000, 1000)
     // The dot and the line; no targets outside head mode.
     expect(environment.drawArrays).toHaveBeenCalledTimes(1)
+  })
+
+  it('draws what stays in front of the eyes anew only when a view changes', async () => {
+    const drawnWith = async (frames: readonly (typeof straightHeadset)[]): Promise<number[][]> => {
+      const session = new FakeSession()
+      const matrices: number[][] = []
+      const recordMatrix = (_location: unknown, _transpose: boolean, matrix: Float32Array): void => {
+        matrices.push(Array.from(matrix))
+      }
+      await runMeasure(environmentWith(session, {}, { uniformMatrix4fv: recordMatrix }), byHead, recorder())
+      for (const shape of frames) {
+        matrices.length = 0
+        session.frame(headTurned(5, 0), { views: frameViews(shape, headTurned(5, 0)) })
+      }
+      return matrices
+    }
+    const narrower = { ...straightHeadset, outer: 50 }
+    expect(await drawnWith([straightHeadset, straightHeadset])).toEqual(await drawnWith([straightHeadset]))
+    expect(await drawnWith([straightHeadset, narrower])).toEqual(await drawnWith([narrower]))
+    expect(await drawnWith([straightHeadset, turnedHeadset])).toEqual(await drawnWith([turnedHeadset]))
   })
 
   it('skips a view the layer has no place for', async () => {

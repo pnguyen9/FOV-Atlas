@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { issueFieldsOf, renderIssueBody, type IssueError } from '../../src/lib/issueForm'
+import { renderIssueBody, type IssueError } from '../../src/lib/issueForm'
 import { messageFor, readEvent, runAction, type ActionEvent, type DataFiles } from '../../src/lib/submissionAction'
 import {
   aggregatePath,
@@ -16,7 +16,7 @@ import {
 import { parseRenderedAverage, renderedPath } from '../../src/lib/renderedAverage'
 import { wimfovResultLink } from '../../src/lib/wimfov'
 import type { Tool } from '../../src/lib/submission'
-import { atlasSubmission, testHmdSubmission, wimfovPage, wimfovResultId } from './fixtures'
+import { atlasSubmission, issueFieldsOf, testHmdSubmission, wimfovPage, wimfovResultId } from './fixtures'
 
 interface MemoryFiles extends DataFiles {
   readonly contents: Map<string, string>
@@ -180,6 +180,30 @@ describe('runAction', () => {
       headsets: { atlas: { 'bigscreen-beyond-2': { count: 1, pages: 1 } }, testhmd: { 'valve-index': { count: 1, pages: 1 } } },
     })
     expect(json(files, lookupPath(0))).toMatchObject({ issues: { 42: { tool: 'testhmd', headset: 'valve-index', page: 0 } } })
+  })
+
+  it('reads and writes the index and the issue lookup once per event, even when a measure moves', () => {
+    const files = memoryFiles()
+    runAction(submissionEvent(atlasBody), files)
+    const reads: string[] = []
+    const writes: string[] = []
+    const counted: DataFiles = {
+      read: (path) => {
+        reads.push(path)
+        return files.read(path)
+      },
+      write: (path, content) => {
+        writes.push(path)
+        files.write(path, content)
+      },
+      remove: (path) => {
+        files.remove(path)
+      },
+    }
+    expect(runAction(submissionEvent(valveBody), counted).outcome).toBe('accepted')
+    const times = (paths: readonly string[], path: string): number => paths.filter((item) => item === path).length
+    expect([times(reads, indexPath), times(reads, lookupPath(0))]).toEqual([1, 1])
+    expect([times(writes, indexPath), times(writes, lookupPath(0))]).toEqual([1, 1])
   })
 
   it('removes the old headset entirely when its last submission moves away', () => {

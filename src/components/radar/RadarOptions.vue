@@ -2,9 +2,8 @@
 /** How the radar draws its shapes: which eye, which statistic, and the rendered outline when the tool has one. */
 import SegmentedControl from '../SegmentedControl.vue'
 import { compareState } from '../../pages/compare/compareState.ts'
-import { drawsRenderedOutline } from '../../lib/ceiling.ts'
-import { measuresBothEyesAtOnce, type EyeMode, type Statistic } from '../../lib/fovStats.ts'
-import { toolNameOf, type Tool } from '../../lib/submission.ts'
+import type { EyeMode, Statistic } from '../../lib/fovStats.ts'
+import { angleOriginOf, measuresBothEyesAtOnce, readsOwnEdges, showsRenderedAverage, toolNameOf, type Tool } from '../../lib/submission.ts'
 
 defineProps<{ readonly tool: Tool }>()
 
@@ -66,7 +65,7 @@ const renderedOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
     </label>
   </div>
   <div
-    v-if="drawsRenderedOutline(tool)"
+    v-if="showsRenderedAverage(tool)"
     class="control-group"
   >
     <div class="field-label">
@@ -81,8 +80,8 @@ const renderedOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
     <p class="small muted hint">
       A dotted outline around each eye's picture, where headsets report they stop drawing: nobody sees past it. For a
       headset model, it's the average its FOV Atlas measures read{{
-        tool === 'vrhp' ? ', seen from the centre of each picture as VR Headset Picker measures' : ''
-      }}.<template v-if="tool === 'atlas'">
+        angleOriginOf(tool) === 'picture' ? `, seen from the centre of each picture as ${toolNameOf(tool)} measures` : ''
+      }}.<template v-if="readsOwnEdges(tool)">
         A single measure shows what its own headset reported.
       </template>
     </p>

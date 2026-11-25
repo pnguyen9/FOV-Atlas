@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** Mean, spread, highest and count per direction and eye, and for the tool's figures. */
 import { computed } from 'vue'
-import { formatDegrees } from '../../components/measureLabels.ts'
+import { formatDegrees } from '../../lib/degrees.ts'
 import { summarize, type Summary } from '../../lib/fovStats.ts'
 import { directions } from '../../lib/submission.ts'
 import type { CellStats, FigureName } from '../../lib/submissionStore.ts'

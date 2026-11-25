@@ -19,3 +19,14 @@ export const noseBridgeOptions: readonly FaceFitOption<NoseBridge>[] = [
   { value: 'in-between', label: 'In between', hint: 'Neither flat nor sticking out' },
   { value: 'high', label: 'High', hint: 'Sticks out between the eyes' },
 ]
+
+export function faceFitOptionOf<Value extends string>(
+  options: readonly FaceFitOption<Value>[],
+  value: Value | null,
+): FaceFitOption<Value> | undefined {
+  return options.find((option) => option.value === value)
+}
+
+/** The answer's words, or empty while it isn't given. */
+export const faceFitLabelOf = <Value extends string>(options: readonly FaceFitOption<Value>[], value: Value | null): string =>
+  faceFitOptionOf(options, value)?.label ?? ''

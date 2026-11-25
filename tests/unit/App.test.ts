@@ -5,10 +5,17 @@ import App from '../../src/App.vue'
 import { encodeMeasureParameter } from '../../src/lib/measureFile'
 import { testHmdSubmission } from './fixtures'
 
+/** Waits for the page to load: some pages are loaded only when first opened. */
+async function settled(): Promise<void> {
+  await flushPromises()
+  await vi.dynamicImportSettled()
+  await flushPromises()
+}
+
 async function goTo(hash: string): Promise<void> {
   window.location.hash = hash
   window.dispatchEvent(new HashChangeEvent('hashchange'))
-  await flushPromises()
+  await settled()
 }
 
 describe('App', () => {

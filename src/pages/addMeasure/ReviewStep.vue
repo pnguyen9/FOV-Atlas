@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { eyeDepthOptions, noseBridgeOptions } from '../../components/faceFit.ts'
-import { catalogHeadset, otherHeadset } from '../../lib/headsets.ts'
+import { eyeDepthOptions, faceFitLabelOf, noseBridgeOptions } from '../../components/faceFit.ts'
+import { gazeLabelOf, headsetName } from '../../components/measureLabels.ts'
+import { otherHeadset } from '../../lib/headsets.ts'
 import { renderIssueBody } from '../../lib/issueForm.ts'
 import { issueOf, keptMeasureOf, type IssueResult } from '../../lib/measureDraft.ts'
 import { toolNameOf } from '../../lib/submission.ts'
@@ -18,16 +19,16 @@ const kept = computed(() => keptMeasureOf(draft))
 const yesNo = (value: boolean): string => (value ? 'Yes' : 'No')
 
 const summary = computed(() => {
-  const headset = draft.headset === otherHeadset ? `${draft.otherHeadsetName} (not listed yet)` : catalogHeadset(draft.headset)?.name
+  const headset = draft.headset === otherHeadset ? `${headsetName(draft)} (not listed yet)` : headsetName(draft)
   return [
     { label: 'Tool', value: draft.tool === null ? '' : toolNameOf(draft.tool) },
-    { label: 'Headset', value: headset ?? '' },
-    { label: 'Eyes vs brow', value: eyeDepthOptions.find((option) => option.value === draft.eyeDepth)?.label ?? '' },
-    { label: 'Nose bridge', value: noseBridgeOptions.find((option) => option.value === draft.noseBridge)?.label ?? '' },
+    { label: 'Headset', value: headset },
+    { label: 'Eyes vs brow', value: faceFitLabelOf(eyeDepthOptions, draft.eyeDepth) },
+    { label: 'Nose bridge', value: faceFitLabelOf(noseBridgeOptions, draft.noseBridge) },
     { label: 'Physically modded', value: yesNo(draft.physicallyModded) },
     { label: 'Driver tuned', value: yesNo(draft.driverTuned) },
     { label: 'Tuning details', value: draft.tuningDetails.trim() },
-    { label: 'Gaze', value: draft.gaze === 'fixed' ? 'Stared at the centre' : 'Looked toward the marker' },
+    { label: 'Gaze', value: draft.gaze === null ? '' : gazeLabelOf(draft.gaze) },
     { label: 'Lens IPD', value: draft.ipd.trim() === '' ? '' : `${draft.ipd.trim()} mm` },
     { label: 'Facial interface and cushion', value: draft.facialInterface.trim() },
     { label: 'Note', value: draft.note.trim() },

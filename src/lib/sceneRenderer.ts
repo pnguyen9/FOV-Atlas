@@ -4,40 +4,49 @@
  * Everything it creates on the GL context is released by `dispose`, also when it fails to start.
  */
 
-import { conjugate, rotate, type Quaternion } from './headFrame.ts'
+import type { Quaternion } from './headFrame.ts'
 import type { Mesh } from './measureScene.ts'
 
 /** How far away the scene is drawn, in metres: well inside any headset's depth range, far enough to look at ease. */
 export const sceneDistance = 10
 
 const columns = 4
-const axes = [
-  { right: 1, up: 0, back: 0 },
-  { right: 0, up: 1, back: 0 },
-  { right: 0, up: 0, back: 1 },
-] as const
+/** Where each column of a column-major 4 × 4 matrix starts. */
+const rightColumn = 0
+const upColumn = columns
+const backColumn = 2 * columns
+const placeColumn = 3 * columns
 
 /**
  * Writes into `target` the column-major matrix taking a direction to the view's clip space:
  * turned into the view's own frame, pushed out to `sceneDistance`, then projected. Directions are
- * in whatever frame `viewOrientation` is given in.
+ * in whatever frame `viewOrientation` is given in, which must be a unit quaternion.
+ *
+ * It runs for every view of every frame, so it works on plain numbers and allocates nothing.
  */
 export function clipMatrix(projection: ArrayLike<number>, viewOrientation: Quaternion, target: Float32Array = new Float32Array(16)): Float32Array {
-  const toView = conjugate(viewOrientation)
-  const placed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-  axes.forEach((axis, axisIndex) => {
-    const turned = rotate(toView, axis)
-    placed[axisIndex * columns] = turned.right * sceneDistance
-    placed[axisIndex * columns + 1] = turned.up * sceneDistance
-    placed[axisIndex * columns + 2] = turned.back * sceneDistance
-  })
-  const entries = placed.map((_, entry) => {
-    const [column, row] = [Math.floor(entry / columns), entry % columns]
-    let sum = 0
-    for (let step = 0; step < columns; step += 1) sum += (projection[step * columns + row] ?? 0) * (placed.at(column * columns + step) ?? 0)
-    return sum
-  })
-  target.set(entries)
+  const { right: alongRight, up: alongUp, back: alongBack } = viewOrientation.vector
+  const { scalar } = viewOrientation
+  // Each row of the view orientation's rotation matrix is one axis of the given frame, turned
+  // into the view's own frame: the rotation backward.
+  const rightToRight = 1 - 2 * (alongUp * alongUp + alongBack * alongBack)
+  const rightToUp = 2 * (alongRight * alongUp - alongBack * scalar)
+  const rightToBack = 2 * (alongRight * alongBack + alongUp * scalar)
+  const upToRight = 2 * (alongRight * alongUp + alongBack * scalar)
+  const upToUp = 1 - 2 * (alongRight * alongRight + alongBack * alongBack)
+  const upToBack = 2 * (alongUp * alongBack - alongRight * scalar)
+  const backToRight = 2 * (alongRight * alongBack - alongUp * scalar)
+  const backToUp = 2 * (alongUp * alongBack + alongRight * scalar)
+  const backToBack = 1 - 2 * (alongRight * alongRight + alongUp * alongUp)
+  for (let row = 0; row < columns; row += 1) {
+    const fromRight = (projection[rightColumn + row] ?? 0) * sceneDistance
+    const fromUp = (projection[upColumn + row] ?? 0) * sceneDistance
+    const fromBack = (projection[backColumn + row] ?? 0) * sceneDistance
+    target[rightColumn + row] = fromRight * rightToRight + fromUp * rightToUp + fromBack * rightToBack
+    target[upColumn + row] = fromRight * upToRight + fromUp * upToUp + fromBack * upToBack
+    target[backColumn + row] = fromRight * backToRight + fromUp * backToUp + fromBack * backToBack
+    target[placeColumn + row] = projection[placeColumn + row] ?? 0
+  }
   return target
 }
 
@@ -175,17 +184,26 @@ export function createSceneRenderer(gl: WebGLRenderingContext): SceneRenderer | 
   let pictureTexture: WebGLTexture | null = null
   let disposed = false
 
+  const upload = (buffer: WebGLBuffer, values: Float32Array): void => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.bufferData(gl.ARRAY_BUFFER, values, gl.DYNAMIC_DRAW)
+  }
   const attribute = (buffer: WebGLBuffer, location: number, size: number): void => {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
     gl.enableVertexAttribArray(location)
     gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0)
   }
 
+  // The scene is drawn back to front with nothing hidden, so depth and face tests stay off.
+  gl.disable(gl.DEPTH_TEST)
+  gl.disable(gl.CULL_FACE)
+  let usedProgram: WebGLProgram | null = null
   const use = ({ program, clip }: Program, viewport: Viewport, matrix: Float32Array): void => {
     gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
-    gl.disable(gl.DEPTH_TEST)
-    gl.disable(gl.CULL_FACE)
-    gl.useProgram(program)
+    if (program !== usedProgram) {
+      gl.useProgram(program)
+      usedProgram = program
+    }
     gl.uniformMatrix4fv(clip, false, matrix)
   }
 
@@ -209,18 +227,13 @@ export function createSceneRenderer(gl: WebGLRenderingContext): SceneRenderer | 
         meshBuffers.set(mesh, held)
       }
       use(colourProgram, viewport, matrix)
-      const upload = held.version !== mesh.version
-      for (const [buffer, values, location] of [
-        [held.positions, mesh.positions, positionAt],
-        [held.colours, mesh.colours, colourAt],
-      ] as const) {
-        if (upload) {
-          gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-          gl.bufferData(gl.ARRAY_BUFFER, values.subarray(0, mesh.count * 3), gl.DYNAMIC_DRAW)
-        }
-        attribute(buffer, location, 3)
+      if (held.version !== mesh.version) {
+        upload(held.positions, mesh.positions.subarray(0, mesh.count * 3))
+        upload(held.colours, mesh.colours.subarray(0, mesh.count * 3))
+        held.version = mesh.version
       }
-      held.version = mesh.version
+      attribute(held.positions, positionAt, 3)
+      attribute(held.colours, colourAt, 3)
       gl.drawArrays(gl.TRIANGLES, 0, mesh.count)
     },
     drawPicture(viewport, matrix, picture, corners) {

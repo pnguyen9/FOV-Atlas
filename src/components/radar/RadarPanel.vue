@@ -9,10 +9,10 @@ import RadarChart from './RadarChart.vue'
 import SegmentedControl from '../SegmentedControl.vue'
 import { colourClass, type ChartCurve, type ChartOutline, type RadarSeries } from './radarSeries.ts'
 import { compareState } from '../../pages/compare/compareState.ts'
-import { drawsRenderedOutline, pictureOutline } from '../../lib/ceiling.ts'
-import { combineEyes, eyeModeFor, measuresBothEyesAtOnce, type EyeMode } from '../../lib/fovStats.ts'
+import { pictureOutline } from '../../lib/ceiling.ts'
+import { combineEyes, eyeModeFor, type EyeMode } from '../../lib/fovStats.ts'
 import { sceneNames, sceneOf, type SceneName } from '../../lib/scene.ts'
-import type { EyeMeasures, Tool } from '../../lib/submission.ts'
+import { measuresBothEyesAtOnce, showsRenderedAverage, type EyeMeasures, type Tool } from '../../lib/submission.ts'
 
 const props = defineProps<{
   readonly series: readonly RadarSeries[]
@@ -55,25 +55,23 @@ const curves = computed<ChartCurve[]>(() =>
     return [main, meanCurve]
   }),
 )
-const showsOutlines = computed(() => drawsRenderedOutline(props.tool) && compareState.radar.showRendered)
+const showsOutlines = computed(() => showsRenderedAverage(props.tool) && compareState.radar.showRendered)
 /** Union and overlap show both eyes' pictures: their union and overlap are then plain to see. */
 const eyesShown = computed<readonly ('left' | 'right')[]>(() => {
   if (eyeMode.value === 'left' || eyeMode.value === 'right') return [eyeMode.value]
   return ['left', 'right']
 })
 /** An outline is drawn only next to a shape: a group with no matching measure has none. */
-const outlined = computed(() => (showsOutlines.value ? props.series.filter((item) => item.measures !== null) : []))
+const outlined = computed(() => (showsOutlines.value ? withShapes.value : []))
 const outlines = computed<ChartOutline[]>(() =>
-  showsOutlines.value
-    ? outlined.value.flatMap(({ key, colour, rendered }) => {
-        if (rendered === undefined) return []
-        const pictures = eyesShown.value.flatMap((eye) => {
-          const points = pictureOutline(eye === 'left' ? rendered.left : rendered.right, rendered.turn, eye)
-          return points === null ? [] : [points]
-        })
-        return pictures.length === 0 ? [] : [{ key, colourClass: colourClass(colour), outlines: pictures }]
-      })
-    : [],
+  outlined.value.flatMap(({ key, colour, rendered }) => {
+    if (rendered === undefined) return []
+    const pictures = eyesShown.value.flatMap((eye) => {
+      const points = pictureOutline(eye === 'left' ? rendered.left : rendered.right, rendered.turn, eye)
+      return points === null ? [] : [points]
+    })
+    return pictures.length === 0 ? [] : [{ key, colourClass: colourClass(colour), outlines: pictures }]
+  }),
 )
 
 function bothEyesOf(measures: EyeMeasures): EyeMeasures['left'] | null {

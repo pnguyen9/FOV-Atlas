@@ -21,9 +21,11 @@
  */
 
 import { pictureVertical, roundCenti, type RenderedFrame } from './ceiling.ts'
+import { formatDegrees } from './degrees.ts'
 import { summarize } from './fovStats.ts'
-import { isHeadsetId, maximumCantingDegrees, type EdgeAngles, type Submission } from './submission.ts'
-import { dataRoot, isPlainObject, parseJson } from './submissionStore.ts'
+import { isPlainObject, isPositiveCount, parseJson } from './json.ts'
+import { isHeadsetId, maximumCantingDegrees, maximumTotalDegrees, type EdgeAngles, type Submission } from './submission.ts'
+import { accumulate, dataRoot, formatVersion, statOf, type Accumulator } from './submissionStore.ts'
 
 export const renderedPath = (headset: string): string => `${dataRoot}/rendered/${headset}.json`
 
@@ -71,8 +73,6 @@ export interface RenderedStat {
   readonly min: number
   readonly max: number
 }
-
-const formatVersion = 1
 
 export interface RenderedAverage {
   readonly version: typeof formatVersion
@@ -126,14 +126,6 @@ export function renderedValuesOf(submission: Submission): RenderedValues {
   }
 }
 
-interface Accumulator {
-  count: number
-  sum: number
-  sumsq: number
-  min: number
-  max: number
-}
-
 /**
  * The average of the given measures of one headset model, or null when none of them enters it.
  * Sums are taken in hundredths of a degree, so they stay exact.
@@ -145,29 +137,14 @@ export function renderedAverageOf(headset: string, submissions: readonly Submiss
     const values = Object.entries(renderedValuesOf(submission)) as [RenderedValueName, number][]
     if (values.length === 0) continue
     count += 1
-    for (const [name, degrees] of values) {
-      const centi = Math.round(degrees * 100)
-      const accumulator = accumulators.get(name) ?? { count: 0, sum: 0, sumsq: 0, min: centi, max: centi }
-      accumulator.count += 1
-      accumulator.sum += centi
-      accumulator.sumsq += centi * centi
-      accumulator.min = Math.min(accumulator.min, centi)
-      accumulator.max = Math.max(accumulator.max, centi)
-      accumulators.set(name, accumulator)
-    }
+    for (const [name, degrees] of values) accumulate(accumulators, name, degrees)
   }
   if (count === 0) return null
   const values = Object.fromEntries(
-    [...accumulators].map(([name, accumulator]) => [
-      name,
-      {
-        count: accumulator.count,
-        sum: accumulator.sum / 100,
-        sumsq: accumulator.sumsq / 10_000,
-        min: accumulator.min / 100,
-        max: accumulator.max / 100,
-      },
-    ]),
+    [...accumulators].map(([name, accumulator]) => {
+      const { sum, sumsq, max } = statOf(accumulator)
+      return [name, { count: accumulator.count, sum, sumsq, min: accumulator.min / 100, max }]
+    }),
   )
   return { version: formatVersion, headset, count, values }
 }
@@ -217,7 +194,7 @@ export function unitDifference(average: RenderedAverage): number | null {
   return widest === null ? null : widest.max - widest.min
 }
 
-export const unitDifferenceWords = (difference: number): string => `Units of this model differ by up to ${difference.toFixed(1)}°`
+export const unitDifferenceWords = (difference: number): string => `Units of this model differ by up to ${formatDegrees(difference)}`
 
 /** Further from the model's average than this, a new measure's headset gets a maintainer's look. */
 export const differsFromAverageDegrees = 4
@@ -272,10 +249,8 @@ export function averagedPictureFrame(average: RenderedAverage | null | undefined
   }
 }
 
-const isCount = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0
-
 /** Every stored value is at most a half turn, and a both-eye value adds two of them. */
-const maximumDegrees = 360
+const maximumDegrees = maximumTotalDegrees
 
 function isRenderedStat(value: unknown, name: RenderedValueName): value is RenderedStat {
   if (!isPlainObject(value) || Object.keys(value).length !== 5) return false
@@ -284,7 +259,7 @@ function isRenderedStat(value: unknown, name: RenderedValueName): value is Rende
   const highest = name === 'turn' ? maximumCantingDegrees : maximumDegrees
   const inRange = (degrees: unknown): degrees is number =>
     typeof degrees === 'number' && Number.isFinite(degrees) && degrees >= lowest && degrees <= highest
-  if (!isCount(count) || count === 0 || !inRange(min) || !inRange(max) || min > max) return false
+  if (!isPositiveCount(count) || !inRange(min) || !inRange(max) || min > max) return false
   // Hundredths of a degree per measure is the most rounding a stored sum can carry.
   const slack = count / 100
   return (
@@ -308,7 +283,7 @@ export function parseRenderedAverage(json: string, headset: string): RenderedAve
     return null
   }
   const { count, values } = average
-  if (!isCount(count) || count === 0 || !isPlainObject(values)) return null
+  if (!isPositiveCount(count) || !isPlainObject(values)) return null
   // Every measure averaged reads every value.
   const valuesValid =
     Object.keys(values).length === renderedValueNames.length &&

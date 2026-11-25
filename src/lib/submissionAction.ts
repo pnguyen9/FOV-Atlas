@@ -25,7 +25,8 @@ import {
   renderedValueLabelOf,
   type RenderedDifference,
 } from './renderedAverage.ts'
-import { toolNameOf, type Submission, type TextField, type Tool } from './submission.ts'
+import { formatDegrees } from './degrees.ts'
+import { readsOwnEdges, toolNameOf, type Submission, type TextField, type Tool } from './submission.ts'
 import {
   aggregatePages,
   aggregatePath,
@@ -33,6 +34,7 @@ import {
   emptyLookup,
   emptyPage,
   entriesPerPage,
+  headsetsOf,
   indexPath,
   lookupNumberOf,
   lookupPath,
@@ -227,12 +229,11 @@ function readLookup(files: DataFiles, lookupNumber: number): IssueLookup {
   return lookup
 }
 
-function locationOf(files: DataFiles, issue: number): Location | null {
-  return readLookup(files, lookupNumberOf(issue)).issues[String(issue)] ?? null
-}
+const locationIn = (lookup: IssueLookup, issue: number): Location | null => lookup.issues[String(issue)] ?? null
 
-function saveLocation(files: DataFiles, issue: number, location: Location | null): void {
-  const lookup = withLocation(readLookup(files, lookupNumberOf(issue)), issue, location)
+const locationOf = (files: DataFiles, issue: number): Location | null => locationIn(readLookup(files, lookupNumberOf(issue)), issue)
+
+function writeLookup(files: DataFiles, lookup: IssueLookup): void {
   const path = lookupPath(lookup.lookup)
   if (Object.keys(lookup.issues).length === 0) files.remove(path)
   else files.write(path, serializeLookup(lookup))
@@ -240,8 +241,7 @@ function saveLocation(files: DataFiles, issue: number, location: Location | null
 
 /** Every page of a headset, as many as the index lists; a listed page that is missing is corruption. */
 function readPages(files: DataFiles, index: DataIndex, tool: Tool, headset: string): Page[] {
-  const summaries = new Map(Object.entries(index.headsets)).get(tool) ?? {}
-  const pageCount = new Map(Object.entries(summaries)).get(headset)?.pages ?? 0
+  const pageCount = headsetsOf(index, tool).get(headset)?.pages ?? 0
   return Array.from({ length: pageCount }, (_, pageNumber) => {
     const path = pagePath(tool, headset, pageNumber)
     const json = files.read(path)
@@ -255,9 +255,9 @@ const entryCount = (page: Page): number => Object.keys(page.entries).length
 
 /**
  * Writes the changed page, drops trailing pages left empty, and rebuilds the headset's aggregate
- * and index summary from all its pages.
+ * from all its pages. Returns the index with the headset's new summary, for the caller to write.
  */
-function savePages(files: DataFiles, index: DataIndex, pages: readonly Page[], changed: Page): void {
+function savePages(files: DataFiles, index: DataIndex, pages: readonly Page[], changed: Page): DataIndex {
   const { tool, headset } = changed
   const updated = pages.map((page) => (page.page === changed.page ? changed : page))
   if (changed.page === pages.length) updated.push(changed)
@@ -271,11 +271,8 @@ function savePages(files: DataFiles, index: DataIndex, pages: readonly Page[], c
   else files.write(aggregatePath(tool, headset), serialize(aggregatePages(tool, headset, updated)))
   const summary = count === 0 ? null : { count, pages: updated.length }
   const updatedIndex = withSummary(index, tool, headset, summary)
-  files.write(indexPath, serialize(tool === renderedSource ? saveRendered(files, updatedIndex, headset, updated) : updatedIndex))
+  return readsOwnEdges(tool) ? saveRendered(files, updatedIndex, headset, updated) : updatedIndex
 }
-
-/** The only tool whose measures read what their headset draws edge by edge, and so the only one averaged. */
-const renderedSource: Tool = 'atlas'
 
 const submissionsOf = (pages: readonly Page[], leftOut: number | null = null): Submission[] => {
   const leftOutKey = leftOut === null ? null : String(leftOut)
@@ -284,7 +281,10 @@ const submissionsOf = (pages: readonly Page[], leftOut: number | null = null): S
   )
 }
 
-/** Rewrites or removes a headset's averaged rendered field of view; returns the index listing it. */
+/**
+ * Rewrites or removes a headset's averaged rendered field of view, which only the measures that
+ * read their headset's edges feed; returns the index listing it.
+ */
 function saveRendered(files: DataFiles, index: DataIndex, headset: string, pages: readonly Page[]): DataIndex {
   const average = renderedAverageOf(headset, submissionsOf(pages))
   if (average === null) {
@@ -303,43 +303,49 @@ function pageHolding(pages: readonly Page[], location: Location, issue: number):
   return page
 }
 
-function removeIssue(files: DataFiles, issue: number): boolean {
-  const location = locationOf(files, issue)
-  if (location === null) return false
-  const index = readIndex(files)
+/** Takes the issue's entry off its page; returns the index for the caller to write. */
+function removeEntry(files: DataFiles, index: DataIndex, location: Location, issue: number): DataIndex {
   const pages = readPages(files, index, location.tool, location.headset)
-  savePages(files, index, pages, withoutEntry(pageHolding(pages, location, issue), issue))
-  saveLocation(files, issue, null)
+  return savePages(files, index, pages, withoutEntry(pageHolding(pages, location, issue), issue))
+}
+
+function removeIssue(files: DataFiles, issue: number): boolean {
+  const lookup = readLookup(files, lookupNumberOf(issue))
+  const location = locationIn(lookup, issue)
+  if (location === null) return false
+  files.write(indexPath, serialize(removeEntry(files, readIndex(files), location, issue)))
+  writeLookup(files, withLocation(lookup, issue, null))
   return true
 }
 
 /**
  * Replaces the entry in place when the issue stays on its headset; otherwise moves it to the last
- * page of its new one. Returns how the measure's rendered field of view differs from the average
- * of the model's other measures.
+ * page of its new one. The index and the issue's lookup are read once and written once. Returns
+ * how the measure's rendered field of view differs from the average of the model's other measures.
  */
 function store(files: DataFiles, issue: number, author: string, submission: Submission): RenderedDifference[] {
   const { tool, headset } = submission
-  const location = locationOf(files, issue)
+  const lookup = readLookup(files, lookupNumberOf(issue))
+  const location = locationIn(lookup, issue)
   const staysOnHeadset = location?.tool === tool && location.headset === headset
-  if (location !== null && !staysOnHeadset) removeIssue(files, issue)
-  const index = readIndex(files)
+  let index = readIndex(files)
+  if (location !== null && !staysOnHeadset) index = removeEntry(files, index, location, issue)
   const pages = readPages(files, index, tool, headset)
-  const differences =
-    tool === renderedSource ? renderedDifferences(submission, renderedAverageOf(headset, submissionsOf(pages, issue))) : []
+  const differences = readsOwnEdges(tool)
+    ? renderedDifferences(submission, renderedAverageOf(headset, submissionsOf(pages, issue)))
+    : []
   const last = pages[pages.length - 1]
   const hasRoom = last !== undefined && entryCount(last) < entriesPerPage
   const target = staysOnHeadset ? pageHolding(pages, location, issue) : hasRoom ? last : emptyPage(tool, headset, pages.length)
-  savePages(files, index, pages, withEntry(target, issue, { author, submission }))
-  saveLocation(files, issue, { tool, headset, page: target.page })
+  index = savePages(files, index, pages, withEntry(target, issue, { author, submission }))
+  files.write(indexPath, serialize(index))
+  writeLookup(files, withLocation(lookup, issue, { tool, headset, page: target.page }))
   return differences
 }
 
-const degrees = (value: number): string => `${value.toFixed(1)}°`
-
 function differenceSentence({ name, value, mean, count }: RenderedDifference): string {
   const others = count === 1 ? 'the 1 other measure' : `the ${String(count)} other measures`
-  return `${renderedValueLabelOf(name).toLowerCase()}: ${degrees(value)}, against ${degrees(mean)} on average over ${others} (${degrees(Math.abs(value - mean))} apart)`
+  return `${renderedValueLabelOf(name).toLowerCase()}: ${formatDegrees(value)}, against ${formatDegrees(mean)} on average over ${others} (${formatDegrees(Math.abs(value - mean))} apart)`
 }
 
 const differencesNote = (differences: readonly RenderedDifference[]): string =>

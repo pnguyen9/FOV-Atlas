@@ -24,8 +24,3 @@ export function headsetName({ headset, otherHeadsetName = '' }: { readonly heads
 export function keptMeasureName(kept: Pick<KeptSubmission, 'headset' | 'otherHeadsetName'>): string {
   return leavesHeadsetOut(kept) ? 'headset not given' : headsetName(kept)
 }
-
-/** Degrees with one decimal, or a dash for a figure that doesn't exist. */
-export function formatDegrees(value: number | undefined, unit = '°'): string {
-  return value === undefined || !Number.isFinite(value) ? '—' : `${value.toFixed(1)}${unit}`
-}

@@ -6,7 +6,8 @@
  * ahead, up at the top and the wearer's left on the left.
  */
 import { computed } from 'vue'
-import { radialScale, shapePoints } from '../lib/radarGeometry.ts'
+import { largestAngle } from '../lib/fovStats.ts'
+import { radialScale, ringsOf, shapePoints } from '../lib/radarGeometry.ts'
 import { bothEyeFiguresOf } from '../lib/submissionStore.ts'
 import type { EyeMeasure, EyeMeasures } from '../lib/submission.ts'
 
@@ -15,18 +16,10 @@ const props = defineProps<{ readonly measures: EyeMeasures }>()
 const radius = 90
 const ringStepDegrees = 30
 
-const scaleDegrees = computed(() => {
-  const angles = [...Object.values(props.measures.left), ...Object.values(props.measures.right)]
-  return Math.max(ringStepDegrees * 3, ...angles)
-})
+const scaleDegrees = computed(() => Math.max(ringStepDegrees * 3, largestAngle([props.measures.left, props.measures.right])))
 const scale = computed(() => radialScale(scaleDegrees.value, radius))
 
-const rings = computed(() =>
-  Array.from({ length: Math.floor(scaleDegrees.value / ringStepDegrees) }, (_, ringIndex) => ({
-    degrees: (ringIndex + 1) * ringStepDegrees,
-    radius: scale.value((ringIndex + 1) * ringStepDegrees),
-  })),
-)
+const rings = computed(() => ringsOf(scaleDegrees.value, scale.value, ringStepDegrees))
 
 const outline = (eye: EyeMeasure): string =>
   shapePoints(eye, scale.value)

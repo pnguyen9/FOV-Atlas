@@ -4,6 +4,7 @@
  * every direction. With a scene, the window shape is cut out of it: clear inside, dimmed outside.
  */
 import { computed, useId } from 'vue'
+import { formatDegrees } from '../../lib/degrees.ts'
 import { largestAngle } from '../../lib/fovStats.ts'
 import {
   plotRadius,
@@ -191,7 +192,7 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
         :cy="point.screenY"
         r="4"
       >
-        <title>{{ curve.label }}, {{ point.direction }}: {{ point.degrees.toFixed(1) }}°</title>
+        <title>{{ curve.label }}, {{ point.direction }}: {{ formatDegrees(point.degrees) }}</title>
       </circle>
     </g>
     <path

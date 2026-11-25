@@ -13,7 +13,8 @@
  * the full picture.
  */
 
-import type { EdgeAngles, Submission, Tool } from './submission.ts'
+import { toCenti } from './degrees.ts'
+import { readsOwnEdges, type EdgeAngles, type Submission } from './submission.ts'
 
 /** Both eyes' edges and how far each eye's picture is turned outward. */
 export interface RenderedFrame {
@@ -21,9 +22,6 @@ export interface RenderedFrame {
   readonly right: EdgeAngles
   readonly turn: number
 }
-
-/** Whether the radar draws a rendered outline for the tool's measures or groups: every tool following hmdq's definition. */
-export const drawsRenderedOutline = (tool: Tool): boolean => tool !== 'wimfov'
 
 export function renderedFrameOf({ ceiling }: Pick<Submission, 'ceiling'>): RenderedFrame | undefined {
   return ceiling.source === 'measured' ? { left: ceiling.left, right: ceiling.right, turn: ceiling.canting } : undefined
@@ -38,7 +36,7 @@ export interface OutlinePoint {
 export const radians = (degrees: number): number => (degrees * Math.PI) / 180
 export const degreesOf = (angle: number): number => (angle * 180) / Math.PI
 /** Hundredths of a degree, the finest step stored. */
-export const roundCenti = (degrees: number): number => Math.round(degrees * 100) / 100
+export const roundCenti = (degrees: number): number => toCenti(degrees) / 100
 const pointsPerSide = 16
 
 /**
@@ -118,5 +116,5 @@ export function ceilingWords(submission: Submission): string {
 
 export function cornerMaskWords(submission: Submission): string {
   if (submission.cornerMask === 'on') return 'corner mask detected'
-  return submission.tool === 'atlas' ? 'corner mask not reported' : 'corner mask unknown'
+  return readsOwnEdges(submission.tool) ? 'corner mask not reported' : 'corner mask unknown'
 }

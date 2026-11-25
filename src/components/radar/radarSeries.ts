@@ -4,8 +4,8 @@ import { keptMeasureName } from '../measureLabels.ts'
 import { renderedFrameOf, type OutlinePoint, type RenderedFrame } from '../../lib/ceiling.ts'
 import { shapeOf, type Combined, type Statistic } from '../../lib/fovStats.ts'
 import { averagedHeadFrame, averagedPictureFrame, unitDifference, unitDifferenceWords, type RenderedAverage } from '../../lib/renderedAverage.ts'
-import type { Loaded } from '../../lib/siteData.ts'
-import type { EyeMeasure, EyeMeasures, KeptSubmission, Submission, Tool } from '../../lib/submission.ts'
+import { loadedValue, type Loaded } from '../../lib/siteData.ts'
+import { angleOriginOf, showsRenderedAverage, type EyeMeasure, type EyeMeasures, type KeptSubmission, type Submission, type Tool } from '../../lib/submission.ts'
 
 export interface RadarSeries {
   readonly key: string
@@ -58,16 +58,17 @@ function missingAverageNote(name: string, average: Loaded<RenderedAverage | null
 
 /**
  * A group's outline: its model's averaged pictures, from the FOV Atlas measures that read their
- * edges, in the tool's own terms. VR Headset Picker measures each picture from its own centre;
- * FOV Atlas and TestHMD measure from straight ahead of the head.
+ * edges, in the tool's own terms: from the centre of each picture or from straight ahead of the
+ * head. None for a tool that never shows the average.
  */
 function averagedOutline(
   name: string,
   tool: Tool,
   loaded: Loaded<RenderedAverage | null> | null,
 ): Pick<RadarSeries, 'rendered' | 'renderedNote' | 'renderedWarning'> {
-  const average = loaded?.ok === true ? loaded.value : null
-  const rendered = tool === 'vrhp' ? averagedPictureFrame(average) : averagedHeadFrame(average)
+  if (!showsRenderedAverage(tool)) return { rendered: undefined, renderedNote: '', renderedWarning: null }
+  const average = loadedValue(loaded)
+  const rendered = angleOriginOf(tool) === 'picture' ? averagedPictureFrame(average) : averagedHeadFrame(average)
   const headsets = average?.count ?? 0
   return {
     rendered,
@@ -101,27 +102,42 @@ export function aggregateSeries({ key, name, colour, combined, statistic, seeTex
 }
 
 /** Words for where a single measure's outline comes from. */
-export function measureRenderedNote(who: string, submission: Pick<Submission, 'ceiling'>): string {
+function measureRenderedNote(who: string, submission: Pick<Submission, 'ceiling'>): string {
   if (submission.ceiling.source === 'measured') return `${who}: what the headset reported drawing while measuring`
   if (submission.ceiling.source === 'link') return `${who}: its link gives only totals, set against its own figures`
   return `${who}: the headset's report wasn't read`
 }
 
-/** A kept measure: dashed, with its own headset's outline, never part of any group. */
-export function keptSeries(kept: KeptSubmission): RadarSeries {
+interface MeasureSeriesOptions extends Pick<RadarSeries, 'key' | 'label' | 'name' | 'colour' | 'seeText'> {
+  readonly submission: Pick<Submission, 'measures' | 'ceiling'>
+}
+
+/** A single measure, with the outline of what its own headset reported drawing when it has one. */
+export function measureSeries({ key, label, name, colour, seeText, submission }: MeasureSeriesOptions): RadarSeries {
   return {
+    key,
+    label,
+    name,
+    colour,
+    measures: submission.measures,
+    meanMeasures: null,
+    rendered: renderedFrameOf(submission),
+    renderedNote: measureRenderedNote(name, submission),
+    renderedWarning: null,
+    seeText,
+  }
+}
+
+/** A kept measure: dashed, with its own headset's outline, never part of any group. */
+export const keptSeries = (kept: KeptSubmission): RadarSeries =>
+  measureSeries({
     key: 'kept',
     label: `Kept measure · ${keptMeasureName(kept)} (not published)`,
     name: 'Kept measure',
     colour: 'kept',
-    measures: kept.measures,
-    meanMeasures: null,
-    rendered: renderedFrameOf(kept),
-    renderedNote: measureRenderedNote('Kept measure', kept),
-    renderedWarning: null,
     seeText: 'the kept measure',
-  }
-}
+    submission: kept,
+  })
 
 /** A series as the chart draws it, for one eye mode. */
 export interface ChartCurve {

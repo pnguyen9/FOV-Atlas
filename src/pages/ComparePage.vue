@@ -4,11 +4,13 @@
  * radar. The figures come from each headset's aggregate, filtered by the soft filters; a kept
  * measure can be set beside them when it is of the same tool.
  */
-import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { columnsFor, type CompareRow } from './compare/columns.ts'
 import CompareTable from './compare/CompareTable.vue'
 import { compareState, seriesSlotCount, slotOf, togglePick, withPick } from './compare/compareState.ts'
 import KeptMeasureCard from './compare/KeptMeasureCard.vue'
+import { useDataIndex } from './dataIndex.ts'
+import DataIndexState from '../components/DataIndexState.vue'
 import FilterPanel from '../components/FilterPanel.vue'
 import { headsetName, keptMeasureName } from '../components/measureLabels.ts'
 import RadarOptions from '../components/radar/RadarOptions.vue'
@@ -17,21 +19,17 @@ import { aggregateSeries, keptSeries, type RadarSeries } from '../components/rad
 import SegmentedControl from '../components/SegmentedControl.vue'
 import { combineCells, figuresOfCombined, figuresOfMeasure, type Combined } from '../lib/fovStats.ts'
 import { routeHref, type CompareView } from '../lib/hashRoute.ts'
-import { drawsRenderedOutline } from '../lib/ceiling.ts'
 import type { RenderedAverage } from '../lib/renderedAverage.ts'
-import { headsetsOf, loadAggregate, loadIndex, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
-import { toolNameOf, tools, type Tool } from '../lib/submission.ts'
-import type { Aggregate, DataIndex } from '../lib/submissionStore.ts'
+import { loadAggregate, loadedValue, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
+import { showsRenderedAverage, toolNameOf, tools, type Tool } from '../lib/submission.ts'
+import { headsetsOf, type Aggregate, type DataIndex } from '../lib/submissionStore.ts'
 
 const props = withDefaults(defineProps<{ readonly measure?: string | null; readonly view?: CompareView }>(), {
   measure: null,
   view: 'table',
 })
 
-const index = ref<Loaded<DataIndex> | null>(null)
-onMounted(async () => {
-  index.value = await loadIndex()
-})
+const index = useDataIndex()
 
 const toolOptions = tools.map((tool) => ({ value: tool, label: toolNameOf(tool) }))
 const viewOptions = [
@@ -56,14 +54,11 @@ const aggregates = shallowRef(new Map<string, Loaded<Aggregate>>())
  * loaded null when it has none. Left out for WIMFOV.
  */
 const averages = shallowRef(new Map<string, Loaded<RenderedAverage | null>>())
-const averageValue = (headset: string): RenderedAverage | null => {
-  const loaded = averages.value.get(headset)
-  return loaded?.ok === true ? loaded.value : null
-}
+const averageValue = (headset: string): RenderedAverage | null => loadedValue(averages.value.get(headset))
 
 async function loadTool(tool: Tool, dataIndex: DataIndex): Promise<void> {
   const headsets = [...headsetsOf(dataIndex, tool).keys()]
-  const averaged = drawsRenderedOutline(tool) ? headsets : []
+  const averaged = showsRenderedAverage(tool) ? headsets : []
   const [loaded, loadedAverages] = await Promise.all([
     Promise.all(headsets.map(async (headset) => [headset, await loadAggregate(tool, headset)] as const)),
     Promise.all(averaged.map(async (headset) => [headset, await loadRenderedAverage(dataIndex, headset)] as const)),
@@ -89,20 +84,20 @@ const ready = computed(() => compareState.tool !== null && loadedTool.value === 
 const combined = computed(() => {
   const byHeadset = new Map<string, Combined | null>()
   for (const [headset, loaded] of aggregates.value) {
-    byHeadset.set(headset, loaded.ok ? combineCells(loaded.value, compareState.filters) : null)
+    const aggregate = loadedValue(loaded)
+    byHeadset.set(headset, aggregate === null ? null : combineCells(aggregate, compareState.filters))
   }
   return byHeadset
 })
 
 const rows = computed<CompareRow[]>(() =>
   [...combined.value].map(([headset, headsetCombined]) => {
-    const loaded = aggregates.value.get(headset)
     return {
       key: headset,
       headset,
       name: headsetName({ headset }),
       figures: headsetCombined === null ? null : figuresOfCombined(headsetCombined),
-      total: loaded?.ok === true ? loaded.value.count : 0,
+      total: loadedValue(aggregates.value.get(headset))?.count ?? 0,
       averaged: averageValue(headset),
     }
   }),
@@ -114,8 +109,8 @@ const keptSameTool = computed(() =>
 
 // A kept measure of a headset with no published measure of this tool still gets its model's average.
 watch([() => keptSameTool.value?.headset, loadedTool], async ([headset, tool]) => {
-  const dataIndex = index.value?.ok === true ? index.value.value : null
-  if (headset === undefined || headset === '' || tool === null || dataIndex === null || !drawsRenderedOutline(tool) || averages.value.has(headset)) return
+  const dataIndex = loadedValue(index.value)
+  if (headset === undefined || headset === '' || tool === null || dataIndex === null || !showsRenderedAverage(tool) || averages.value.has(headset)) return
   const loaded = await loadRenderedAverage(dataIndex, headset)
   if (loadedTool.value === tool) averages.value = new Map([...averages.value, [headset, loaded]])
 })
@@ -178,7 +173,7 @@ const radarSeries = computed<RadarSeries[]>(() => {
       statistic,
       seeText: `the ${statistic} shape measured on the ${name}`,
       tool,
-      average: averages.value.get(pick.key) ?? { ok: true, value: null },
+      average: averages.value.get(pick.key) ?? null,
     })
   })
   const kept = keptSameTool.value
@@ -235,23 +230,12 @@ function togglePicked(headset: string): void {
         />
       </div>
     </div>
+    <DataIndexState :index="index" />
     <p
-      v-if="index === null"
-      class="muted"
-    >
-      Loading the measures…
-    </p>
-    <p
-      v-else-if="!index.ok"
-      class="problem"
-    >
-      The measures couldn't be loaded. Try again in a moment.
-    </p>
-    <p
-      v-else-if="!publishedAnything"
+      v-if="index?.ok === true && !publishedAnything"
       class="note"
     >
-      No measures are published yet. <a href="#submit">Add the first one</a>.
+      No measures are published yet. <a :href="routeHref({ page: 'submit' })">Add the first one</a>.
     </p>
     <div
       v-if="index?.ok === true"
@@ -322,7 +306,7 @@ function togglePicked(headset: string): void {
               {{ option.label }}
             </button>
           </div>
-          <a href="#method">Why can't I see them together?</a>
+          <a :href="routeHref({ page: 'method', section: null })">Why can't I see them together?</a>
         </div>
         <p
           v-else-if="!ready"

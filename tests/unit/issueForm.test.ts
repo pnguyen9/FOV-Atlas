@@ -1,12 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
-  buildIssueUrl,
   headsetChoiceOfVrhpLink,
   issueFields,
-  issueFieldsOf,
   issueUrlOfFields,
   maximumBodyLength,
+  measureFieldsOf,
   issueUrl,
   newIssueUrl,
   parseIssueBody,
@@ -23,6 +22,7 @@ import {
   atlasSubmission,
   beyondAngles,
   encodeVrhpPayload,
+  issueFieldsOf,
   testHmdSubmission,
   wimfovPage,
   wimfovPoints,
@@ -169,6 +169,13 @@ describe('submissionFromFields', () => {
     ['measure-invalid', { measure: ceiling({ left: { ...edges, up: '44' }, right: edges, canting: 0 }) }],
     ['measure-invalid', { measure: ceiling({ left: { left: 55 }, right: edges, canting: 0 }) }],
     ['measure-invalid', { measure: ceiling({ left: edges, right: edges, canting: 0, extra: 1 }) }],
+    // JSON reads an overflowing number as infinite, which no check of range may meet.
+    ['measure-invalid', { measure: atlasMeasure({ left: { ...atlasSubmission.measures.left, up: 1e999 } }) }],
+    ['measure-invalid', { measure: atlasMeasure({ left: { ...atlasSubmission.measures.left, up: -1e999 } }) }],
+    ['measure-invalid', { measure: ceiling({ left: { ...edges, up: 1e999 }, right: edges, canting: 0 }) }],
+    ['measure-invalid', { measure: ceiling({ left: edges, right: edges, canting: 1e999 }) }],
+    ['measure-invalid', { tool: 'vrhp', measure: typedEyes.replace('59', '1e999') }],
+    ['measure-invalid', { tool: 'wimfov', measure: typedEyes.replace('59', '1e999') }],
     ['measure-invalid', { tool: 'vrhp', measure: '{"left":' }],
     ['measure-invalid', { tool: 'vrhp', measure: JSON.stringify({ left: {}, right: {}, extra: {} }) }],
     ['measure-invalid', { tool: 'testhmd', measure: '{"horizontal":104}' }],
@@ -218,9 +225,28 @@ describe('wimfovResultToFetch', () => {
   })
 })
 
-describe('buildIssueUrl', () => {
+describe('measureFieldsOf', () => {
+  const measures = atlasSubmission.measures
+
+  it.each([
+    ['a VR Headset Picker link', { kind: 'vrhp', results: 'BAeG' }, { measure: 'BAeG', 'wimfov-link': '' }],
+    ['a WIMFOV read-only link', { kind: 'wimfov-link', resultId: wimfovResultId }, { measure: '', 'wimfov-link': wimfovResultLink(wimfovResultId) }],
+    ['TestHMD’s two figures', { kind: 'testhmd', horizontal: 104, vertical: 95.5 }, { measure: '{"horizontal":104,"vertical":95.5}', 'wimfov-link': '' }],
+    ['typed angles', { kind: 'typed', measures }, { measure: JSON.stringify({ left: measures.left, right: measures.right }), 'wimfov-link': '' }],
+  ] as const)('carries %s', (_description, measure, expected) => {
+    expect(measureFieldsOf(measure)).toEqual(expected)
+  })
+
+  it('carries WIMFOV points in WIMFOV’s own layout and a FOV Atlas measure as its fields read', () => {
+    const points = submissionFromFields(fieldsWith({ tool: 'wimfov', measure: wimfovPoints }))
+    expect(points.ok && measureFieldsOf({ kind: 'wimfov-points', measures: points.submission.measures }).measure).toBe(wimfovPoints)
+    expect(measureFieldsOf({ kind: 'atlas', measure: atlasSubmission })).toEqual({ measure: atlasFields.measure, 'wimfov-link': '' })
+  })
+})
+
+describe('issueUrlOfFields', () => {
   it('prefills every non-empty field of the form', () => {
-    const result = buildIssueUrl(atlasSubmission)
+    const result = issueUrlOfFields(atlasFields)
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.url.startsWith(`${newIssueUrl}?template=submission.yml&title=`)).toBe(true)
@@ -232,12 +258,8 @@ describe('buildIssueUrl', () => {
   })
 
   it('titles a headset missing from the catalog by its typed name', () => {
-    const result = buildIssueUrl({ ...atlasSubmission, headset: 'other', otherHeadsetName: 'Boba 3' })
+    const result = issueUrlOfFields(issueFieldsOf({ ...atlasSubmission, headset: 'other', otherHeadsetName: 'Boba 3' }))
     expect(result.ok && new URL(result.url).searchParams.get('title')).toBe('Measure: Boba 3 (atlas)')
-  })
-
-  it('refuses an invalid submission', () => {
-    expect(buildIssueUrl({ ...atlasSubmission, ipd: 20 })).toEqual({ ok: false, error: 'ipd-out-of-range' })
   })
 
   it('refuses a link longer than GitHub accepts', () => {
@@ -248,11 +270,9 @@ describe('buildIssueUrl', () => {
       facialInterface: wide,
       note: '€'.repeat(500),
     }
-    expect(buildIssueUrl(submission)).toEqual({ ok: false, error: 'url-too-long' })
+    expect(issueUrlOfFields(issueFieldsOf(submission))).toEqual({ ok: false, error: 'url-too-long' })
   })
-})
 
-describe('issueUrlOfFields', () => {
   it('builds the link from fields the Action checks later, such as a WIMFOV read-only link', () => {
     const fields = fieldsWith({ tool: 'wimfov', measure: '', 'wimfov-link': wimfovResultLink(wimfovResultId) })
     const result = issueUrlOfFields(fields)

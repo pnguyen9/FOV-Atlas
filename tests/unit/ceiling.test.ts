@@ -2,13 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   ceilingWords,
   cornerMaskWords,
-  drawsRenderedOutline,
   isFlatPicture,
   pictureOutline,
   renderedFrameOf,
   type OutlinePoint,
 } from '../../src/lib/ceiling'
-import { tools } from '../../src/lib/submission'
 import { atlasBeyond, testHmdQuest, vrhpBeyond, vrhpIndex, wimfovBeyond } from './siteFixtures'
 
 const quarterTurn = Math.PI / 2
@@ -17,12 +15,6 @@ function pointNear(points: readonly OutlinePoint[], turn: number): OutlinePoint 
   const distance = (point: OutlinePoint): number => Math.abs(Math.atan2(Math.sin(point.turn - turn), Math.cos(point.turn - turn)))
   return [...points].sort((first, second) => distance(first) - distance(second))[0]
 }
-
-describe('drawsRenderedOutline', () => {
-  it('draws an outline for every tool following hmdq’s definition, never WIMFOV', () => {
-    expect(tools.filter(drawsRenderedOutline)).toEqual(['atlas', 'vrhp', 'testhmd'])
-  })
-})
 
 describe('renderedFrameOf', () => {
   it('takes the edges read while measuring', () => {

@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed, nextTick, useTemplateRef, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, useTemplateRef, watch } from 'vue'
 import { navigation, navigationPageOf, routeHref, useHashRoute } from './lib/hashRoute.ts'
-import AddMeasurePage from './pages/AddMeasurePage.vue'
-import ComparePage from './pages/ComparePage.vue'
-import HeadsetPage from './pages/HeadsetPage.vue'
 import HomePage from './pages/HomePage.vue'
 import HowItWorksPage from './pages/HowItWorksPage.vue'
-import MeasurePage from './pages/MeasurePage.vue'
 import NotFoundPage from './pages/NotFoundPage.vue'
+
+// The pages that measure, add or compare load when first opened, so the home page doesn't wait for them.
+const AddMeasurePage = defineAsyncComponent(() => import('./pages/AddMeasurePage.vue'))
+const ComparePage = defineAsyncComponent(() => import('./pages/ComparePage.vue'))
+const HeadsetPage = defineAsyncComponent(() => import('./pages/HeadsetPage.vue'))
+const MeasurePage = defineAsyncComponent(() => import('./pages/MeasurePage.vue'))
 
 const route = useHashRoute(window)
 const currentNavigation = computed(() => navigationPageOf(route.value))
@@ -43,7 +45,7 @@ watch(route, async () => {
     <div class="bar">
       <a
         class="brand"
-        href="#home"
+        :href="routeHref({ page: 'home' })"
       >FOV <span>Atlas</span></a>
       <nav aria-label="Main">
         <a

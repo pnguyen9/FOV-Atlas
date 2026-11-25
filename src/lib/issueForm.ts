@@ -13,26 +13,27 @@
  */
 
 import { catalogHeadset, otherHeadset } from './headsets.ts'
+import { isFiniteNumber, isPlainObject, matches, oneOf, parseJson } from './json.ts'
 import {
   cornerMaskStates,
-  directions,
   eyeDepths,
   gazes,
   headsetProblem,
+  ipdProblem,
+  isEdgesShape,
+  isEyeShape,
   noseBridges,
   submissionProblem,
   tools,
   type Ceiling,
   type CornerMask,
-  type EdgeAngles,
-  type EyeMeasure,
   type EyeMeasures,
   type Provenance,
   type Submission,
   type SubmissionError,
   type Tool,
 } from './submission.ts'
-import { testHmdMeasures, testHmdTotals } from './testHmd.ts'
+import { testHmdMeasures, type TestHmdTotals } from './testHmd.ts'
 import { decodeVrhpLink, extractResultsParameter, type VrhpDecodeError, type VrhpMeasure } from './vrhpLink.ts'
 import {
   formatWimfovPoints,
@@ -147,54 +148,18 @@ export function renderIssueBody(fields: IssueFields): string {
   return issueFields.map(({ id, label }) => `### ${label}\n\n${values.get(id) || emptyResponse}\n`).join('\n')
 }
 
-function jsonObject(text: string): ReadonlyMap<string, unknown> | null {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    return null
-  }
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
-  return new Map(Object.entries(parsed))
-}
+/** A typed measure: each eye's angles by direction. */
+const isTypedShape = matches({ left: isEyeShape, right: isEyeShape })
 
-function hasExactKeys(object: ReadonlyMap<string, unknown>, keys: readonly string[]): boolean {
-  return object.size === keys.length && keys.every((key) => object.has(key))
-}
+/** The rendered field of view a FOV Atlas measure read, or null when it read none. */
+const isAtlasCeilingShape = (value: unknown): boolean =>
+  value === null || matches({ left: isEdgesShape, right: isEdgesShape, canting: isFiniteNumber })(value)
 
-function eyeOf(value: unknown): EyeMeasure | null {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
-  const entries = Object.entries(value)
-  const valid = entries.every(
-    ([direction, angle]) => (directions as readonly string[]).includes(direction) && typeof angle === 'number',
-  )
-  return valid ? Object.fromEntries(entries) : null
-}
+const isAtlasShape = matches({ left: isEyeShape, right: isEyeShape, ceiling: isAtlasCeilingShape, cornerMask: oneOf(cornerMaskStates) })
 
-function eyesOf(object: ReadonlyMap<string, unknown>): EyeMeasures | null {
-  const left = eyeOf(object.get('left'))
-  const right = eyeOf(object.get('right'))
-  return left === null || right === null ? null : { left, right }
-}
-
-const edgeKeys = ['left', 'right', 'up', 'down'] as const
-function edgesOf(value: unknown): EdgeAngles | null {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
-  const edges = new Map(Object.entries(value))
-  if (!hasExactKeys(edges, edgeKeys) || edgeKeys.some((key) => typeof edges.get(key) !== 'number')) return null
-  return Object.fromEntries(edges) as unknown as EdgeAngles
-}
-
-function ceilingOf(value: unknown): Ceiling | null {
-  if (value === null) return { source: 'none' }
-  if (typeof value !== 'object' || Array.isArray(value)) return null
-  const ceiling = new Map(Object.entries(value))
-  const left = edgesOf(ceiling.get('left'))
-  const right = edgesOf(ceiling.get('right'))
-  const canting = ceiling.get('canting')
-  if (!hasExactKeys(ceiling, ['left', 'right', 'canting']) || left === null || right === null) return null
-  return typeof canting === 'number' ? { source: 'measured', left, right, canting } : null
-}
+/** TestHMD's two figures; their ranges are `testHmdMeasures`' to check. */
+const anyValue = (): boolean => true
+const isTestHmdShape = matches({ horizontal: anyValue, vertical: anyValue })
 
 interface DecodedMeasure {
   readonly measures: EyeMeasures
@@ -208,33 +173,31 @@ type MeasureResult = { readonly ok: true; readonly decoded: DecodedMeasure } | {
 const failure = (error: IssueError): MeasureResult => ({ ok: false, error })
 const noCeiling = { ceiling: { source: 'none' }, cornerMask: 'unknown', reportedHeadset: '' } as const
 
-function typedMeasure(object: ReadonlyMap<string, unknown>): MeasureResult {
-  const measures = hasExactKeys(object, ['left', 'right']) ? eyesOf(object) : null
-  if (measures === null) return failure('measure-invalid')
-  return { ok: true, decoded: { measures, ...noCeiling, provenance: { input: 'typed', linkData: null } } }
+function typedMeasure(parsed: unknown): MeasureResult {
+  if (!isTypedShape(parsed)) return failure('measure-invalid')
+  const { left, right } = parsed as EyeMeasures
+  return { ok: true, decoded: { measures: { left, right }, ...noCeiling, provenance: { input: 'typed', linkData: null } } }
+}
+
+interface AtlasMeasureShape extends EyeMeasures {
+  readonly ceiling: Omit<Extract<Ceiling, { source: 'measured' }>, 'source'> | null
+  readonly cornerMask: CornerMask
 }
 
 function atlasMeasure(text: string): MeasureResult {
-  const object = jsonObject(text)
-  if (object === null || !hasExactKeys(object, ['left', 'right', 'ceiling', 'cornerMask'])) return failure('measure-invalid')
-  const measures = eyesOf(object)
-  const ceiling = ceilingOf(object.get('ceiling'))
-  const cornerMask = object.get('cornerMask')
-  if (measures === null || ceiling === null || !cornerMaskStates.includes(cornerMask as CornerMask)) {
-    return failure('measure-invalid')
-  }
+  const parsed = parseJson(text)
+  if (!isAtlasShape(parsed)) return failure('measure-invalid')
+  const { left, right, ceiling: read, cornerMask } = parsed as AtlasMeasureShape
+  const ceiling: Ceiling = read === null ? { source: 'none' } : { source: 'measured', ...read }
   const input = ceiling.source === 'measured' ? 'measured' : 'typed'
   return {
     ok: true,
-    decoded: { measures, ceiling, cornerMask: cornerMask as CornerMask, provenance: { input, linkData: null }, reportedHeadset: '' },
+    decoded: { measures: { left, right }, ceiling, cornerMask, provenance: { input, linkData: null }, reportedHeadset: '' },
   }
 }
 
 function vrhpMeasure(text: string): MeasureResult {
-  if (text.startsWith('{')) {
-    const object = jsonObject(text)
-    return object === null ? failure('measure-invalid') : typedMeasure(object)
-  }
+  if (text.startsWith('{')) return typedMeasure(parseJson(text))
   const result = decodeVrhpLink(text)
   if (!result.ok) return failure(`vrhp-${result.error}`)
   const { left, right, rendered, headsetName } = result.measure
@@ -257,8 +220,8 @@ function vrhpMeasure(text: string): MeasureResult {
 
 /** Pasted points, typed angles, or nothing; the pasted form keeps WIMFOV's own text layout. */
 function wimfovPastedMeasure(text: string): MeasureResult {
-  const object = text.startsWith('{') ? jsonObject(text) : null
-  if (object !== null && !object.has('points')) return typedMeasure(object)
+  const parsed = text.startsWith('{') ? parseJson(text) : undefined
+  if (isPlainObject(parsed) && !Object.hasOwn(parsed, 'points')) return typedMeasure(parsed)
   const pasted = parseWimfovPoints(text)
   if (!pasted.ok) return failure(pasted.error)
   return { ok: true, decoded: { measures: pasted.measures, ...noCeiling, provenance: { input: 'paste', linkData: null } } }
@@ -295,9 +258,10 @@ function wimfovMeasure(text: string, linkText: string, page: string | undefined)
 }
 
 function testHmdMeasure(text: string): MeasureResult {
-  const object = jsonObject(text)
-  if (object === null || !hasExactKeys(object, ['horizontal', 'vertical'])) return failure('measure-invalid')
-  const result = testHmdMeasures(object.get('horizontal'), object.get('vertical'))
+  const parsed = parseJson(text)
+  if (!isTestHmdShape(parsed)) return failure('measure-invalid')
+  const { horizontal, vertical } = parsed as Readonly<Record<keyof TestHmdTotals, unknown>>
+  const result = testHmdMeasures(horizontal, vertical)
   if (!result.ok) return failure(result.error)
   return { ok: true, decoded: { measures: result.measures, ...noCeiling, provenance: { input: 'typed', linkData: null } } }
 }
@@ -318,7 +282,6 @@ function choiceOf<Choice extends string>(value: string, choices: readonly Choice
 }
 
 const yesNo = ['yes', 'no'] as const
-const ipdPattern = /^\d{2}(?:\.\d)?$/
 
 export function submissionFromFields(fields: IssueFields, options: ParseOptions = {}): IssueParseResult {
   const reject = (error: IssueError): IssueParseResult => ({ ok: false, error })
@@ -336,7 +299,8 @@ export function submissionFromFields(fields: IssueFields, options: ParseOptions 
   if (tuned === null) return reject('tuned-invalid')
   const gaze = choiceOf(fields.gaze, gazes)
   if (gaze === null) return reject('gaze-invalid')
-  if (fields.ipd !== '' && !ipdPattern.test(fields.ipd)) return reject('ipd-invalid')
+  // A number out of range is left to the submission rules, which report it once the measure is read.
+  if (ipdProblem(fields.ipd) === 'ipd-invalid') return reject('ipd-invalid')
 
   const measure = decodeMeasure(tool, fields, options)
   if (!measure.ok) return measure
@@ -379,49 +343,42 @@ export function atlasMeasureText(measures: EyeMeasures, ceiling: Ceiling, corner
   })
 }
 
-function measureText(submission: Submission): string {
-  const { measures, provenance, ceiling } = submission
-  const typed = JSON.stringify({ left: measures.left, right: measures.right })
-  switch (submission.tool) {
-    case 'atlas':
-      return atlasMeasureText(measures, ceiling, submission.cornerMask)
-    case 'vrhp':
-      return provenance.input === 'link' && provenance.linkData !== null ? provenance.linkData : typed
-    case 'wimfov':
-      if (provenance.input === 'link') return ''
-      return provenance.input === 'paste' ? formatWimfovPoints(measures) : typed
-    case 'testhmd':
-      return JSON.stringify(testHmdTotals(measures))
-  }
-}
+/**
+ * What the Measure and WIMFOV read-only link fields carry, per way a tool's values arrive: a FOV
+ * Atlas measure, a VR Headset Picker link's `results` value, a WIMFOV read-only link's result id
+ * or pasted points, TestHMD's two figures, or angles typed by hand.
+ */
+export type IssueMeasure =
+  | { readonly kind: 'atlas'; readonly measure: { readonly measures: EyeMeasures; readonly ceiling: Ceiling; readonly cornerMask: CornerMask } }
+  | { readonly kind: 'vrhp'; readonly results: string }
+  | { readonly kind: 'wimfov-link'; readonly resultId: string }
+  | { readonly kind: 'wimfov-points'; readonly measures: EyeMeasures }
+  | ({ readonly kind: 'testhmd' } & TestHmdTotals)
+  | { readonly kind: 'typed'; readonly measures: EyeMeasures }
 
-export function issueFieldsOf(submission: Submission): IssueFields {
-  const { provenance, tuning } = submission
-  const wimfovLink =
-    submission.tool === 'wimfov' && provenance.input === 'link' && provenance.linkData !== null
-      ? wimfovResultLink(provenance.linkData)
-      : ''
-  return {
-    tool: submission.tool,
-    headset: submission.headset,
-    'headset-name': submission.otherHeadsetName,
-    measure: measureText(submission),
-    'wimfov-link': wimfovLink,
-    'eye-depth': submission.face.eyeDepth,
-    'nose-bridge': submission.face.noseBridge,
-    modded: tuning.physicallyModded ? 'yes' : 'no',
-    tuned: tuning.driverTuned ? 'yes' : 'no',
-    'tuning-details': tuning.details,
-    gaze: submission.gaze,
-    ipd: submission.ipd === null ? '' : String(submission.ipd),
-    'facial-interface': submission.facialInterface,
-    note: submission.note,
+/** The Measure and WIMFOV read-only link fields of an issue, as `submissionFromFields` reads them back. */
+export function measureFieldsOf(measure: IssueMeasure): Pick<IssueFields, 'measure' | 'wimfov-link'> {
+  switch (measure.kind) {
+    case 'atlas': {
+      const { measures, ceiling, cornerMask } = measure.measure
+      return { measure: atlasMeasureText(measures, ceiling, cornerMask), 'wimfov-link': '' }
+    }
+    case 'vrhp':
+      return { measure: measure.results, 'wimfov-link': '' }
+    case 'wimfov-link':
+      return { measure: '', 'wimfov-link': wimfovResultLink(measure.resultId) }
+    case 'wimfov-points':
+      return { measure: formatWimfovPoints(measure.measures), 'wimfov-link': '' }
+    case 'testhmd':
+      return { measure: JSON.stringify({ horizontal: measure.horizontal, vertical: measure.vertical }), 'wimfov-link': '' }
+    case 'typed':
+      return { measure: JSON.stringify({ left: measure.measures.left, right: measure.measures.right }), 'wimfov-link': '' }
   }
 }
 
 export type IssueUrlResult =
   | { readonly ok: true; readonly url: string }
-  | { readonly ok: false; readonly error: SubmissionError | 'url-too-long' }
+  | { readonly ok: false; readonly error: 'url-too-long' }
 
 /**
  * The prefilled "new issue" link for fields that were already checked. A WIMFOV read-only link
@@ -438,12 +395,6 @@ export function issueUrlOfFields(fields: IssueFields): IssueUrlResult {
   const query = parameters.map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('&')
   const url = `${newIssueUrl}?${query}`
   return url.length > maximumUrlLength ? { ok: false, error: 'url-too-long' } : { ok: true, url }
-}
-
-/** The prefilled "new issue" link; the visitor only has to press Create. */
-export function buildIssueUrl(submission: Submission): IssueUrlResult {
-  const problem = submissionProblem(submission)
-  return problem === null ? issueUrlOfFields(issueFieldsOf(submission)) : { ok: false, error: problem }
 }
 
 export interface HeadsetChoice {

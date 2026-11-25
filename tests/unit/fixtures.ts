@@ -1,6 +1,8 @@
 /** Test data shared by the submission pipeline tests. */
 
+import { measureFieldsOf, type IssueFields, type IssueMeasure } from '../../src/lib/issueForm'
 import type { Submission } from '../../src/lib/submission'
+import { testHmdTotals } from '../../src/lib/testHmd'
 
 export interface PayloadParts {
   version?: number
@@ -101,4 +103,40 @@ export const testHmdSubmission: Submission = {
   ceiling: { source: 'none' },
   cornerMask: 'unknown',
   provenance: { input: 'typed', linkData: null },
+}
+
+/** How a stored submission's values reach its issue, as the site would have sent them. */
+export function issueMeasureOf({ tool, measures, ceiling, cornerMask, provenance }: Submission): IssueMeasure {
+  const typed = { kind: 'typed', measures } as const
+  switch (tool) {
+    case 'atlas':
+      return { kind: 'atlas', measure: { measures, ceiling, cornerMask } }
+    case 'vrhp':
+      return provenance.input === 'link' && provenance.linkData !== null ? { kind: 'vrhp', results: provenance.linkData } : typed
+    case 'wimfov':
+      if (provenance.input === 'link' && provenance.linkData !== null) return { kind: 'wimfov-link', resultId: provenance.linkData }
+      return provenance.input === 'paste' ? { kind: 'wimfov-points', measures } : typed
+    case 'testhmd':
+      return { kind: 'testhmd', ...testHmdTotals(measures) }
+  }
+}
+
+/** The issue form's fields for a submission, as `submissionFromFields` reads them back. */
+export function issueFieldsOf(submission: Submission): IssueFields {
+  const { tuning } = submission
+  return {
+    tool: submission.tool,
+    headset: submission.headset,
+    'headset-name': submission.otherHeadsetName,
+    ...measureFieldsOf(issueMeasureOf(submission)),
+    'eye-depth': submission.face.eyeDepth,
+    'nose-bridge': submission.face.noseBridge,
+    modded: tuning.physicallyModded ? 'yes' : 'no',
+    tuned: tuning.driverTuned ? 'yes' : 'no',
+    'tuning-details': tuning.details,
+    gaze: submission.gaze,
+    ipd: submission.ipd === null ? '' : String(submission.ipd),
+    'facial-interface': submission.facialInterface,
+    note: submission.note,
+  }
 }
