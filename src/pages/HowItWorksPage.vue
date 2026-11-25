@@ -213,6 +213,15 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
         </li>
         <li>The “what you see” view, how a field of view looks in VR, comes from an idea by Reddit user Heliosurge.</li>
         <li>
+          Its living room is the 360° photo
+          <a
+            href="https://polyhaven.com/a/anniversary_lounge"
+            target="_blank"
+            rel="noopener noreferrer"
+          >Anniversary Lounge</a>
+          by Greg Zaal, from Poly Haven (CC0).
+        </li>
+        <li>
           The headset list follows VR Headset Picker's names for each model, so its links can preselect the headset.
         </li>
         <li>

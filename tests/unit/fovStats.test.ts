@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   cellMatches,
   combineCells,
-  combineEyes,
   eyeModeFor,
   eyeShape,
+  eyeView,
   figuresOfCombined,
   figuresOfMeasure,
   largestAngle,
@@ -95,17 +95,25 @@ describe('shapes', () => {
   })
 })
 
-describe('combineEyes', () => {
+describe('eyeView', () => {
   const measures = { left: { left: 50, right: 40, 'down-left': 60 }, right: { left: 42, right: 52, 'up-right': 55 } }
-  it('shows one eye as it is', () => {
-    expect(combineEyes(measures, 'left')).toBe(measures.left)
-    expect(combineEyes(measures, 'right')).toBe(measures.right)
+  const oneEye = [
+    { eye: 'left', direction: 'down-left', degrees: 60 },
+    { eye: 'right', direction: 'up-right', degrees: 55 },
+  ]
+  it('shows one eye as it is, its own diagonal included', () => {
+    expect(eyeView(measures, 'left', 'vrhp')).toEqual({ shape: measures.left, oneEye: [] })
+    expect(eyeView(measures, 'right', 'vrhp').shape).toBe(measures.right)
   })
-  it('takes the farther angle for either eye, keeping directions one eye lacks', () => {
-    expect(combineEyes(measures, 'union')).toEqual({ left: 50, right: 52, 'down-left': 60, 'up-right': 55 })
+  it('takes the farther angle for either eye, only where both eyes were measured', () => {
+    expect(eyeView(measures, 'union', 'vrhp')).toEqual({ shape: { left: 50, right: 52 }, oneEye })
   })
-  it('takes the nearer angle for both eyes, only where both were measured', () => {
-    expect(combineEyes(measures, 'overlap')).toEqual({ left: 42, right: 40 })
+  it('takes the nearer angle for both eyes, setting one-eye angles beside it too', () => {
+    expect(eyeView(measures, 'overlap', 'vrhp')).toEqual({ shape: { left: 42, right: 40 }, oneEye })
+  })
+  it('keeps each eye’s outer edge in the one shape for a tool measuring both eyes at once', () => {
+    const together = { left: { up: 40, left: 50, down: 45 }, right: { up: 42, right: 52, down: 44 } }
+    expect(eyeView(together, 'union', 'testhmd')).toEqual({ shape: { up: 42, left: 50, down: 45, right: 52 }, oneEye: [] })
   })
   it('shows a tool measuring both eyes at once as their union', () => {
     expect(eyeModeFor('testhmd', 'left')).toBe('union')
@@ -144,5 +152,6 @@ describe('largestAngle', () => {
   it('finds the widest angle of all shapes, zero for none', () => {
     expect(largestAngle([{ up: 40 }, { left: 120, down: 30 }])).toBe(120)
     expect(largestAngle([])).toBe(0)
+    expect(largestAngle([{ up: 40 }], [{ eye: 'left', direction: 'down-left', degrees: 65 }])).toBe(65)
   })
 })

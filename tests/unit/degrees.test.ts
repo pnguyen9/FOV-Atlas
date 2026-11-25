@@ -14,6 +14,11 @@ describe('formatDegrees', () => {
     expect(formatDegrees(42.75)).toBe('42.8°')
     expect(formatDegrees(12, ' %')).toBe('12.0 %')
   })
+  it('drops the minus sign from a value that rounds to zero', () => {
+    expect(formatDegrees(-0.02)).toBe('0.0°')
+    expect(formatDegrees(-0)).toBe('0.0°')
+    expect(formatDegrees(-0.05)).toBe('-0.1°')
+  })
   it('gives a dash for a figure that does not exist', () => {
     expect(formatDegrees(undefined)).toBe('—')
     expect(formatDegrees(Number.NaN)).toBe('—')

@@ -298,46 +298,49 @@ const headlines = computed(() => {
                 No measure matches the filters.
               </p>
             </section>
-            <section aria-labelledby="submissions-heading">
-              <h2 id="submissions-heading">
-                Individual measures
-              </h2>
-              <p class="small muted">
-                Tick measures to put them on the radar next to everyone's. The name links to the GitHub issue the measure
-                was sent in.
-              </p>
-              <SubmissionList
-                v-if="shownEntries.length > 0"
-                :tool="tool"
-                :entries="shownEntries"
-                :slots="slots"
-                :full="full"
-                @toggle="togglePicked"
-              />
-              <p
-                v-else-if="!loadingPage && !pageFailed"
-                class="muted"
-              >
-                No loaded measure matches the filters.
-              </p>
-              <p
-                v-if="pageFailed"
-                class="problem"
-              >
-                Some measures couldn't be loaded.
-              </p>
-              <button
-                v-if="nextPage >= 0"
-                type="button"
-                class="button ghost load-older"
-                :disabled="loadingPage"
-                @click="loadOlder"
-              >
-                {{ pageFailed ? 'Try again' : 'Show older measures' }}
-              </button>
-            </section>
           </div>
         </div>
+        <section
+          v-if="aggregate !== null"
+          aria-labelledby="submissions-heading"
+        >
+          <h2 id="submissions-heading">
+            Individual measures
+          </h2>
+          <p class="small muted">
+            Tick measures to put them on the radar above, next to everyone's. The name links to the GitHub issue the measure
+            was sent in.
+          </p>
+          <SubmissionList
+            v-if="shownEntries.length > 0"
+            :tool="tool"
+            :entries="shownEntries"
+            :slots="slots"
+            :full="full"
+            @toggle="togglePicked"
+          />
+          <p
+            v-else-if="!loadingPage && !pageFailed"
+            class="muted"
+          >
+            No loaded measure matches the filters.
+          </p>
+          <p
+            v-if="pageFailed"
+            class="problem"
+          >
+            Some measures couldn't be loaded.
+          </p>
+          <button
+            v-if="nextPage >= 0"
+            type="button"
+            class="button ghost load-older"
+            :disabled="loadingPage"
+            @click="loadOlder"
+          >
+            {{ pageFailed ? 'Try again' : 'Show older measures' }}
+          </button>
+        </section>
       </template>
       <RenderedAverageSection
         v-if="index?.ok === true && showsAverage"

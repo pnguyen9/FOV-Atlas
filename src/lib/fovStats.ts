@@ -141,26 +141,49 @@ export function eyeModeFor(tool: Tool, mode: EyeMode): EyeMode {
   return measuresBothEyesAtOnce(tool) ? 'union' : mode
 }
 
+export type Eye = keyof EyeMeasures
+
+/** An angle measured on one eye only, which either eye and both eyes leave out of their shape. */
+export interface OneEyeValue {
+  readonly eye: Eye
+  readonly direction: Direction
+  readonly degrees: number
+}
+
+/** What an eye mode shows: the shape, and the angles beside it that only one eye has. */
+export interface EyeView {
+  readonly shape: EyeMeasure
+  readonly oneEye: readonly OneEyeValue[]
+}
+
 /**
  * What one eye, either eye (union: the farther of the two in each direction) or both eyes at once
- * (overlap: the nearer, where both were measured) see.
+ * (overlap: the nearer) see. Union and overlap take only the directions measured on both eyes: an
+ * angle one eye alone has says nothing about the other eye, so it is set beside the shape. A tool
+ * measuring both eyes at once has each eye's outer edge on that eye's side only, and both belong
+ * to the one shape.
  */
-export function combineEyes({ left, right }: EyeMeasures, mode: EyeMode): EyeMeasure {
-  if (mode === 'left') return left
-  if (mode === 'right') return right
+export function eyeView({ left, right }: EyeMeasures, mode: EyeMode, tool: Tool): EyeView {
+  if (mode === 'left') return { shape: left, oneEye: [] }
+  if (mode === 'right') return { shape: right, oneEye: [] }
+  const together = measuresBothEyesAtOnce(tool)
   const leftAngles = new Map(Object.entries(left))
   const rightAngles = new Map(Object.entries(right))
-  return Object.fromEntries(
-    directions.flatMap((direction) => {
-      const first = leftAngles.get(direction)
-      const second = rightAngles.get(direction)
-      if (first === undefined || second === undefined) {
-        const only = first ?? second
-        return mode === 'union' && only !== undefined ? [[direction, only]] : []
-      }
-      return [[direction, mode === 'union' ? Math.max(first, second) : Math.min(first, second)]]
-    }),
-  )
+  const shape: [Direction, number][] = []
+  const oneEye: OneEyeValue[] = []
+  for (const direction of directions) {
+    const leftDegrees = leftAngles.get(direction)
+    const rightDegrees = rightAngles.get(direction)
+    if (leftDegrees !== undefined && rightDegrees !== undefined) {
+      shape.push([direction, mode === 'union' ? Math.max(leftDegrees, rightDegrees) : Math.min(leftDegrees, rightDegrees)])
+      continue
+    }
+    const degrees = leftDegrees ?? rightDegrees
+    if (degrees === undefined) continue
+    if (together) shape.push([direction, degrees])
+    else oneEye.push({ eye: leftDegrees === undefined ? 'right' : 'left', direction, degrees })
+  }
+  return { shape: Object.fromEntries(shape), oneEye }
 }
 
 /** The diagonals pointing away from the nose: where the widest corner of each eye's view lies. */
@@ -213,7 +236,7 @@ export function figuresOfMeasure(submission: Pick<Submission, 'tool' | 'measures
   return figuresFrom(1, summaries, outerDiagonalOf(submission.measures.left, submission.measures.right))
 }
 
-/** The largest angle in a set of shapes, to size the chart that draws them. */
-export function largestAngle(shapes: readonly EyeMeasure[]): number {
-  return Math.max(0, ...shapes.flatMap((shape) => Object.values(shape)))
+/** The largest angle in a set of shapes and lone angles, to size the chart that draws them. */
+export function largestAngle(shapes: readonly EyeMeasure[], oneEye: readonly OneEyeValue[] = []): number {
+  return Math.max(0, ...shapes.flatMap((shape) => Object.values(shape)), ...oneEye.map(({ degrees }) => degrees))
 }

@@ -13,11 +13,14 @@ import {
   reachOf,
   outlinePath,
   ringsOf,
+  screenPoint,
   shapePath,
   shapePoints,
+  shapeSpans,
   spokesOf,
+  turnOf,
 } from '../../lib/radarGeometry.ts'
-import { sceneOf, sceneShapes, type SceneName } from '../../lib/scene.ts'
+import { photoLimitDegrees, sceneOf, sceneShapes, type SceneName } from '../../lib/scene.ts'
 import type { EyeMeasure } from '../../lib/submission.ts'
 import type { ChartCurve, ChartOutline } from './radarSeries.ts'
 
@@ -36,14 +39,30 @@ const skyId = useId()
 
 const reach = computed(() => {
   const outlineDegrees = props.outlines.flatMap(({ outlines }) => outlines.flatMap((points) => points.map(({ degrees }) => degrees)))
-  return reachOf(Math.max(largestAngle(props.curves.map((curve) => curve.shape)), ...outlineDegrees))
+  const oneEye = props.curves.flatMap((curve) => curve.oneEye)
+  return reachOf(Math.max(largestAngle(props.curves.map((curve) => curve.shape), oneEye), ...outlineDegrees))
 })
 const scale = computed(() => radialScale(reach.value))
 const rings = computed(() => ringsOf(reach.value, scale.value))
 const spokes = spokesOf()
 
+/** How far outside its dot the eye letter of a one-eye angle sits. */
+const oneEyeLabelGap = 11
+
 const drawnCurves = computed(() =>
-  props.curves.map((curve) => ({ ...curve, path: shapePath(curve.shape, scale.value), points: shapePoints(curve.shape, scale.value) })),
+  props.curves.map((curve) => ({
+    ...curve,
+    path: shapePath(curve.shape, scale.value),
+    spans: shapeSpans(curve.shape, scale.value),
+    points: shapePoints(curve.shape, scale.value),
+    oneEyeDots: curve.oneEye.map(({ eye, direction, degrees }) => ({
+      key: `${eye}-${direction}`,
+      dot: screenPoint(turnOf(direction), scale.value(degrees)),
+      label: screenPoint(turnOf(direction), scale.value(degrees) + oneEyeLabelGap),
+      letter: eye === 'left' ? 'L' : 'R',
+      title: `${curve.label}, ${direction}: ${formatDegrees(degrees)}, ${eye} eye only`,
+    })),
+  })),
 )
 const drawnOutlines = computed(() =>
   props.outlines.map((outline) => ({ ...outline, paths: outline.outlines.map((points) => outlinePath(points, scale.value)) })),
@@ -54,11 +73,12 @@ const sceneView = computed(() => {
   const scene = sceneOf(props.scene)
   const outside = `M${String(-plotRadius)},${String(-plotRadius)}h${String(2 * plotRadius)}v${String(2 * plotRadius)}h${String(-2 * plotRadius)}Z`
   return {
+    photo: scene.photo === null ? null : { href: `${import.meta.env.BASE_URL}${scene.photo}`, radius: scale.value(photoLimitDegrees) },
     sky: scene.sky,
     ground: scene.ground,
     shapes: sceneShapes(props.scene, reach.value, scale.value),
     dimmer: `${outside} ${shapePath(props.window, scale.value)}`,
-    bothEyes: props.bothEyes === null ? '' : shapePath(props.bothEyes, scale.value),
+    bothEyes: props.bothEyes === null ? [] : shapeSpans(props.bothEyes, scale.value),
   }
 })
 
@@ -113,6 +133,15 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
           :height="plotRadius"
           :fill="sceneView.ground"
         />
+        <image
+          v-if="sceneView.photo !== null"
+          :href="sceneView.photo.href"
+          :x="-sceneView.photo.radius"
+          :y="-sceneView.photo.radius"
+          :width="2 * sceneView.photo.radius"
+          :height="2 * sceneView.photo.radius"
+          preserveAspectRatio="none"
+        />
         <path
           v-for="(shape, shapeIndex) in sceneView.shapes"
           :key="shapeIndex"
@@ -121,7 +150,6 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
           :stroke="shape.stroke"
           :stroke-width="shape.strokeWidth"
           :stroke-opacity="shape.strokeOpacity"
-          :stroke-linecap="shape.roundCap ? 'round' : undefined"
         />
         <path
           class="dimmer"
@@ -184,7 +212,17 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
       class="curve"
       :class="[curve.colourClass, { filled: curve.filled, dashed: curve.dashed, emphasised: curve.emphasised, mean: curve.mean }]"
     >
-      <path :d="curve.path" />
+      <path
+        class="area"
+        :d="curve.path"
+      />
+      <path
+        v-for="(span, spanIndex) in curve.spans"
+        :key="spanIndex"
+        class="edge"
+        :class="{ unmeasured: !span.measured }"
+        :d="span.path"
+      />
       <circle
         v-for="point in curve.points"
         :key="point.direction"
@@ -194,12 +232,32 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
       >
         <title>{{ curve.label }}, {{ point.direction }}: {{ formatDegrees(point.degrees) }}</title>
       </circle>
+      <g
+        v-for="oneEyeDot in curve.oneEyeDots"
+        :key="oneEyeDot.key"
+        class="one-eye"
+      >
+        <title>{{ oneEyeDot.title }}</title>
+        <circle
+          :cx="oneEyeDot.dot.screenX"
+          :cy="oneEyeDot.dot.screenY"
+          r="4.5"
+        />
+        <text
+          :x="oneEyeDot.label.screenX"
+          :y="oneEyeDot.label.screenY"
+        >{{ oneEyeDot.letter }}</text>
+      </g>
     </g>
-    <path
-      v-if="sceneView !== null && sceneView.bothEyes !== ''"
-      class="both-eyes"
-      :d="sceneView.bothEyes"
-    />
+    <template v-if="sceneView !== null">
+      <path
+        v-for="(span, spanIndex) in sceneView.bothEyes"
+        :key="`both-eyes-${spanIndex}`"
+        class="both-eyes"
+        :class="{ unmeasured: !span.measured }"
+        :d="span.path"
+      />
+    </template>
     <circle
       class="centre"
       r="2.5"
@@ -245,21 +303,25 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
   fill: #000;
   fill-opacity: 0.8;
 }
-.curve path {
+.curve .area {
+  fill: none;
+  stroke: none;
+}
+.curve.filled .area {
+  fill: var(--series);
+  fill-opacity: 0.1;
+}
+.curve .edge {
   fill: none;
   stroke: var(--series);
   stroke-width: 2;
   stroke-linejoin: round;
 }
-.curve.filled path {
-  fill: var(--series);
-  fill-opacity: 0.1;
-}
-.curve.dashed path {
+.curve.dashed .edge {
   stroke-dasharray: 7 4;
   stroke-width: 2.4;
 }
-.curve.mean path {
+.curve.mean .edge {
   stroke-width: 1.5;
   stroke-dasharray: 9 3 2 3;
   opacity: 0.8;
@@ -267,13 +329,38 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
 .curve.mean circle {
   display: none;
 }
-.curve.emphasised path {
+.curve.emphasised .edge {
   stroke-width: 3;
+}
+.curve .edge.unmeasured {
+  stroke-width: 1.6;
+  stroke-dasharray: 4 4;
+  opacity: 0.75;
+}
+/* A mean keeps its dash-dot where unmeasured, only fainter, so it never passes for the highest. */
+.curve.mean .edge.unmeasured {
+  stroke-width: 1.3;
+  stroke-dasharray: 9 3 2 3;
+  opacity: 0.5;
 }
 .curve circle {
   fill: var(--series);
   stroke: var(--surface);
   stroke-width: 2;
+}
+.curve .one-eye circle {
+  fill: var(--surface);
+  stroke: var(--series);
+}
+.one-eye text {
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--series);
+  stroke: var(--surface);
+  stroke-width: 3;
+  paint-order: stroke;
+  text-anchor: middle;
+  dominant-baseline: middle;
 }
 .rendered path {
   fill: none;
@@ -288,6 +375,10 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
   stroke: #f5c542;
   stroke-width: 1.6;
   stroke-dasharray: 3 3;
+}
+.both-eyes.unmeasured {
+  stroke-dasharray: 1.5 6;
+  opacity: 0.75;
 }
 .centre {
   fill: var(--text);

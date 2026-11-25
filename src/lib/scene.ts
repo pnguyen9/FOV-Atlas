@@ -1,11 +1,12 @@
 /**
- * The "what you see" scenes: generic 3D sketches around a seated viewer, drawn in the radar's own
- * projection (the distance from the centre is the angle from straight ahead), so a measured shape
- * cuts a window into the scene with no conversion. Straight edges come out curved, as in a fisheye
- * picture.
+ * The "what you see" scenes, drawn in the radar's own projection (the distance from the centre is
+ * the angle from straight ahead), so a measured shape cuts a window into the scene with no
+ * conversion. Straight edges come out curved, as in a fisheye picture.
  *
- * Points are in metres: across to the right, height up, depth straight ahead, with the eyes at
- * the origin. Shapes are listed back to front so later ones paint over earlier ones.
+ * A scene is either a 3D sketch around the viewer or a 360° photo already turned into the radar's
+ * projection by `scripts/reproject-scene.py`. Sketch points are in metres: across to the right,
+ * height up, depth straight ahead, with the eyes at the origin. Shapes are listed back to front so
+ * later ones paint over earlier ones.
  */
 
 import { degreesOf } from './ceiling.ts'
@@ -17,8 +18,6 @@ interface Polygon {
   readonly kind: 'polygon'
   readonly points: readonly Point3[]
   readonly fill: string
-  readonly stroke?: string
-  readonly strokeWidth?: number
 }
 
 interface Segment {
@@ -28,7 +27,6 @@ interface Segment {
   readonly stroke: string
   readonly strokeWidth: number
   readonly strokeOpacity?: number
-  readonly roundCap?: boolean
 }
 
 type Item = Polygon | Segment
@@ -40,15 +38,20 @@ export interface SceneShape {
   readonly stroke: string | undefined
   readonly strokeWidth: number | undefined
   readonly strokeOpacity: number | undefined
-  readonly roundCap: boolean
 }
 
 export interface Scene {
   readonly name: string
+  /** Painted first, and all there is of a photo scene while its image loads. */
   readonly sky: readonly [top: string, bottom: string]
   readonly ground: string
   readonly items: () => Item[]
+  /** A photo in the radar's projection, served from `public/`, its disc reaching `photoLimitDegrees`. */
+  readonly photo: string | null
 }
+
+/** The angle from straight ahead at the edge of a photo scene's disc: straight behind. */
+export const photoLimitDegrees = 180
 
 /**
  * Shapes are cut at this angle from straight ahead. The projection reaches straight behind, but
@@ -137,12 +140,7 @@ export function scenePath(points: readonly Point3[], closed: boolean, scale: Rad
   return `M${path}${closed ? 'Z' : ''}`
 }
 
-const polygon = (points: readonly Point3[], fill: string, outline?: { stroke: string; strokeWidth: number }): Polygon => ({
-  kind: 'polygon',
-  points,
-  fill,
-  ...outline,
-})
+const polygon = (points: readonly Point3[], fill: string): Polygon => ({ kind: 'polygon', points, fill })
 
 const segment = (start: Point3, end: Point3, stroke: string, strokeWidth: number, extra: Partial<Segment> = {}): Segment => ({
   kind: 'segment',
@@ -187,17 +185,6 @@ function box(low: Point3, high: Point3, colours: BoxColours): Polygon[] {
   })
 }
 
-function disc(centre: Point3, radius: number, plane: 'flat' | 'upright', fill: string, outline?: { stroke: string; strokeWidth: number }): Polygon {
-  const [across, height, depth] = centre
-  const points = Array.from({ length: 24 }, (_, pointIndex): Point3 => {
-    const angle = (pointIndex / 24) * 2 * Math.PI
-    const sideways = radius * Math.cos(angle)
-    const along = radius * Math.sin(angle)
-    return plane === 'flat' ? [across + sideways, height, depth + along] : [across + sideways, height + along, depth]
-  })
-  return polygon(points, fill, outline)
-}
-
 function gridVoid(): Item[] {
   const floor = -1.6
   const gridColour = '#2f6fd6'
@@ -213,109 +200,22 @@ function gridVoid(): Item[] {
   return items
 }
 
-/** Seated on a sofa against the back wall, facing the TV. */
-function livingRoom(): Item[] {
-  const floor = -1.15
-  const ceiling = 1.35
-  const side = 2.6
-  const front = 3.6
-  const items: Item[] = [
-    polygon([[-side, ceiling, 0], [side, ceiling, 0], [side, ceiling, front], [-side, ceiling, front]], '#efebe4'),
-    polygon([[-side, floor, front], [side, floor, front], [side, ceiling, front], [-side, ceiling, front]], '#d8cdbd'),
-    polygon([[-side, floor, 0], [-side, floor, front], [-side, ceiling, front], [-side, ceiling, 0]], '#c9bca8'),
-    polygon([[side, floor, 0], [side, floor, front], [side, ceiling, front], [side, ceiling, 0]], '#cdc1af'),
-    polygon([[-side, floor, 0], [side, floor, 0], [side, floor, front], [-side, floor, front]], '#9a7650'),
-  ]
-  for (let board = 0; board < 25; board += 1) {
-    const across = -2.4 + board * 0.2
-    items.push(segment([across, floor, 0], [across, floor, front], '#86643f', 0.7))
-  }
-  items.push(
-    polygon([[-1.3, floor + 0.01, 0.8], [1.3, floor + 0.01, 0.8], [1.3, floor + 0.01, 2.6], [-1.3, floor + 0.01, 2.6]], '#7d3f3a'),
-    polygon([[-side + 0.01, -0.4, 1], [-side + 0.01, -0.4, 2.6], [-side + 0.01, 0.9, 2.6], [-side + 0.01, 0.9, 1]], '#bfe0f7', {
-      stroke: '#fafafa',
-      strokeWidth: 4,
-    }),
-    segment([-side + 0.01, -0.4, 1.8], [-side + 0.01, 0.9, 1.8], '#fafafa', 3),
-    segment([-side + 0.01, 0.25, 1], [-side + 0.01, 0.25, 2.6], '#fafafa', 3),
-    polygon([[side - 0.01, floor, 2.2], [side - 0.01, floor, 3.1], [side - 0.01, 0.85, 3.1], [side - 0.01, 0.85, 2.2]], '#a9825a', {
-      stroke: '#8a6640',
-      strokeWidth: 2,
-    }),
-    ...box([2.2, floor, 0.6], [side, 0.7, 1.6], { top: '#6b4c32', side: '#6b4c32', front: '#5a3f29' }),
-  )
-  for (const height of [-0.6, -0.1, 0.4]) items.push(segment([2.2, height, 0.6], [2.2, height, 1.6], '#3f2c1c', 2.5))
-  items.push(
-    ...box([-1.1, floor, 3.2], [1.1, -0.65, front], { top: '#5e4630', side: '#4d3926', front: '#4d3926' }),
-    polygon([[-0.9, -0.45, front - 0.02], [0.9, -0.45, front - 0.02], [0.9, 0.55, front - 0.02], [-0.9, 0.55, front - 0.02]], '#121417'),
-    polygon([[-0.86, -0.41, front - 0.03], [0.86, -0.41, front - 0.03], [0.86, 0.51, front - 0.03], [-0.86, 0.51, front - 0.03]], '#22344a'),
-    segment([-2.1, floor, 3.1], [-2.1, 0.4, 3.1], '#333333', 2),
-    ...box([-2.3, 0.4, 2.9], [-1.9, 0.75, 3.3], { top: '#f3e3c0', side: '#ecd7ab', front: '#f3e3c0' }),
-    disc([0, ceiling - 0.01, 2], 0.25, 'flat', '#fff8e1'),
-    ...box([-0.6, floor, 1.2], [0.6, -0.75, 1.8], { top: '#6e5236', side: '#55402a', front: '#5d4630' }),
-  )
-  return items
-}
-
-/** A small aircraft's seat: the panel ahead, the canopy frame, fields and clouds outside. */
-function cockpit(): Item[] {
-  const frame = '#25282c'
-  const seatSides = { top: '#3a3f45', side: '#30343a', front: '#30343a' }
-  const items: Item[] = [
-    polygon([[-6000, -800, 600], [-800, -800, 600], [-800, -800, 6000], [-6000, -800, 6000]], '#6f8650'),
-    polygon([[300, -800, 1500], [5000, -800, 1500], [5000, -800, 6000], [300, -800, 6000]], '#7b8a55'),
-    polygon([[-800, -800, 2500], [300, -800, 2500], [300, -800, 6000], [-800, -800, 6000]], '#56693d'),
-  ]
-  for (const [across, height, depth, radius] of [
-    [-900, 700, 3000, 260],
-    [-500, 760, 3000, 200],
-    [1400, 900, 3500, 320],
-    [1800, 850, 3500, 220],
-  ] as const) {
-    items.push(disc([across, height, depth], radius, 'upright', 'rgba(255,255,255,.85)'))
-  }
-  items.push(
-    ...box([-0.62, -1.2, -0.1], [-0.38, -0.5, 0.75], seatSides),
-    ...box([0.38, -1.2, -0.1], [0.62, -0.5, 0.75], seatSides),
-    polygon([[-0.65, -0.85, 0.75], [0.65, -0.85, 0.75], [0.65, -0.22, 0.75], [-0.65, -0.22, 0.75]], '#2b2f35'),
-  )
-  const dials: readonly (readonly [number, number])[] = [
-    [-0.42, -0.42], [-0.21, -0.42], [0, -0.42], [0.21, -0.42], [0.42, -0.42],
-    [-0.31, -0.65], [-0.1, -0.65], [0.1, -0.65], [0.31, -0.65],
-  ]
-  for (const [across, height] of dials) {
-    items.push(
-      disc([across, height, 0.745], 0.075, 'upright', '#0d0f12', { stroke: '#8d939b', strokeWidth: 1.5 }),
-      segment([across, height, 0.74], [across + 0.05, height + 0.03, 0.74], '#f2f2f2', 1.5),
-    )
-  }
-  items.push(
-    ...box([-0.68, -0.24, 0.55], [0.68, -0.18, 0.78], { top: '#15171a', side: '#1d2024', front: '#1d2024' }),
-    segment([0, -1.2, 0.35], [0, -0.62, 0.42], '#1b1d20', 7, { roundCap: true }),
-    polygon([[-0.13, -0.17, 0.6], [0.13, -0.17, 0.6], [0.13, 0.12, 0.6], [-0.13, 0.12, 0.6]], 'rgba(120,255,170,.08)', {
-      stroke: '#5f6a70',
-      strokeWidth: 2,
-    }),
-  )
-  for (const height of [-0.08, 0, 0.08]) items.push(segment([-0.06, height, 0.59], [0.06, height, 0.59], '#6dff9e', 1.2))
-  items.push(
-    segment([-0.62, -0.2, 0.7], [-0.62, -0.2, -0.5], frame, 8),
-    segment([0.62, -0.2, 0.7], [0.62, -0.2, -0.5], frame, 8),
-    segment([-0.62, -0.18, 0.72], [-0.34, 0.42, 0.25], frame, 9, { roundCap: true }),
-    segment([0.62, -0.18, 0.72], [0.34, 0.42, 0.25], frame, 9, { roundCap: true }),
-    segment([-0.34, 0.42, 0.25], [0, 0.5, 0.22], frame, 9, { roundCap: true }),
-    segment([0, 0.5, 0.22], [0.34, 0.42, 0.25], frame, 9, { roundCap: true }),
-  )
-  return items
-}
-
-export const sceneNames = ['void', 'room', 'cockpit'] as const
+export const sceneNames = ['void', 'room'] as const
 export type SceneName = (typeof sceneNames)[number]
 
 const scenes: ReadonlyMap<SceneName, Scene> = new Map([
-  ['void', { name: 'Grid void', sky: ['#03060d', '#0b1630'], ground: '#060a12', items: gridVoid }],
-  ['room', { name: 'Living room', sky: ['#efebe4', '#efebe4'], ground: '#9a7650', items: livingRoom }],
-  ['cockpit', { name: 'Cockpit', sky: ['#2e64a8', '#b5d3ee'], ground: '#5f7445', items: cockpit }],
+  ['void', { name: 'Grid void', sky: ['#03060d', '#0b1630'], ground: '#060a12', items: gridVoid, photo: null }],
+  [
+    'room',
+    {
+      name: 'Living room',
+      sky: ['#efe3bd', '#e3d3a4'],
+      ground: '#9b8c78',
+      items: () => [],
+      // "Anniversary Lounge" by Greg Zaal, Poly Haven, CC0.
+      photo: 'scenes/living-room.webp',
+    },
+  ],
 ])
 
 export function sceneOf(name: SceneName): Scene {
@@ -332,7 +232,6 @@ function shapeOf(item: Item, scale: RadialScale): SceneShape | null {
       stroke: item.stroke,
       strokeWidth: item.strokeWidth,
       strokeOpacity: item.strokeOpacity,
-      roundCap: item.roundCap === true,
     }
   }
   const clipped = clipPolygon(item.points)
@@ -340,10 +239,9 @@ function shapeOf(item: Item, scale: RadialScale): SceneShape | null {
   return {
     path: scenePath(clipped, true, scale),
     fill: item.fill,
-    stroke: item.stroke,
-    strokeWidth: item.strokeWidth,
+    stroke: undefined,
+    strokeWidth: undefined,
     strokeOpacity: undefined,
-    roundCap: false,
   }
 }
 

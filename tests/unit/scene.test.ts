@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { radialScale } from '../../src/lib/radarGeometry'
-import { angleFromAhead, clipPolygon, clipSegment, project, sceneNames, sceneOf, scenePath, sceneShapes, type Point3, viewLimitDegrees } from '../../src/lib/scene'
+import { angleFromAhead, clipPolygon, clipSegment, project, sceneOf, scenePath, sceneShapes, type Point3, viewLimitDegrees } from '../../src/lib/scene'
 
 const scale = radialScale(90)
 
@@ -56,16 +56,19 @@ describe('scenePath', () => {
 })
 
 describe('scenes', () => {
-  it.each(sceneNames)('projects the %s scene once per reach', (name) => {
-    const shapes = sceneShapes(name, 90, scale)
+  it('projects the sketched scene once per reach', () => {
+    const shapes = sceneShapes('void', 90, scale)
     expect(shapes.length).toBeGreaterThan(10)
-    expect(sceneShapes(name, 90, scale)).toBe(shapes)
-    expect(sceneOf(name).name).not.toBe('')
+    expect(sceneShapes('void', 90, scale)).toBe(shapes)
+    expect(sceneOf('void')).toMatchObject({ name: 'Grid void', photo: null })
   })
   it('draws lines without fill and areas with one', () => {
     const shapes = sceneShapes('void', 90, scale)
     expect(shapes.some((shape) => shape.fill === 'none' && shape.strokeOpacity === 0.7)).toBe(true)
-    expect(sceneShapes('cockpit', 90, scale).some((shape) => shape.roundCap)).toBe(true)
-    expect(sceneShapes('room', 90, scale).some((shape) => shape.fill !== 'none' && shape.stroke === '#fafafa')).toBe(true)
+    expect(shapes.some((shape) => shape.fill !== 'none' && shape.stroke === undefined)).toBe(true)
+  })
+  it('shows the living room as a photo, with no shapes over it', () => {
+    expect(sceneOf('room')).toMatchObject({ name: 'Living room', photo: 'scenes/living-room.webp' })
+    expect(sceneShapes('room', 90, scale)).toEqual([])
   })
 })

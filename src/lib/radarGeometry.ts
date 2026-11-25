@@ -60,6 +60,59 @@ export function shapePath(shape: EyeMeasure, scale: RadialScale): string {
   return line(entries) ?? ''
 }
 
+/** A stretch of a shape's curve, and whether the tool measured every principal direction it passes. */
+export interface CurveSpan {
+  readonly path: string
+  readonly measured: boolean
+}
+
+const isPrincipal = (direction: Direction): boolean => principalDirections.includes(direction)
+
+/** Whether a principal direction lies strictly between two directions, going round from the first. */
+function passesPrincipal(from: Direction, to: Direction): boolean {
+  const start = directions.indexOf(from)
+  const steps = (directions.indexOf(to) - start + directions.length) % directions.length || directions.length
+  return Array.from({ length: steps - 1 }, (_, stepIndex) => directions[(start + stepIndex + 1) % directions.length]).some(
+    (direction) => direction !== undefined && isPrincipal(direction),
+  )
+}
+
+/** Whether a shape lacks any principal direction, so that part of its curve is not measured. */
+export function missesPrincipal(shape: EyeMeasure): boolean {
+  const measured = new Set(entriesOf(shape).map(([direction]) => direction))
+  return principalDirections.some((direction) => !measured.has(direction))
+}
+
+/**
+ * The curve of `shapePath` split where it changes between measured and not: a stretch passing over
+ * a principal direction nobody measured only joins the points on either side. In-between
+ * directions are optional, so passing over one of those counts as measured.
+ */
+export function shapeSpans(shape: EyeMeasure, scale: RadialScale): CurveSpan[] {
+  const entries = entriesOf(shape)
+  const path = shapePath(shape, scale)
+  if (entries.length < 3) return path === '' ? [] : [{ path, measured: false }]
+  // d3 starts the closed curve at the second point and draws one cubic per pair of neighbours.
+  const [start = '', ...cubics] = path.slice(1).replace(/Z$/, '').split('C')
+  let pen = start
+  const pieces = cubics.map((cubic, cubicIndex) => {
+    const [from] = entries[(cubicIndex + 1) % entries.length] ?? []
+    const [to] = entries[(cubicIndex + 2) % entries.length] ?? []
+    const piece = { from: pen, cubic, measured: from === undefined || to === undefined || !passesPrincipal(from, to) }
+    pen = cubic.split(',').slice(-2).join(',')
+    return piece
+  })
+  const firstChange = pieces.findIndex((piece, pieceIndex) => piece.measured !== pieces.at(pieceIndex - 1)?.measured)
+  if (firstChange === -1) return [{ path, measured: pieces[0]?.measured ?? true }]
+  const spans: { from: string; cubics: string[]; measured: boolean }[] = []
+  for (const piece of [...pieces.slice(firstChange), ...pieces.slice(0, firstChange)]) {
+    const current = spans.at(-1)
+    if (current?.measured === piece.measured) current.cubics.push(piece.cubic)
+    else spans.push({ from: piece.from, cubics: [piece.cubic], measured: piece.measured })
+  }
+  return spans.map(({ from, cubics: spanCubics, measured }) => ({ path: `M${from}C${spanCubics.join('C')}`, measured }))
+}
+
 export interface ShapePoint extends ScreenPoint {
   readonly direction: Direction
   readonly degrees: number

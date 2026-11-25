@@ -165,11 +165,12 @@ const rows = computed(() => props.entries.map(({ issue, entry }) => ({ issue, en
           >
             {{ noseBridge?.label }}
           </td>
-          <td
-            class="text-cell"
-            :title="entry.submission.tuning.details || undefined"
-          >
+          <td class="text-cell long-text">
             {{ tuningLabelOf(tuningOf(entry.submission)) }}
+            <span
+              v-if="entry.submission.tuning.details"
+              class="details muted"
+            >{{ entry.submission.tuning.details }}</span>
           </td>
           <td class="text-cell">
             {{ gazeLabelOf(entry.submission.gaze) }}
@@ -190,7 +191,7 @@ const rows = computed(() => props.entries.map(({ issue, entry }) => ({ issue, en
             {{ ceilingWords(entry.submission) }}<span class="tag">{{ cornerMaskWords(entry.submission) }}</span>
           </td>
           <td
-            class="text-cell interface"
+            class="text-cell long-text"
             :title="entry.submission.note || undefined"
           >
             {{ entry.submission.facialInterface || '—' }}
@@ -218,10 +219,13 @@ const rows = computed(() => props.entries.map(({ issue, entry }) => ({ issue, en
 .figure-value + .figure-value {
   margin-left: 0.25em;
 }
-.interface {
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Tuning details and facial interfaces are free text people write to tell their measures apart, so they are shown whole. */
+.long-text {
+  min-width: 11em;
+}
+.details {
+  display: block;
+  font-size: 0.88em;
 }
 tr.picked {
   background: var(--accent-soft);

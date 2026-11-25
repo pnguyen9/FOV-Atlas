@@ -37,7 +37,9 @@ The first mockup of the pages lives in [docs/mockup](docs/mockup/index.html).
 The way FOV Atlas measures is heavily inspired by [VR Headset Picker](https://vrheadsetpicker.com)'s
 measure, a great way of doing it. Showing a field of view as a radar chart is inspired by
 [WIMFOV](https://boll.itch.io/wimfov). The "what you see" view, how a field of view looks in VR,
-comes from an idea by Reddit user Heliosurge.
+comes from an idea by Reddit user Heliosurge. Its living room is the 360° photo
+[Anniversary Lounge](https://polyhaven.com/a/anniversary_lounge) by Greg Zaal, from
+[Poly Haven](https://polyhaven.com) (CC0).
 
 I described the problem and gave some technical specifications. The entire coding was done by
 Claude Code, and the whole design and navigation of the site were its suggestions.

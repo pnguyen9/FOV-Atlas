@@ -2,7 +2,7 @@
 
 import { keptMeasureName } from '../measureLabels.ts'
 import { renderedFrameOf, type OutlinePoint, type RenderedFrame } from '../../lib/ceiling.ts'
-import { shapeOf, type Combined, type Statistic } from '../../lib/fovStats.ts'
+import { shapeOf, type Combined, type OneEyeValue, type Statistic } from '../../lib/fovStats.ts'
 import { averagedHeadFrame, averagedPictureFrame, unitDifference, unitDifferenceWords, type RenderedAverage } from '../../lib/renderedAverage.ts'
 import { loadedValue, type Loaded } from '../../lib/siteData.ts'
 import { angleOriginOf, showsRenderedAverage, type EyeMeasure, type EyeMeasures, type KeptSubmission, type Submission, type Tool } from '../../lib/submission.ts'
@@ -145,6 +145,8 @@ export interface ChartCurve {
   readonly colourClass: string
   readonly label: string
   readonly shape: EyeMeasure
+  /** Angles only one eye has, drawn as marked dots beside an either-eye or both-eyes shape. */
+  readonly oneEye: readonly OneEyeValue[]
   readonly filled: boolean
   readonly dashed: boolean
   readonly emphasised: boolean

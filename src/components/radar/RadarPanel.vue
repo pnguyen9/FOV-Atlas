@@ -10,9 +10,10 @@ import SegmentedControl from '../SegmentedControl.vue'
 import { colourClass, type ChartCurve, type ChartOutline, type RadarSeries } from './radarSeries.ts'
 import { compareState } from '../../pages/compare/compareState.ts'
 import { pictureOutline } from '../../lib/ceiling.ts'
-import { combineEyes, eyeModeFor, type EyeMode } from '../../lib/fovStats.ts'
+import { eyeModeFor, eyeView, type EyeMode } from '../../lib/fovStats.ts'
+import { missesPrincipal } from '../../lib/radarGeometry.ts'
 import { sceneNames, sceneOf, type SceneName } from '../../lib/scene.ts'
-import { measuresBothEyesAtOnce, showsRenderedAverage, type EyeMeasures, type Tool } from '../../lib/submission.ts'
+import { measuresBothEyesAtOnce, showsRenderedAverage, toolNameOf, type EyeMeasures, type Tool } from '../../lib/submission.ts'
 
 const props = defineProps<{
   readonly series: readonly RadarSeries[]
@@ -31,13 +32,15 @@ const through = computed(() => withShapes.value.find((item) => item.key === comp
 
 const showsMeans = computed(() => compareState.radar.alsoMean && compareState.radar.statistic === 'highest' && !seeing.value)
 
+const viewOf = (measures: EyeMeasures) => eyeView(measures, eyeMode.value, props.tool)
+
 const curves = computed<ChartCurve[]>(() =>
   withShapes.value.flatMap((item) => {
     const main: ChartCurve = {
       key: item.key,
       colourClass: colourClass(item.colour),
       label: item.label,
-      shape: combineEyes(item.measures, eyeMode.value),
+      ...viewOf(item.measures),
       filled: !seeing.value,
       dashed: item.colour === 'kept',
       emphasised: seeing.value && item.key === through.value?.key,
@@ -48,7 +51,8 @@ const curves = computed<ChartCurve[]>(() =>
       ...main,
       key: `${item.key}:mean`,
       label: `${item.name} · mean`,
-      shape: combineEyes(item.meanMeasures, eyeMode.value),
+      shape: viewOf(item.meanMeasures).shape,
+      oneEye: [],
       filled: false,
       mean: true,
     }
@@ -75,14 +79,20 @@ const outlines = computed<ChartOutline[]>(() =>
 )
 
 function bothEyesOf(measures: EyeMeasures): EyeMeasures['left'] | null {
-  return eyeMode.value === 'union' && !measuresBothEyesAtOnce(props.tool) ? combineEyes(measures, 'overlap') : null
+  return eyeMode.value === 'union' && !measuresBothEyesAtOnce(props.tool) ? eyeView(measures, 'overlap', props.tool).shape : null
 }
 
 const sceneProps = computed(() => {
   const shown = through.value
   if (!seeing.value || shown === undefined) return { scene: null, window: null, bothEyes: null }
-  return { scene: compareState.radar.scene, window: combineEyes(shown.measures, eyeMode.value), bothEyes: bothEyesOf(shown.measures) }
+  return { scene: compareState.radar.scene, window: viewOf(shown.measures).shape, bothEyes: bothEyesOf(shown.measures) }
 })
+
+const toolName = computed(() => toolNameOf(props.tool))
+const showsUnmeasured = computed(() =>
+  [...curves.value.map((curve) => curve.shape), sceneProps.value.bothEyes].some((shape) => shape !== null && missesPrincipal(shape)),
+)
+const showsOneEye = computed(() => curves.value.some((curve) => curve.oneEye.length > 0))
 
 const eyeWords: Readonly<Record<EyeMode, string>> = {
   union: 'both eyes together',
@@ -199,6 +209,32 @@ onBeforeUnmount(() => {
           Dotted: what the headsets report drawing.
         </template>
       </p>
+      <p
+        v-if="showsUnmeasured || showsOneEye"
+        class="small muted line-key unmeasured-key"
+      >
+        <span
+          v-if="showsUnmeasured"
+          class="key-item"
+        >
+          <span
+            class="legend-line unmeasured"
+            aria-hidden="true"
+          />Short dashes: not measured by {{ toolName }}. The line there only joins the measured points around it.
+        </span>
+        <span
+          v-if="showsOneEye"
+          class="key-item"
+        >
+          <span
+            class="one-eye-key"
+            aria-hidden="true"
+          >L</span><span
+            class="one-eye-key"
+            aria-hidden="true"
+          >R</span> Measured on one eye only: either eye and both eyes use the directions measured on both.
+        </span>
+      </p>
       <div
         v-if="renderedNotes.length > 0"
         class="small muted rendered-notes"
@@ -225,8 +261,8 @@ onBeforeUnmount(() => {
         class="small muted"
       >
         You're looking straight ahead. Clear: inside {{ through.seeText }} ({{ eyeWords[eyeMode] }}). Dimmed: there, but
-        outside it. Each ring is 10° further from straight ahead, so straight edges bend as in a fisheye photo. The scenes
-        are generic sketches.
+        outside it. Each ring is 10° further from straight ahead, so straight edges bend as in a fisheye photo. The living
+        room is a 360° photo, the grid void a sketch.
       </p>
     </template>
     <div
@@ -293,6 +329,27 @@ onBeforeUnmount(() => {
 }
 .legend-line.dashed {
   border-top-style: dashed;
+}
+.legend-line.unmeasured {
+  border-top: 1.6px dashed var(--muted);
+}
+.one-eye-key {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.key-item {
+  display: block;
+}
+.one-eye-key + .one-eye-key {
+  margin-right: 6px;
 }
 .legend-line.both-eyes {
   border-top: 2px dashed #f5c542;
