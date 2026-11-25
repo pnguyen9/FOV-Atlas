@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { eyeDepthOptions, noseBridgeOptions } from '../../components/faceFit.ts'
 import { catalogHeadset, otherHeadset } from '../../lib/headsets.ts'
 import { renderIssueBody } from '../../lib/issueForm.ts'
 import { issueOf, keptMeasureOf, type IssueResult } from '../../lib/measureDraft.ts'
-import { encodeMeasureText, measureLink } from '../../lib/measureFile.ts'
 import { toolNameOf } from '../../lib/submission.ts'
+import KeepMeasureButtons from './KeepMeasureButtons.vue'
 import { useDraft } from './draftContext.ts'
 
 const draft = useDraft()
@@ -14,40 +14,6 @@ const issueBody = computed(() => (issue.value.ok ? renderIssueBody(issue.value.f
 const readsWimfovLater = computed(() => issue.value.ok && issue.value.fields['wimfov-link'] !== '')
 
 const kept = computed(() => keptMeasureOf(draft))
-const keptText = computed(() => (kept.value.ok ? encodeMeasureText(kept.value.submission) : ''))
-const keptLink = computed(() => (kept.value.ok ? measureLink(kept.value.submission, window.location.href) : ''))
-const fileName = computed(() =>
-  kept.value.ok ? `fov-atlas-${kept.value.submission.headset}-${kept.value.submission.tool}.json` : 'fov-atlas-measure.json',
-)
-
-/** The file behind "Save as a file", replaced whenever the measure changes. */
-const fileUrl = ref('')
-function releaseFile(): void {
-  if (fileUrl.value !== '') URL.revokeObjectURL(fileUrl.value)
-  fileUrl.value = ''
-}
-watch(
-  keptText,
-  (text) => {
-    releaseFile()
-    if (text !== '') fileUrl.value = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
-  },
-  { immediate: true },
-)
-onBeforeUnmount(releaseFile)
-
-type CopyState = { readonly kind: 'idle' } | { readonly kind: 'copied'; readonly what: string } | { readonly kind: 'manual'; readonly text: string }
-const copyState = ref<CopyState>({ kind: 'idle' })
-
-/** The clipboard can be refused (an insecure page, a denied permission): the text is then shown to copy by hand. */
-async function copy(text: string, what: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text)
-    copyState.value = { kind: 'copied', what }
-  } catch {
-    copyState.value = { kind: 'manual', text }
-  }
-}
 
 const yesNo = (value: boolean): string => (value ? 'Yes' : 'No')
 
@@ -129,48 +95,7 @@ function problemText(result: IssueResult): string {
         No GitHub account, or not ready to publish? Keep the measure to compare with it later. Nothing is sent
         anywhere: a link keeps the measure after the “#”, a part of the address browsers never send.
       </p>
-      <div class="keep-buttons">
-        <button
-          type="button"
-          class="button ghost"
-          @click="copy(keptLink, 'link')"
-        >
-          Copy as a link
-        </button>
-        <button
-          type="button"
-          class="button ghost"
-          @click="copy(keptText, 'text')"
-        >
-          Copy as text
-        </button>
-        <a
-          class="button ghost"
-          :href="fileUrl"
-          :download="fileName"
-        >Save as a file</a>
-      </div>
-      <p
-        v-if="copyState.kind === 'copied'"
-        class="small success"
-        role="status"
-      >
-        The {{ copyState.what }} is copied.
-      </p>
-      <template v-else-if="copyState.kind === 'manual'">
-        <p
-          class="small"
-          role="status"
-        >
-          This browser didn't allow copying. Select the text below and copy it.
-        </p>
-        <textarea
-          class="manual-copy"
-          readonly
-          rows="4"
-          :value="copyState.text"
-        />
-      </template>
+      <KeepMeasureButtons :submission="kept.submission" />
     </template>
     <p
       v-else-if="kept.error === 'wimfov-link'"
@@ -189,14 +114,6 @@ function problemText(result: IssueResult): string {
 </template>
 
 <style scoped>
-.keep-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.manual-copy {
-  margin-top: 4px;
-}
 .summary {
   display: grid;
   grid-template-columns: minmax(0, max-content) minmax(0, 1fr);

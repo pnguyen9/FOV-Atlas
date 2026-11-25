@@ -423,6 +423,14 @@ describe('ComparePage kept measure', () => {
     expect(wrapper.find('.unit-warning').text()).toContain('Valve Index: Units of this model differ by up to 10.0°')
   })
 
+  it('says plainly when the kept measure leaves its headset and face fit out', async () => {
+    const wrapper = await mountPage(encodeMeasureParameter({ ...vrhpBeyond, headset: '', face: null, gaze: null, tuning: null }))
+    expect(wrapper.find('.kept-row .text-cell').text()).toBe('Kept measure · headset not givennot published')
+    expect(wrapper.find('.kept-card').text()).toContain('Kept measure: headset not given')
+    expect(wrapper.find('.kept-card').text()).toContain('Not given: face fit, gaze, tuning.')
+    expect(cellsOf(wrapper, 0)[0]).toBe('97.0° / 95.8°')
+  })
+
   it('draws it dashed on the radar, and can leave it off', async () => {
     const wrapper = await mountPage(null, 'radar')
     await pickTool(wrapper, 'VR Headset Picker')

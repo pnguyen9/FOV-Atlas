@@ -25,7 +25,7 @@ export interface RenderedFrame {
 /** Whether the radar draws a rendered outline for the tool's measures or groups: every tool following hmdq's definition. */
 export const drawsRenderedOutline = (tool: Tool): boolean => tool !== 'wimfov'
 
-export function renderedFrameOf({ ceiling }: Submission): RenderedFrame | undefined {
+export function renderedFrameOf({ ceiling }: Pick<Submission, 'ceiling'>): RenderedFrame | undefined {
   return ceiling.source === 'measured' ? { left: ceiling.left, right: ceiling.right, turn: ceiling.canting } : undefined
 }
 
@@ -37,6 +37,8 @@ export interface OutlinePoint {
 
 export const radians = (degrees: number): number => (degrees * Math.PI) / 180
 export const degreesOf = (angle: number): number => (angle * 180) / Math.PI
+/** Hundredths of a degree, the finest step stored. */
+export const roundCenti = (degrees: number): number => Math.round(degrees * 100) / 100
 const pointsPerSide = 16
 
 /**

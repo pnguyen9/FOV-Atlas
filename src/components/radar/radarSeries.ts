@@ -1,11 +1,11 @@
 /** One shape on the radar: a headset's figures, one measure, or a kept measure. */
 
-import { headsetName } from '../measureLabels.ts'
+import { keptMeasureName } from '../measureLabels.ts'
 import { renderedFrameOf, type OutlinePoint, type RenderedFrame } from '../../lib/ceiling.ts'
 import { shapeOf, type Combined, type Statistic } from '../../lib/fovStats.ts'
 import { averagedHeadFrame, averagedPictureFrame, unitDifference, unitDifferenceWords, type RenderedAverage } from '../../lib/renderedAverage.ts'
 import type { Loaded } from '../../lib/siteData.ts'
-import type { EyeMeasure, EyeMeasures, Submission, Tool } from '../../lib/submission.ts'
+import type { EyeMeasure, EyeMeasures, KeptSubmission, Submission, Tool } from '../../lib/submission.ts'
 
 export interface RadarSeries {
   readonly key: string
@@ -101,17 +101,17 @@ export function aggregateSeries({ key, name, colour, combined, statistic, seeTex
 }
 
 /** Words for where a single measure's outline comes from. */
-export function measureRenderedNote(who: string, submission: Submission): string {
+export function measureRenderedNote(who: string, submission: Pick<Submission, 'ceiling'>): string {
   if (submission.ceiling.source === 'measured') return `${who}: what the headset reported drawing while measuring`
   if (submission.ceiling.source === 'link') return `${who}: its link gives only totals, set against its own figures`
   return `${who}: the headset's report wasn't read`
 }
 
 /** A kept measure: dashed, with its own headset's outline, never part of any group. */
-export function keptSeries(kept: Submission): RadarSeries {
+export function keptSeries(kept: KeptSubmission): RadarSeries {
   return {
     key: 'kept',
-    label: `Kept measure · ${headsetName(kept)} (not published)`,
+    label: `Kept measure · ${keptMeasureName(kept)} (not published)`,
     name: 'Kept measure',
     colour: 'kept',
     measures: kept.measures,

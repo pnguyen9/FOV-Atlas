@@ -12,7 +12,7 @@ import {
   parseMeasureParameter,
   parseMeasureText,
 } from '../../src/lib/measureFile'
-import type { Submission } from '../../src/lib/submission'
+import type { KeptSubmission, Submission } from '../../src/lib/submission'
 import { atlasSubmission, encodeVrhpPayload, testHmdSubmission } from './fixtures'
 
 const vrhpParsed = submissionFromFields({ ...issueFieldsOf(atlasSubmission), tool: 'vrhp', measure: encodeVrhpPayload() })
@@ -29,8 +29,11 @@ const base64Url = (text: string): string =>
   btoa(String.fromCharCode(...new TextEncoder().encode(text))).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
 
 describe('measure text', () => {
-  it.each<[string, Submission]>([
+  it.each<[string, KeptSubmission]>([
     ['a FOV Atlas measure with its measured ceiling', atlasSubmission],
+    ['a measure kept before its headset and face fit were given', { ...atlasSubmission, headset: '', otherHeadsetName: '', face: null }],
+    ['a measure kept before its face fit was given', { ...atlasSubmission, face: null }],
+    ['a measure kept before its setup was given', { ...atlasSubmission, gaze: null, tuning: null, ipd: null }],
     ['a VR Headset Picker measure with the link totals', vrhpSubmission],
     ['a TestHMD measure', testHmdSubmission],
     ['a headset the catalog lacks', { ...testHmdSubmission, headset: 'other', otherHeadsetName: 'Boba 3' }],
@@ -69,6 +72,10 @@ describe('measure text', () => {
     ['an unknown corner mask state', fileOf(changed({ cornerMask: 'off' })), 'shape-invalid'],
     ['an unknown input kind', fileOf(changed({ provenance: { input: 'scanned', linkData: null } })), 'shape-invalid'],
     ['link data that is not text', fileOf(changed({ provenance: { input: 'measured', linkData: 5 } })), 'shape-invalid'],
+    ['half a tuning answer', fileOf(changed({ tuning: { physicallyModded: false } })), 'shape-invalid'],
+    ['markup in the tuning details', fileOf(changed({ tuning: { physicallyModded: false, driverTuned: true, details: '<b>' } })), 'tuning-details-markup'],
+    ['half a face fit', fileOf(changed({ face: { eyeDepth: 'deep-set' } })), 'shape-invalid'],
+    ['a typed name with no headset', fileOf(changed({ headset: '', otherHeadsetName: 'Boba 3' })), 'headset-invalid'],
     ['an unknown face answer', fileOf(changed({ face: { eyeDepth: 'deep', noseBridge: 'low' } })), 'shape-invalid'],
     ['a tuning flag that is not a boolean', fileOf(changed({ tuning: { physicallyModded: 'no', driverTuned: true, details: '' } })), 'shape-invalid'],
     ['an unknown gaze', fileOf(changed({ gaze: 'wandering' })), 'shape-invalid'],

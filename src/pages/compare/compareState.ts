@@ -8,7 +8,7 @@
 import { reactive } from 'vue'
 import type { EyeMode, FilterChoices, Statistic } from '../../lib/fovStats.ts'
 import type { SceneName } from '../../lib/scene.ts'
-import { tools, type Submission, type Tool } from '../../lib/submission.ts'
+import { tools, type KeptSubmission, type Tool } from '../../lib/submission.ts'
 import { defaultColumnsFor, type CompareColumnId } from './columns.ts'
 
 /** Colours a chart can tell apart; a further series would have to repeat one. */
@@ -57,7 +57,7 @@ interface CompareState {
     enlarged: boolean
   }
   /** A measure opened to compare with; it stays in this browser and in no figure. */
-  kept: Submission | null
+  kept: KeptSubmission | null
   keptOnRadar: boolean
   /** The address's `measure` value the kept measure was opened from, so a return to the page doesn't open it again. */
   keptFromLink: string | null
@@ -84,7 +84,7 @@ export function resetCompareState(): void {
 }
 
 /** Opens a kept measure; with no tool picked yet, its tool is picked so it shows at once. */
-export function keepMeasure(submission: Submission): void {
+export function keepMeasure(submission: KeptSubmission): void {
   compareState.kept = submission
   compareState.keptOnRadar = true
   compareState.tool ??= submission.tool

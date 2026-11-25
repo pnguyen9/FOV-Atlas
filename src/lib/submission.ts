@@ -94,6 +94,17 @@ export interface Provenance {
   readonly linkData: string | null
 }
 
+export interface TuningAnswers {
+  readonly physicallyModded: boolean
+  readonly driverTuned: boolean
+  readonly details: string
+}
+
+export interface FaceFit {
+  readonly eyeDepth: EyeDepth
+  readonly noseBridge: NoseBridge
+}
+
 export interface Submission {
   readonly tool: Tool
   /** A catalog id, or `other` for a model the catalog lacks; such a submission is never stored. */
@@ -106,14 +117,30 @@ export interface Submission {
   readonly provenance: Provenance
   /** The tool's own label for the headset (VR Headset Picker link, WIMFOV page), or empty. */
   readonly reportedHeadset: string
-  readonly face: { readonly eyeDepth: EyeDepth; readonly noseBridge: NoseBridge }
-  readonly tuning: { readonly physicallyModded: boolean; readonly driverTuned: boolean; readonly details: string }
+  readonly face: FaceFit
+  readonly tuning: TuningAnswers
   readonly gaze: Gaze
   /** Lens IPD in millimetres. */
   readonly ipd: number | null
   readonly facialInterface: string
   readonly note: string
 }
+
+/**
+ * A measure kept without publishing it (see `measureFile.ts`). It can be kept straight after
+ * measuring, before the remaining questions are asked, and stores only what was answered: an
+ * empty `headset` (with no typed name) and a null `face`, `tuning` or `gaze` mean not given.
+ * Publishing always needs them.
+ */
+export interface KeptSubmission extends Omit<Submission, 'face' | 'tuning' | 'gaze'> {
+  readonly face: FaceFit | null
+  readonly tuning: TuningAnswers | null
+  readonly gaze: Gaze | null
+}
+
+/** Whether a kept measure leaves its headset out. */
+export const leavesHeadsetOut = (kept: Pick<KeptSubmission, 'headset' | 'otherHeadsetName'>): boolean =>
+  kept.headset === '' && kept.otherHeadsetName === ''
 
 /**
  * Angles are radial, measured from straight ahead of the head, and can reach straight behind.
@@ -251,7 +278,8 @@ function testHmdSymmetric({ left, right }: EyeMeasures): boolean {
   return left.left === right.right && left.up === right.up && left.down === right.down && left.up === left.down
 }
 
-function ceilingProblem(ceiling: Ceiling): SubmissionError | null {
+/** Whether a rendered field of view read while measuring can bound each eye's flat picture. */
+export function ceilingProblem(ceiling: Ceiling): SubmissionError | null {
   if (ceiling.source !== 'measured') return null
   const edgesValid = [ceiling.left, ceiling.right].every((edges) =>
     Object.values(edges).every((angle) => isAngle(angle, 'radial')),
@@ -268,11 +296,16 @@ function textProblem(field: TextField, text: string, maximumLength: number, mult
 }
 
 /** Checks every invariant of a submission; the first problem found is returned. */
-export function submissionProblem(submission: Submission): SubmissionError | null {
+export const submissionProblem = (submission: Submission): SubmissionError | null => measureProblem(submission, false)
+
+/** Checks a kept measure: a submission's invariants, its headset and face fit allowed to be left out. */
+export const keptSubmissionProblem = (kept: KeptSubmission): SubmissionError | null => measureProblem(kept, leavesHeadsetOut(kept))
+
+function measureProblem(submission: KeptSubmission, headsetLeftOut: boolean): SubmissionError | null {
   const { tool, measures, ceiling } = submission
   const rules = directionRules.get(tool)
   if (rules === undefined) return 'unknown-tool'
-  const headsetError = headsetProblem(submission.headset, submission.otherHeadsetName)
+  const headsetError = headsetLeftOut ? null : headsetProblem(submission.headset, submission.otherHeadsetName)
   if (headsetError !== null) return headsetError
   const convention = angleConventionOf(tool, submission.provenance.input)
   const eyeError = eyeProblem(measures.left, rules.left, convention) ?? eyeProblem(measures.right, rules.right, convention)
@@ -291,7 +324,7 @@ export function submissionProblem(submission: Submission): SubmissionError | nul
     return 'ipd-out-of-range'
   }
   return (
-    textProblem('tuning-details', submission.tuning.details, textLimits.tuningDetails) ??
+    (submission.tuning === null ? null : textProblem('tuning-details', submission.tuning.details, textLimits.tuningDetails)) ??
     textProblem('facial-interface', submission.facialInterface, textLimits.facialInterface) ??
     textProblem('note', submission.note, textLimits.note, true)
   )

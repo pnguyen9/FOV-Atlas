@@ -15,6 +15,12 @@ const destinations = [
     text: 'See several headsets’ field of view on one radar.',
   },
   {
+    href: routeHref({ page: 'measure' }),
+    icon: '◉',
+    title: 'Measure my field of view',
+    text: 'In your headset, right here in the browser. A few minutes, no download.',
+  },
+  {
     href: routeHref({ page: 'submit' }),
     icon: '＋',
     title: 'Add a measure',

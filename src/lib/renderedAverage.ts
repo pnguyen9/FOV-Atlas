@@ -20,7 +20,7 @@
  * between units can be told.
  */
 
-import { pictureVertical, type RenderedFrame } from './ceiling.ts'
+import { pictureVertical, roundCenti, type RenderedFrame } from './ceiling.ts'
 import { summarize } from './fovStats.ts'
 import { isHeadsetId, maximumCantingDegrees, type EdgeAngles, type Submission } from './submission.ts'
 import { dataRoot, isPlainObject, parseJson } from './submissionStore.ts'
@@ -81,8 +81,6 @@ export interface RenderedAverage {
   readonly count: number
   readonly values: Readonly<Partial<Record<RenderedValueName, RenderedStat>>>
 }
-
-const roundCenti = (degrees: number): number => Math.round(degrees * 100) / 100
 
 /**
  * The edges of each eye's picture across the picture itself, as VR Headset Picker gives its

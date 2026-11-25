@@ -1,6 +1,7 @@
 /**
- * The "Add a measure" form for a result from another tool: what the visitor has entered so far,
- * the check of each step, and the prefilled GitHub issue it ends with.
+ * The "Add a measure" form for a result from another tool, and the "Finish your measure" form
+ * after measuring with FOV Atlas: what the visitor has entered so far, the check of each step,
+ * and the prefilled GitHub issue it ends with.
  *
  * Everything entered here is checked with the same parsers the submission Action runs on the
  * issue, so a form that passes here opens an issue the Action accepts. The one exception is a
@@ -9,15 +10,18 @@
  */
 
 import { catalogHeadset, otherHeadset } from './headsets.ts'
-import { headsetChoiceOfVrhpLink, issueUrlOfFields, submissionFromFields, type IssueError, type IssueFields } from './issueForm.ts'
+import { atlasMeasureText, headsetChoiceOfVrhpLink, issueUrlOfFields, submissionFromFields, type IssueError, type IssueFields } from './issueForm.ts'
+import type { AtlasMeasure } from './measureSession.ts'
 import { plainTextProblem } from './plainText.ts'
 import {
   headsetProblem,
   ipdRange,
+  keptSubmissionProblem,
   textLimits,
   type EyeDepth,
   type EyeMeasures,
   type Gaze,
+  type KeptSubmission,
   type NoseBridge,
   type Submission,
 } from './submission.ts'
@@ -25,14 +29,18 @@ import { testHmdMeasures } from './testHmd.ts'
 import { decodeVrhpLink, extractResultsParameter, type VrhpDecodeError, type VrhpMeasure } from './vrhpLink.ts'
 import { formatWimfovPoints, parseWimfovLink, parseWimfovPoints, wimfovOrigin, wimfovResultLink, type WimfovError } from './wimfov.ts'
 
-/** FOV Atlas measures are published from the measuring page, so they never come through here. */
+/** The tools picked in the Tool step. FOV Atlas is not among them: its measure comes from the measuring page. */
 export const importTools = ['vrhp', 'wimfov', 'testhmd'] as const
 export type ImportTool = (typeof importTools)[number]
+/** FOV Atlas comes in from its own measure, with the values already known (see `finishDraft`). */
+export type DraftTool = ImportTool | 'atlas'
 
 export type WimfovInput = 'link' | 'points'
 
 export interface MeasureDraft {
-  tool: ImportTool | null
+  tool: DraftTool | null
+  /** The measure just taken, when finishing a FOV Atlas measure. */
+  atlasMeasure: AtlasMeasure | null
   vrhpLink: string
   wimfovInput: WimfovInput
   wimfovLink: string
@@ -60,6 +68,7 @@ export interface MeasureDraft {
 export function emptyDraft(): MeasureDraft {
   return {
     tool: null,
+    atlasMeasure: null,
     vrhpLink: '',
     wimfovInput: 'link',
     wimfovLink: '',
@@ -82,11 +91,17 @@ export function emptyDraft(): MeasureDraft {
   }
 }
 
+/** The draft of "Finish your measure": tool and values known, everything else still to answer. */
+export function finishDraft(measure: AtlasMeasure): MeasureDraft {
+  return { ...emptyDraft(), tool: 'atlas', atlasMeasure: measure }
+}
+
 export const steps = ['Tool', 'Values', 'Headset', 'Face fit', 'Setup', 'Review'] as const
 export type StepIndex = 0 | 1 | 2 | 3 | 4 | 5
 export const lastStep: StepIndex = 5
 
 export type Values =
+  | { readonly kind: 'atlas'; readonly measure: AtlasMeasure }
   | { readonly kind: 'vrhp'; readonly measure: VrhpMeasure; readonly results: string }
   | { readonly kind: 'wimfov-link'; readonly resultId: string }
   | { readonly kind: 'wimfov-points'; readonly measures: EyeMeasures }
@@ -145,6 +160,8 @@ export function valuesOf(draft: MeasureDraft): ValuesResult {
   switch (draft.tool) {
     case null:
       return rejectValues('no-tool')
+    case 'atlas':
+      return draft.atlasMeasure === null ? rejectValues('empty') : { ok: true, values: { kind: 'atlas', measure: draft.atlasMeasure } }
     case 'vrhp':
       return vrhpValues(draft.vrhpLink)
     case 'wimfov':
@@ -275,6 +292,10 @@ export function furthestStep(draft: MeasureDraft): StepIndex {
 
 function measureFields(values: Values): Pick<IssueFields, 'measure' | 'wimfov-link'> {
   switch (values.kind) {
+    case 'atlas': {
+      const { measures, ceiling, cornerMask } = values.measure
+      return { measure: atlasMeasureText(measures, ceiling, cornerMask), 'wimfov-link': '' }
+    }
     case 'vrhp':
       return { measure: values.results, 'wimfov-link': '' }
     case 'wimfov-link':
@@ -340,4 +361,35 @@ export function keptMeasureOf(draft: MeasureDraft): KeptMeasureResult {
   if (!result.ok) return result
   if (result.values.kind === 'wimfov-link') return { ok: false, error: 'wimfov-link' }
   return submissionFromFields(result.fields)
+}
+
+/**
+ * A FOV Atlas measure just taken, to keep without publishing before every step is answered. It
+ * stores only what is answered: the headset and face fit once given, the setup answers (gaze,
+ * tuning, IPD, cushion, note) once the Setup step is complete, and nothing in their place before.
+ * With every step answered it is the measure as it would be published.
+ */
+export function keptFinishedMeasure(draft: MeasureDraft): KeptSubmission | null {
+  const measure = draft.atlasMeasure
+  if (draft.tool !== 'atlas' || measure === null) return null
+  const complete = keptMeasureOf(draft)
+  if (complete.ok) return complete.submission
+  const headsetGiven = headsetReady(draft)
+  const kept: KeptSubmission = {
+    tool: 'atlas',
+    headset: headsetGiven ? draft.headset : '',
+    otherHeadsetName: headsetGiven && draft.headset === otherHeadset ? draft.otherHeadsetName.trim() : '',
+    measures: measure.measures,
+    ceiling: measure.ceiling,
+    cornerMask: measure.cornerMask,
+    provenance: { input: 'measured', linkData: null },
+    reportedHeadset: '',
+    face: draft.eyeDepth === null || draft.noseBridge === null ? null : { eyeDepth: draft.eyeDepth, noseBridge: draft.noseBridge },
+    tuning: null,
+    gaze: null,
+    ipd: null,
+    facialInterface: '',
+    note: '',
+  }
+  return keptSubmissionProblem(kept) === null ? kept : null
 }

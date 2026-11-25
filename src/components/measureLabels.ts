@@ -1,7 +1,7 @@
 /** Short words for a measure's setup, shared by the filters, tables and lists. */
 
 import { catalogHeadset, otherHeadset } from '../lib/headsets.ts'
-import type { Gaze } from '../lib/submission.ts'
+import { leavesHeadsetOut, type Gaze, type KeptSubmission } from '../lib/submission.ts'
 import type { Tuning } from '../lib/submissionStore.ts'
 
 const tuningLabels: ReadonlyMap<Tuning, string> = new Map([
@@ -18,6 +18,11 @@ export const gazeLabelOf = (gaze: Gaze): string => (gaze === 'fixed' ? 'Stared a
 export function headsetName({ headset, otherHeadsetName = '' }: { readonly headset: string; readonly otherHeadsetName?: string }): string {
   if (headset === otherHeadset) return otherHeadsetName
   return catalogHeadset(headset)?.name ?? headset
+}
+
+/** A kept measure's headset, saying so plainly when it was left out. */
+export function keptMeasureName(kept: Pick<KeptSubmission, 'headset' | 'otherHeadsetName'>): string {
+  return leavesHeadsetOut(kept) ? 'headset not given' : headsetName(kept)
 }
 
 /** Degrees with one decimal, or a dash for a figure that doesn't exist. */

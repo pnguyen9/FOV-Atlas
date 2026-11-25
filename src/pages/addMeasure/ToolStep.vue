@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { routeHref } from '../../lib/hashRoute.ts'
 import { importTools, type ImportTool } from '../../lib/measureDraft.ts'
 import { toolNameOf } from '../../lib/submission.ts'
 import { useDraft } from './draftContext.ts'
@@ -52,6 +53,8 @@ const toolLinks: Readonly<Record<ImportTool, string>> = {
           rel="noopener noreferrer"
         >{{ toolNameOf(tool) }}</a>{{ toolIndex < importTools.length - 1 ? ', ' : '.' }}
       </template>
+      Or <a :href="routeHref({ page: 'measure' })">measure here with FOV Atlas</a>: when you finish, it asks the last
+      few questions itself.
     </p>
   </fieldset>
 </template>

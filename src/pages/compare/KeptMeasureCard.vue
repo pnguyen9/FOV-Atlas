@@ -7,7 +7,7 @@
 import { computed, ref, watch } from 'vue'
 import { compareState, keepMeasure } from './compareState.ts'
 import { keptMeasureProblem, type KeptMeasureError } from './keptMeasureWords.ts'
-import { headsetName } from '../../components/measureLabels.ts'
+import { keptMeasureName } from '../../components/measureLabels.ts'
 import { routeHref } from '../../lib/hashRoute.ts'
 import { maximumMeasureTextLength, parseMeasureInput, parseMeasureParameter, type MeasureFileResult } from '../../lib/measureFile.ts'
 import { toolNameOf } from '../../lib/submission.ts'
@@ -64,6 +64,17 @@ async function openFile(event: Event): Promise<void> {
 }
 
 const kept = computed(() => compareState.kept)
+/** The answers a measure kept straight after measuring leaves out, in words. */
+const notGiven = computed(() => {
+  const measure = kept.value
+  if (measure === null) return ''
+  const missing: [boolean, string][] = [
+    [measure.face === null, 'face fit'],
+    [measure.gaze === null, 'gaze'],
+    [measure.tuning === null, 'tuning'],
+  ]
+  return missing.flatMap(([isMissing, name]) => (isMissing ? [name] : [])).join(', ')
+})
 const sameTool = computed(() => kept.value !== null && kept.value.tool === compareState.tool)
 
 function remove(): void {
@@ -87,8 +98,14 @@ function showItsTool(): void {
     </h2>
     <template v-if="kept !== null">
       <p>
-        <span class="swatch series-kept" />Kept measure: <strong>{{ headsetName(kept) }}</strong>, measured with
+        <span class="swatch series-kept" />Kept measure: <strong>{{ keptMeasureName(kept) }}</strong>, measured with
         {{ toolNameOf(kept.tool) }}<span class="tag">not published</span>
+      </p>
+      <p
+        v-if="notGiven !== ''"
+        class="small muted"
+      >
+        Not given: {{ notGiven }}. The measure was kept before those questions.
       </p>
       <p
         v-if="sameTool"

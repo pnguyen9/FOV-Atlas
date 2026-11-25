@@ -10,7 +10,7 @@ import CompareTable from './compare/CompareTable.vue'
 import { compareState, seriesSlotCount, slotOf, togglePick, withPick } from './compare/compareState.ts'
 import KeptMeasureCard from './compare/KeptMeasureCard.vue'
 import FilterPanel from '../components/FilterPanel.vue'
-import { headsetName } from '../components/measureLabels.ts'
+import { headsetName, keptMeasureName } from '../components/measureLabels.ts'
 import RadarOptions from '../components/radar/RadarOptions.vue'
 import RadarPanel from '../components/radar/RadarPanel.vue'
 import { aggregateSeries, keptSeries, type RadarSeries } from '../components/radar/radarSeries.ts'
@@ -115,7 +115,7 @@ const keptSameTool = computed(() =>
 // A kept measure of a headset with no published measure of this tool still gets its model's average.
 watch([() => keptSameTool.value?.headset, loadedTool], async ([headset, tool]) => {
   const dataIndex = index.value?.ok === true ? index.value.value : null
-  if (headset === undefined || tool === null || dataIndex === null || !drawsRenderedOutline(tool) || averages.value.has(headset)) return
+  if (headset === undefined || headset === '' || tool === null || dataIndex === null || !drawsRenderedOutline(tool) || averages.value.has(headset)) return
   const loaded = await loadRenderedAverage(dataIndex, headset)
   if (loadedTool.value === tool) averages.value = new Map([...averages.value, [headset, loaded]])
 })
@@ -126,7 +126,7 @@ const keptRow = computed<CompareRow | null>(() => {
   return {
     key: 'kept',
     headset: kept.headset,
-    name: headsetName(kept),
+    name: keptMeasureName(kept),
     figures: figuresOfMeasure(kept),
     total: 1,
     averaged: averageValue(kept.headset),

@@ -207,7 +207,7 @@ export function figuresOfCombined({ count, stats }: Combined): Figures {
 }
 
 /** The same figures for one measure, its own values standing as highest and mean. */
-export function figuresOfMeasure(submission: Submission): Figures {
+export function figuresOfMeasure(submission: Pick<Submission, 'tool' | 'measures' | 'ceiling'>): Figures {
   const summaries = Object.fromEntries(
     Object.entries(figuresOf(submission)).map(([figure, value]) => [figure, { count: 1, mean: value, sigma: 0, highest: value }]),
   )

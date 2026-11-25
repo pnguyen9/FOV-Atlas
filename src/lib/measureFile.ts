@@ -7,7 +7,8 @@
  *
  * A kept measure comes back from anyone (a pasted link, a file from a forum), so the parser checks
  * the length, the exact shape of every object and every range through the submission rules, and
- * rejects anything unexpected, never repairing it.
+ * rejects anything unexpected, never repairing it. A kept measure may leave its headset and face
+ * fit, tuning and gaze out (see `KeptSubmission`); everything else follows the submission rules.
  */
 
 import { base64UrlToBytes } from './vrhpLink.ts'
@@ -18,9 +19,9 @@ import {
   gazes,
   inputKinds,
   noseBridges,
-  submissionProblem,
+  keptSubmissionProblem,
   tools,
-  type Submission,
+  type KeptSubmission,
   type SubmissionError,
 } from './submission.ts'
 
@@ -36,7 +37,7 @@ const measureRoute = 'compare'
 export interface MeasureFile {
   readonly format: typeof measureFormat
   readonly version: typeof measureFormatVersion
-  readonly submission: Submission
+  readonly submission: KeptSubmission
 }
 
 export type MeasureFileError =
@@ -50,11 +51,11 @@ export type MeasureFileError =
   | SubmissionError
 
 export type MeasureFileResult =
-  | { readonly ok: true; readonly submission: Submission }
+  | { readonly ok: true; readonly submission: KeptSubmission }
   | { readonly ok: false; readonly error: MeasureFileError }
 
 /** The file's text: readable JSON, so a saved file can be checked by eye. */
-export function encodeMeasureText(submission: Submission): string {
+export function encodeMeasureText(submission: KeptSubmission): string {
   const file: MeasureFile = { format: measureFormat, version: measureFormatVersion, submission }
   return `${JSON.stringify(file, null, 2)}\n`
 }
@@ -65,13 +66,13 @@ function bytesToBase64Url(bytes: Uint8Array): string {
 }
 
 /** The `measure` value of a link: the compact JSON, UTF-8, base64url. */
-export function encodeMeasureParameter(submission: Submission): string {
+export function encodeMeasureParameter(submission: KeptSubmission): string {
   const file: MeasureFile = { format: measureFormat, version: measureFormatVersion, submission }
   return bytesToBase64Url(new TextEncoder().encode(JSON.stringify(file)))
 }
 
 /** A link to the site's Compare page carrying the measure in its fragment. */
-export function measureLink(submission: Submission, siteUrl: string): string {
+export function measureLink(submission: KeptSubmission, siteUrl: string): string {
   const page = siteUrl.split('#')[0] ?? siteUrl
   return `${page}#${measureRoute}?${measureParameter}=${encodeMeasureParameter(submission)}`
 }
@@ -147,9 +148,9 @@ const isSubmissionShape = matches({
   cornerMask: oneOf(cornerMaskStates),
   provenance: matches({ input: oneOf(inputKinds), linkData: (value) => value === null || isString(value) }),
   reportedHeadset: isString,
-  face: matches({ eyeDepth: oneOf(eyeDepths), noseBridge: oneOf(noseBridges) }),
-  tuning: matches({ physicallyModded: isBoolean, driverTuned: isBoolean, details: isString }),
-  gaze: oneOf(gazes),
+  face: (value) => value === null || matches({ eyeDepth: oneOf(eyeDepths), noseBridge: oneOf(noseBridges) })(value),
+  tuning: (value) => value === null || matches({ physicallyModded: isBoolean, driverTuned: isBoolean, details: isString })(value),
+  gaze: (value) => value === null || oneOf(gazes)(value),
   ipd: (value) => value === null || isFiniteNumber(value),
   facialInterface: isString,
   note: isString,
@@ -169,8 +170,8 @@ export function parseMeasureText(text: string): MeasureFileResult {
   if (!isPlainObject(parsed) || parsed.format !== measureFormat) return reject('not-a-measure')
   if (parsed.version !== measureFormatVersion) return reject('unsupported-version')
   if (Object.keys(parsed).length !== 3 || !isSubmissionShape(parsed.submission)) return reject('shape-invalid')
-  const submission = parsed.submission as Submission
-  const problem = submissionProblem(submission)
+  const submission = parsed.submission as KeptSubmission
+  const problem = keptSubmissionProblem(submission)
   return problem === null ? { ok: true, submission } : reject(problem)
 }
 

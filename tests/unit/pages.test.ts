@@ -12,7 +12,7 @@ import { wimfovPoints } from './fixtures'
 describe('HomePage', () => {
   it('sends people where they want to go, with no table up front', () => {
     const wrapper = mount(HomePage)
-    expect(wrapper.findAll('a').map((link) => link.attributes('href'))).toEqual(['#compare', '#compare/radar', '#submit', '#method'])
+    expect(wrapper.findAll('a').map((link) => link.attributes('href'))).toEqual(['#compare', '#compare/radar', '#measure', '#submit', '#method'])
     expect(wrapper.find('table').exists()).toBe(false)
   })
 })

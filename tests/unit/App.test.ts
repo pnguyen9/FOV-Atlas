@@ -27,13 +27,14 @@ describe('App', () => {
   it('opens on the home page with the navigation', () => {
     const wrapper = mount(App)
     expect(wrapper.find('h1').text()).toContain('How much do people really see')
-    expect(wrapper.findAll('nav a').map((link) => link.text())).toEqual(['Home', 'Compare', 'Add a measure', 'How it works'])
+    expect(wrapper.findAll('nav a').map((link) => link.text())).toEqual(['Home', 'Measure', 'Compare', 'Add a measure', 'How it works'])
     expect(wrapper.find('nav a[aria-current="page"]').text()).toBe('Home')
   })
 
   it.each([
     ['#compare', 'Compare headsets', 'Compare'],
     ['#submit', 'Add a measure', 'Add a measure'],
+    ['#measure', 'Measure my field of view', 'Measure'],
     ['#method', 'How it works', 'How it works'],
     ['#headset/htc-vive', 'HTC Vive', 'Compare'],
   ])('shows %s with its navigation entry marked', async (hash, heading, current) => {

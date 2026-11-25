@@ -6,6 +6,7 @@ import ComparePage from './pages/ComparePage.vue'
 import HeadsetPage from './pages/HeadsetPage.vue'
 import HomePage from './pages/HomePage.vue'
 import HowItWorksPage from './pages/HowItWorksPage.vue'
+import MeasurePage from './pages/MeasurePage.vue'
 import NotFoundPage from './pages/NotFoundPage.vue'
 
 const route = useHashRoute(window)
@@ -14,6 +15,7 @@ const main = useTemplateRef<HTMLElement>('main')
 
 const pages = {
   home: HomePage,
+  measure: MeasurePage,
   compare: ComparePage,
   submit: AddMeasurePage,
   method: HowItWorksPage,
@@ -58,8 +60,8 @@ watch(route, async () => {
     ref="main"
     tabindex="-1"
   >
-    <!-- Kept alive so a half-filled form survives a look at another page. -->
-    <KeepAlive include="AddMeasurePage">
+    <!-- Kept alive so a half-filled form, or a measure being finished, survives a look at another page. -->
+    <KeepAlive :include="['AddMeasurePage', 'MeasurePage']">
       <component
         :is="page"
         v-bind="pageProps"

@@ -369,17 +369,22 @@ export function wimfovResultToFetch(markdown: string): string | null {
   return link.ok ? link.resultId : null
 }
 
+/** The Measure field of a FOV Atlas issue: the values, the rendered field of view read with them, and the corner mask. */
+export function atlasMeasureText(measures: EyeMeasures, ceiling: Ceiling, cornerMask: CornerMask): string {
+  return JSON.stringify({
+    left: measures.left,
+    right: measures.right,
+    ceiling: ceiling.source === 'measured' ? { left: ceiling.left, right: ceiling.right, canting: ceiling.canting } : null,
+    cornerMask,
+  })
+}
+
 function measureText(submission: Submission): string {
   const { measures, provenance, ceiling } = submission
   const typed = JSON.stringify({ left: measures.left, right: measures.right })
   switch (submission.tool) {
     case 'atlas':
-      return JSON.stringify({
-        left: measures.left,
-        right: measures.right,
-        ceiling: ceiling.source === 'measured' ? { left: ceiling.left, right: ceiling.right, canting: ceiling.canting } : null,
-        cornerMask: submission.cornerMask,
-      })
+      return atlasMeasureText(measures, ceiling, submission.cornerMask)
     case 'vrhp':
       return provenance.input === 'link' && provenance.linkData !== null ? provenance.linkData : typed
     case 'wimfov':

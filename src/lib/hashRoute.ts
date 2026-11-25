@@ -12,7 +12,7 @@ import { onBeforeUnmount, readonly, ref, type Ref } from 'vue'
 import { maximumEncodedLength, measureParameterOfLink } from './measureFile.ts'
 import { isHeadsetId } from './submission.ts'
 
-export const pageNames = ['home', 'compare', 'submit', 'method'] as const
+export const pageNames = ['home', 'measure', 'compare', 'submit', 'method'] as const
 export type PageName = (typeof pageNames)[number]
 export const methodSections = ['credits'] as const
 export type MethodSection = (typeof methodSections)[number]
@@ -20,7 +20,7 @@ export type MethodSection = (typeof methodSections)[number]
 export type CompareView = 'table' | 'radar'
 
 export type Route =
-  | { readonly page: 'home' | 'submit' }
+  | { readonly page: 'home' | 'measure' | 'submit' }
   | { readonly page: 'compare'; readonly view: 'table'; readonly measure: string | null }
   | { readonly page: 'compare'; readonly view: 'radar'; readonly measure: null }
   | { readonly page: 'method'; readonly section: MethodSection | null }
@@ -29,6 +29,7 @@ export type Route =
 
 export const navigation: readonly { readonly page: PageName; readonly route: Route; readonly label: string }[] = [
   { page: 'home', route: { page: 'home' }, label: 'Home' },
+  { page: 'measure', route: { page: 'measure' }, label: 'Measure' },
   { page: 'compare', route: { page: 'compare', view: 'table', measure: null }, label: 'Compare' },
   { page: 'submit', route: { page: 'submit' }, label: 'Add a measure' },
   { page: 'method', route: { page: 'method', section: null }, label: 'How it works' },
@@ -43,6 +44,7 @@ export function parseRoute(hash: string): Route {
   const path = hash.startsWith('#') ? hash.slice(1) : hash
   if (path === '' || path === 'home') return { page: 'home' }
   if (path === 'submit') return { page: 'submit' }
+  if (path === 'measure') return { page: 'measure' }
   if (path === 'compare') return { page: 'compare', view: 'table', measure: null }
   if (path === 'compare/radar') return { page: 'compare', view: 'radar', measure: null }
   if (path.startsWith('compare?')) {

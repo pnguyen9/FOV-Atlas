@@ -341,7 +341,7 @@ function definedOnly(figures: Readonly<Record<string, number | undefined>>): Fig
   return Object.fromEntries(Object.entries(figures).filter(([, value]) => value !== undefined))
 }
 
-function perEyeFigures({ measures, ceiling }: Submission): Figures {
+function perEyeFigures({ measures, ceiling }: Pick<Submission, 'measures' | 'ceiling'>): Figures {
   const { left, right } = measures
   const measured = {
     leftWidth: sumOf(left.left, left.right),
@@ -377,7 +377,7 @@ export function bothEyeFiguresOf({ left, right }: EyeMeasures): Figures {
   })
 }
 
-function bothEyeFigures({ measures, ceiling }: Submission): Figures {
+function bothEyeFigures({ measures, ceiling }: Pick<Submission, 'measures' | 'ceiling'>): Figures {
   const measured = bothEyeFiguresOf(measures)
   if (ceiling.source !== 'measured') return measured
   const renderedHorizontal = sumOf(ceiling.left.left, ceiling.right.right)
@@ -390,7 +390,7 @@ function bothEyeFigures({ measures, ceiling }: Submission): Figures {
 }
 
 /** The figures a measure adds to its cell, and the site shows for a single measure. */
-export function figuresOf(submission: Submission): Figures {
+export function figuresOf(submission: Pick<Submission, 'tool' | 'measures' | 'ceiling'>): Figures {
   return submission.tool === 'vrhp' ? perEyeFigures(submission) : bothEyeFigures(submission)
 }
 
