@@ -215,7 +215,8 @@ const ariaSort = (id: CompareColumnId): 'ascending' | 'descending' | undefined =
     class="small muted"
   >
     VR Headset Picker measures each eye from the centre of that eye's picture, so its widths and heights are per eye
-    (L / R: left eye / right eye), each set against the same eye's picture as the link reports it. The rendered
+    (L / R: left eye / right eye), each set against the same eye's picture as the link reports it. Both eyes of a pair
+    always come from one measure, never one person's left eye beside another's right. The rendered
     horizontal and overlap of both eyes are shown exactly as the link reports them.
   </p>
   <p

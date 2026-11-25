@@ -8,12 +8,12 @@ import {
   figuresOfCombined,
   figuresOfMeasure,
   largestAngle,
-  shapeOf,
+  meanShapeOf,
   submissionMatches,
   summarize,
 } from '../../src/lib/fovStats'
 import type { Filters } from '../../src/lib/fovStats'
-import { aggregatePages, emptyPage, withEntry, type Page } from '../../src/lib/submissionStore'
+import { aggregatePages, emptyPage, withEntry, type ListedEntry, type Page } from '../../src/lib/submissionStore'
 import type { Submission } from '../../src/lib/submission'
 import { atlasBeyond, testHmdQuest, vrhpBeyond, vrhpBeyondDeepSet, vrhpBeyondThird } from './siteFixtures'
 
@@ -69,7 +69,7 @@ describe('combineCells', () => {
   it('is empty when nothing matches', () => {
     expect(combineCells(aggregate, { ...anyFilters, gaze: ['free'], tuning: ['stock'] })).toEqual({
       count: 0,
-      stats: { left: {}, right: {}, figures: {} },
+      stats: { left: {}, right: {}, figures: {}, leaders: {} },
     })
   })
 })
@@ -89,9 +89,107 @@ describe('summarize', () => {
 describe('shapes', () => {
   const combined = combineCells(aggregate, anyFilters)
   it('takes the highest or the mean per direction', () => {
-    expect(eyeShape(combined.stats.left, 'highest').left).toBe(54.98)
+    expect(eyeShape(combined.stats.left, 'max').left).toBe(54.98)
     expect(eyeShape(combined.stats.left, 'mean').left).toBeCloseTo(52.99)
-    expect(Object.keys(shapeOf(combined.stats, 'highest').right)).toEqual(['up', 'left', 'down', 'right', 'up-right'])
+    expect(Object.keys(meanShapeOf(combined.stats).right)).toEqual(['up', 'left', 'down', 'right', 'up-right'])
+    expect(meanShapeOf(combined.stats).left.left).toBeCloseTo(52.99)
+  })
+})
+
+/** The measures stored on one page and aggregated as the Action does, then the cells passing the filters combined. */
+function combinedOf(entries: readonly ListedEntry[], filters: Filters = anyFilters) {
+  const tool = entries[0]?.entry.submission.tool ?? 'vrhp'
+  const headset = entries[0]?.entry.submission.headset ?? 'bigscreen-beyond-2'
+  const page = entries.reduce((built, { issue, entry }) => withEntry(built, issue, entry), emptyPage(tool, headset, 0))
+  return combineCells(aggregatePages(tool, headset, [page]), filters)
+}
+const widestMeasure = (entries: readonly ListedEntry[], filters: Filters) => combinedOf(entries, filters).stats.leaders.width
+
+describe('the measure leading the width, combined from the cells passing the filters', () => {
+  const listed = (issue: number, submission: Submission): ListedEntry => ({ issue, entry: { author: `author${String(issue)}`, submission } })
+  const withMeasures = (submission: Submission, measures: Submission['measures']): Submission => ({ ...submission, measures })
+
+  it('picks a whole measure by the widest single eye for a tool measuring from the centre of each picture', () => {
+    // The Pimax Dream Air on VR Headset Picker: #18 has the widest left and right edges and #22
+    // the highest top, yet #24 has the widest eye, so its whole shape is the one drawn.
+    const eye = (left: number, right: number, up: number, down: number) => ({ left, right, up, down })
+    const measures = new Map([
+      [18, eye(57.47, 42.54, 44.55, 44.55)],
+      [22, eye(55, 50, 47.5, 47.5)],
+      [24, eye(56, 52, 47.43, 48.57)],
+    ])
+    const entries = [...measures].map(([issue, left]) => listed(issue, withMeasures(vrhpBeyond, { left, right: left })))
+    expect(widestMeasure(entries, anyFilters)?.issue).toBe(24)
+  })
+
+  it('takes the wider of the two eyes, not their sum, for a measure from the centre of each picture', () => {
+    const lopsided = withMeasures(vrhpBeyond, { left: { left: 60, right: 50 }, right: { left: 30, right: 30 } })
+    const even = withMeasures(vrhpBeyond, { left: { left: 50, right: 50 }, right: { left: 50, right: 50 } })
+    expect(widestMeasure([listed(1, even), listed(2, lopsided)], anyFilters)?.issue).toBe(2)
+  })
+
+  it('ranks a head-frame tool by the horizontal of both eyes', () => {
+    const narrow = withMeasures(atlasBeyond, { left: { left: 50, right: 60 }, right: { left: 60, right: 50 } })
+    const wide = withMeasures(atlasBeyond, { left: { left: 56, right: 40 }, right: { left: 40, right: 56 } })
+    expect(widestMeasure([listed(1, wide), listed(2, narrow)], anyFilters)?.issue).toBe(1)
+  })
+
+  it('breaks a tie on width by height, then by all angles together, then by the newest', () => {
+    const shaped = (up: number, diagonal: number) =>
+      withMeasures(atlasBeyond, { left: { left: 55, right: 40, up, down: 50, 'up-left': diagonal }, right: { left: 40, right: 55, up, down: 50 } })
+    expect(widestMeasure([listed(1, shaped(46, 50)), listed(2, shaped(45, 60))], anyFilters)?.issue).toBe(1)
+    expect(widestMeasure([listed(1, shaped(45, 60)), listed(2, shaped(45, 50))], anyFilters)?.issue).toBe(1)
+    expect(widestMeasure([listed(3, shaped(45, 50)), listed(5, shaped(45, 50)), listed(4, shaped(45, 50))], anyFilters)?.issue).toBe(5)
+  })
+
+  it('ranks a measure missing its headline figure below one that has it', () => {
+    const noWidth = withMeasures(testHmdQuest, { left: { up: 47, down: 47 }, right: { up: 47, down: 47 } })
+    expect(widestMeasure([listed(2, noWidth), listed(1, testHmdQuest)], anyFilters)?.issue).toBe(1)
+  })
+
+  it('takes the first of the cells passing the filters, and finds none when all are hidden', () => {
+    const entries = [listed(1, vrhpBeyond), listed(2, vrhpBeyondDeepSet), listed(3, vrhpBeyondThird)]
+    expect(widestMeasure(entries, anyFilters)?.issue).toBe(1)
+    expect(widestMeasure(entries, { ...anyFilters, gaze: ['free', 'fixed'] })?.issue).toBe(1)
+    expect(widestMeasure(entries, { ...anyFilters, eyeDepth: ['deep-set'] })?.issue).toBe(2)
+    expect(widestMeasure(entries, { ...anyFilters, gaze: ['free'], eyeDepth: ['in-between'] })).toBeUndefined()
+    expect(widestMeasure([], anyFilters)).toBeUndefined()
+  })
+})
+
+describe('pairs of eye figures', () => {
+  const listed = (issue: number, submission: Submission): ListedEntry => ({ issue, entry: { author: 'someone', submission } })
+  const eyes = (leftWidth: number, rightWidth: number, leftHeight: number, rightHeight: number): Submission =>
+    ({
+      ...vrhpBeyond,
+      measures: {
+        left: { left: leftWidth / 2, right: leftWidth / 2, up: leftHeight / 2, down: leftHeight / 2 },
+        right: { left: rightWidth / 2, right: rightWidth / 2, up: rightHeight / 2, down: rightHeight / 2 },
+      },
+    })
+
+  it('takes each pair from one measure: the width from the widest measure, the height from the tallest single eye', () => {
+    const entries = [listed(1, eyes(100, 80, 90, 90)), listed(2, eyes(90, 95, 96, 80)), listed(3, eyes(90, 90, 96, 85))]
+    const { pairs } = figuresOfCombined(combinedOf(entries))
+    expect([pairs.get('width')?.get('leftWidth'), pairs.get('width')?.get('rightWidth')]).toEqual([100, 80])
+    expect([pairs.get('height')?.get('leftHeight'), pairs.get('height')?.get('rightHeight')]).toEqual([96, 85])
+  })
+
+  it('takes a gap pair from the measure closest to its own headset’s picture', () => {
+    const { pairs } = figuresOfCombined(combinedOf([listed(1, eyes(90, 90, 90, 90)), listed(2, eyes(96, 80, 90, 90))]))
+    const gaps = pairs.get('widthPastRendered')
+    expect([gaps?.get('leftWidthPastRendered'), gaps?.get('rightWidthPastRendered')]).toEqual([-0.95, -16.62])
+    expect(pairs.get('renderedWidth')?.get('renderedLeftWidth')).toBe(96.95)
+  })
+
+  it('has no source for any pair when no measure passes the filters', () => {
+    expect(figuresOfCombined(combinedOf([listed(1, vrhpBeyond)], { ...anyFilters, gaze: ['free'] })).pairs.size).toBe(0)
+  })
+
+  it('gives a single measure as the source of every pair', () => {
+    const { pairs } = figuresOfMeasure(vrhpBeyond)
+    expect(pairs.size).toBe(6)
+    expect([...pairs.values()].every((source) => source.get('leftWidth') === 96.95)).toBe(true)
   })
 })
 
@@ -143,7 +241,7 @@ describe('figures', () => {
     expect(figures.summaries.overlap).toBeUndefined()
     expect(figures.overlapShare).toBeUndefined()
     expect(figures.diagonal).toBeUndefined()
-    const empty = { left: {}, right: {}, figures: {} }
+    const empty = { left: {}, right: {}, figures: {}, leaders: {} }
     expect(figuresOfCombined({ count: 0, stats: empty }).summaries.horizontal).toBeUndefined()
   })
 })

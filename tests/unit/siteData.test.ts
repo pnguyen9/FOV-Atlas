@@ -218,13 +218,26 @@ describe('loadPage', () => {
 
 describe('parseAggregate', () => {
   const stat = { count: 2, sum: 100, sumsq: 5000, max: 52 }
+  const leader = { issue: 4, author: 'lens-fox', rank: [9700, null, 40000], figures: { leftWidth: 97, leftWidthPastRendered: -1 } }
+  const widest = { ...leader, measures: { left: { left: 55, right: 42 }, right: { left: 42, right: 55 } } }
+  const leaders = {
+    width: widest,
+    height: leader,
+    renderedWidth: leader,
+    renderedHeight: leader,
+    widthPastRendered: leader,
+    heightPastRendered: leader,
+  }
   const cell = {
     left: { up: stat },
     right: { 'up-right': stat },
     figures: { horizontal: { count: 2, sum: 200, sumsq: 20000, max: 101 }, leftWidthPastRendered: { count: 2, sum: -3, sumsq: 5, max: -1 } },
+    leaders,
   }
   const withFigures = (figures: unknown): unknown => ({ ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, figures } } })
-  const valid = { version: 1, tool: 'vrhp', headset: 'htc-vive', count: 2, cells: { 'deep-set|low|stock|fixed': cell } }
+  const withLeaders = (changed: unknown): unknown => ({ ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, leaders: changed } } })
+  const withLeader = (changed: unknown): unknown => withLeaders({ ...leaders, height: changed })
+  const valid = { version: 2, tool: 'vrhp', headset: 'htc-vive', count: 2, cells: { 'deep-set|low|stock|fixed': cell } }
   const parse = (value: unknown): unknown => parseAggregate(JSON.stringify(value), 'vrhp', 'htc-vive')
 
   it('accepts a well-formed aggregate, and an empty one', () => {
@@ -234,12 +247,13 @@ describe('parseAggregate', () => {
 
   it('accepts what the store writes', () => {
     expect(parseAggregate(serialize(aggregate), 'atlas', 'bigscreen-beyond-2')).toEqual(aggregate)
+    expect(Object.values(aggregate.cells).map((cell) => Object.keys(cell.leaders))).toEqual([['width']])
   })
 
   it.each([
     ['text that is not JSON', 'not json'],
     ['an array', []],
-    ['another version', { ...valid, version: 2 }],
+    ['the version before leaders', { ...valid, version: 1 }],
     ['another tool', { ...valid, tool: 'wimfov' }],
     ['another headset', { ...valid, headset: 'htc-vive-pro' }],
     ['a negative count', { ...valid, count: -1 }],
@@ -260,6 +274,26 @@ describe('parseAggregate', () => {
     ['a maximum past a full turn', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, max: 400 } } } } }],
     ['a negative sum', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, sum: -1 } } } } }],
     ['a sum no count can reach', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, sum: 1000 } } } } }],
+    ['a cell without leaders', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, leaders: undefined } } }],
+    ['leaders that are not an object', withLeaders([])],
+    ['a ranking missing', withLeaders({ ...leaders, height: undefined })],
+    ['a ranking the tool lacks', withLeaders({ ...leaders, diagonal: leader })],
+    ['a leader that is not an object', withLeader(null)],
+    ['a leader with an extra field', withLeader({ ...leader, note: '' })],
+    ['a zero issue', withLeader({ ...leader, issue: 0 })],
+    ['an author that is no GitHub login', withLeader({ ...leader, author: '-<b>' })],
+    ['a rank that is not a list', withLeader({ ...leader, rank: 9700 })],
+    ['a rank too long', withLeader({ ...leader, rank: [1, 2, 3, 4, 5] })],
+    ['a fractional rank figure', withLeader({ ...leader, rank: [9700.5] })],
+    ['a rank figure no measure reaches', withLeader({ ...leader, rank: [1e9] })],
+    ['figures that are not an object', withLeader({ ...leader, figures: [] })],
+    ['an unknown leader figure', withLeader({ ...leader, figures: { diagonal: 1 } })],
+    ['a leader figure below zero that never is', withLeader({ ...leader, figures: { leftWidth: -1 } })],
+    ['angles on a leader other than the width’s', withLeader({ ...leader, measures: widest.measures })],
+    ['a widest leader without angles', withLeaders({ ...leaders, width: leader })],
+    ['a widest leader with a third eye', withLeaders({ ...leaders, width: { ...widest, measures: { ...widest.measures, middle: {} } } })],
+    ['a widest leader angle past a half turn', withLeaders({ ...leaders, width: { ...widest, measures: { ...widest.measures, left: { left: 200 } } } })],
+    ['a widest leader angle in an unknown direction', withLeaders({ ...leaders, width: { ...widest, measures: { ...widest.measures, left: { sideways: 5 } } } })],
     ['a text sum of squares', { ...valid, cells: { 'deep-set|low|stock|fixed': { ...cell, left: { up: { ...stat, sumsq: '5000' } } } } }],
   ])('refuses %s', (_description, value) => {
     expect(typeof value === 'string' ? parseAggregate(value, 'vrhp', 'htc-vive') : parse(value)).toBeNull()

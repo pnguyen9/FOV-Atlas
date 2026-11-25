@@ -8,6 +8,7 @@
 
 import { formatDegrees } from '../../lib/degrees.ts'
 import type { Figures, Summary } from '../../lib/fovStats.ts'
+import { eyePairFigures, headlineWidthOf, type EyePair } from '../../lib/measureRanking.ts'
 import { renderedMean, type RenderedAverage, type RenderedValueName } from '../../lib/renderedAverage.ts'
 import type { Tool } from '../../lib/submission.ts'
 import type { FigureName } from '../../lib/submissionStore.ts'
@@ -94,6 +95,20 @@ const smallestGap =
     return closest === undefined ? undefined : -closest
   }
 
+/** A row's headline width (see `headlineFiguresOf`): its widest measure's, the one the radar draws as highest. */
+export function headlineWidthOfRow(tool: Tool, row: CompareRow): number | undefined {
+  const widest = row.figures?.pairs.get('width')
+  return widest === undefined ? undefined : headlineWidthOf(tool, widest)
+}
+
+/** A gap between a measure and what its own headset draws: its "past rendered" turned around. */
+const turnedAround =
+  (value: Column['value']): Column['value'] =>
+  (row) => {
+    const past = value(row)
+    return past === undefined ? undefined : -past
+  }
+
 const degreeColumn = (id: CompareColumnId, label: string, title: string, value: Column['value']): Column => ({
   id,
   label,
@@ -104,6 +119,9 @@ const degreeColumn = (id: CompareColumnId, label: string, title: string, value: 
 
 const gapTitle = (figure: string): string =>
   `Smallest gap between a measure's ${figure} and what that measurer's own headset reports drawing`
+
+/** Words for a pair column whose two figures come from one measure. */
+const fromOneMeasure = (which: string): string => `both from one measure, the one with ${which}`
 
 const averageSource = 'on average, from FOV Atlas measures of the model; not part of the measured figures'
 const averagedValue =
@@ -141,6 +159,25 @@ function eyePairColumn(id: CompareColumnId, label: string, title: string, left: 
   }
 }
 
+/**
+ * A pair column whose two figures both come from one measure, the one leading the pair's ranking
+ * (see `measureRanking.ts`). `cellOf` turns each eye's figure into what the cell shows.
+ */
+function measurePairColumn(
+  id: CompareColumnId,
+  label: string,
+  title: string,
+  pair: EyePair,
+  cellOf: (figure: Column['value'], eye: 'left' | 'right') => Column['value'] = (figure) => figure,
+): Column {
+  const [left, right] = eyePairFigures(pair)
+  const figureOf =
+    (name: FigureName): Column['value'] =>
+    (row) =>
+      row.figures?.pairs.get(pair)?.get(name)
+  return eyePairColumn(id, label, title, cellOf(figureOf(left), 'left'), cellOf(figureOf(right), 'right'))
+}
+
 const allColumns: readonly Column[] = [
   degreeColumn(
     'highestHorizontal',
@@ -149,8 +186,8 @@ const allColumns: readonly Column[] = [
     summaryValue('horizontal', highest),
   ),
   degreeColumn('highestVertical', 'Highest vertical', 'Tallest measure, top to bottom, of the taller eye', summaryValue('vertical', highest)),
-  eyePairColumn('highestWidth', 'Highest width', 'Widest measure of each eye alone, left edge to right edge', summaryValue('leftWidth', highest), summaryValue('rightWidth', highest)),
-  eyePairColumn('highestHeight', 'Highest height', 'Tallest measure of each eye alone, top to bottom', summaryValue('leftHeight', highest), summaryValue('rightHeight', highest)),
+  measurePairColumn('highestWidth', 'Highest width', `Each eye’s width, left edge to right edge, ${fromOneMeasure('the widest single eye')}`, 'width'),
+  measurePairColumn('highestHeight', 'Highest height', `Each eye’s height, top to bottom, ${fromOneMeasure('the tallest single eye')}`, 'height'),
   degreeColumn('diagonal', 'Diagonal (outer)', 'Highest angle toward an outer corner, away from the nose, of either eye', (row) => row.figures?.diagonal),
   degreeColumn('highestOverlap', 'Overlap °', 'Highest width both eyes see at once', summaryValue('overlap', highest)),
   {
@@ -176,22 +213,20 @@ const allColumns: readonly Column[] = [
     summaryValue('renderedHorizontal', highest),
   ),
   degreeColumn('renderedGap', 'Gap to rendered', gapTitle('horizontal'), smallestGap('horizontalPastRendered')),
-  eyePairColumn(
+  measurePairColumn(
     'renderedWidth',
     'Rendered width',
-    'Width of each eye’s picture, as the link reports it (the highest of the measures)',
-    summaryValue('renderedLeftWidth', highest),
-    summaryValue('renderedRightWidth', highest),
+    `Width of each eye’s picture, as the link reports it, ${fromOneMeasure('the widest picture of a single eye')}`,
+    'renderedWidth',
   ),
-  eyePairColumn(
+  measurePairColumn(
     'renderedHeight',
     'Rendered height',
-    'Height of each eye’s picture, as the link reports it (the highest of the measures)',
-    summaryValue('renderedLeftHeight', highest),
-    summaryValue('renderedRightHeight', highest),
+    `Height of each eye’s picture, as the link reports it, ${fromOneMeasure('the tallest picture of a single eye')}`,
+    'renderedHeight',
   ),
-  eyePairColumn('widthGap', 'Width gap', gapTitle('width'), smallestGap('leftWidthPastRendered'), smallestGap('rightWidthPastRendered')),
-  eyePairColumn('heightGap', 'Height gap', gapTitle('height'), smallestGap('leftHeightPastRendered'), smallestGap('rightHeightPastRendered')),
+  measurePairColumn('widthGap', 'Width gap', `${gapTitle('width')}, ${fromOneMeasure('the smallest gap of a single eye')}`, 'widthPastRendered', turnedAround),
+  measurePairColumn('heightGap', 'Height gap', `${gapTitle('height')}, ${fromOneMeasure('the smallest gap of a single eye')}`, 'heightPastRendered', turnedAround),
   degreeColumn(
     'linkOverlap',
     'Rendered overlap (link)',
@@ -224,19 +259,19 @@ const allColumns: readonly Column[] = [
     averagedValue('leftHeight'),
     averagedValue('rightHeight'),
   ),
-  eyePairColumn(
+  measurePairColumn(
     'averagedWidthGap',
     'Width gap to model average',
-    'How far the widest measure of each eye stays inside the model’s averaged rendered width',
-    averagedGap('leftWidth', summaryValue('leftWidth', highest)),
-    averagedGap('rightWidth', summaryValue('rightWidth', highest)),
+    'How far each eye of the measure in “Highest width” stays inside the model’s averaged rendered width',
+    'width',
+    (figure, eye) => averagedGap(eye === 'left' ? 'leftWidth' : 'rightWidth', figure),
   ),
-  eyePairColumn(
+  measurePairColumn(
     'averagedHeightGap',
     'Height gap to model average',
-    'How far the tallest measure of each eye stays inside the model’s averaged rendered height',
-    averagedGap('leftHeight', summaryValue('leftHeight', highest)),
-    averagedGap('rightHeight', summaryValue('rightHeight', highest)),
+    'How far each eye of the measure in “Highest height” stays inside the model’s averaged rendered height',
+    'height',
+    (figure, eye) => averagedGap(eye === 'left' ? 'leftHeight' : 'rightHeight', figure),
   ),
 ]
 

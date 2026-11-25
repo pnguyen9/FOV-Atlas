@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tool": "wimfov",
   "headset": "htc-vive",
   "count": 1,
@@ -219,6 +219,60 @@
           "sum": 90,
           "sumsq": 8100,
           "max": 90
+        }
+      },
+      "leaders": {
+        "width": {
+          "issue": 12,
+          "author": "pnguyen9",
+          "rank": [
+            11000,
+            11200,
+            173500
+          ],
+          "figures": {
+            "horizontal": 110,
+            "vertical": 112,
+            "overlap": 90
+          },
+          "measures": {
+            "left": {
+              "up": 56,
+              "left": 55,
+              "down": 56,
+              "right": 45,
+              "up-left": 57,
+              "down-left": 56,
+              "down-right": 52,
+              "up-right": 57,
+              "up-up-left": 57,
+              "left-up-left": 57,
+              "left-down-left": 57,
+              "down-down-left": 56,
+              "down-down-right": 56,
+              "right-down-right": 49,
+              "right-up-right": 55,
+              "up-up-right": 57
+            },
+            "right": {
+              "up": 56,
+              "left": 45,
+              "down": 52,
+              "right": 55,
+              "up-left": 56,
+              "down-left": 50,
+              "down-right": 54,
+              "up-right": 57,
+              "up-up-left": 57,
+              "left-up-left": 55,
+              "left-down-left": 48,
+              "down-down-left": 52,
+              "down-down-right": 53,
+              "right-down-right": 54,
+              "right-up-right": 56,
+              "up-up-right": 57
+            }
+          }
         }
       }
     }

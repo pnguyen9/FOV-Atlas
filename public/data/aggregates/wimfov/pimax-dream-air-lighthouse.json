@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tool": "wimfov",
   "headset": "pimax-dream-air-lighthouse",
   "count": 6,
@@ -220,6 +220,60 @@
           "sumsq": 18052,
           "max": 96
         }
+      },
+      "leaders": {
+        "width": {
+          "issue": 25,
+          "author": "pnguyen9",
+          "rank": [
+            11400,
+            9200,
+            178400
+          ],
+          "figures": {
+            "horizontal": 114,
+            "vertical": 92,
+            "overlap": 94
+          },
+          "measures": {
+            "left": {
+              "up": 45,
+              "left": 57,
+              "down": 47,
+              "right": 47,
+              "up-left": 64,
+              "down-left": 64,
+              "down-right": 58,
+              "up-right": 58,
+              "up-up-left": 54,
+              "left-up-left": 64,
+              "left-down-left": 64,
+              "down-down-left": 55,
+              "down-down-right": 53,
+              "right-down-right": 55,
+              "right-up-right": 55,
+              "up-up-right": 52
+            },
+            "right": {
+              "up": 45,
+              "left": 47,
+              "down": 47,
+              "right": 57,
+              "up-left": 58,
+              "down-left": 58,
+              "down-right": 64,
+              "up-right": 64,
+              "up-up-left": 52,
+              "left-up-left": 55,
+              "left-down-left": 55,
+              "down-down-left": 53,
+              "down-down-right": 55,
+              "right-down-right": 64,
+              "right-up-right": 64,
+              "up-up-right": 54
+            }
+          }
+        }
       }
     },
     "almost-flush|low|both|free": {
@@ -437,6 +491,60 @@
           "sum": 94,
           "sumsq": 8836,
           "max": 94
+        }
+      },
+      "leaders": {
+        "width": {
+          "issue": 26,
+          "author": "pnguyen9",
+          "rank": [
+            10200,
+            9200,
+            161200
+          ],
+          "figures": {
+            "horizontal": 102,
+            "vertical": 92,
+            "overlap": 94
+          },
+          "measures": {
+            "left": {
+              "up": 45,
+              "left": 56,
+              "down": 47,
+              "right": 47,
+              "up-left": 53,
+              "down-left": 56,
+              "down-right": 51,
+              "up-right": 53,
+              "up-up-left": 54,
+              "left-up-left": 51,
+              "left-down-left": 57,
+              "down-down-left": 55,
+              "down-down-right": 53,
+              "right-down-right": 48,
+              "right-up-right": 52,
+              "up-up-right": 52
+            },
+            "right": {
+              "up": 45,
+              "left": 47,
+              "down": 47,
+              "right": 46,
+              "up-left": 49,
+              "down-left": 49,
+              "down-right": 51,
+              "up-right": 48,
+              "up-up-left": 52,
+              "left-up-left": 50,
+              "left-down-left": 47,
+              "down-down-left": 53,
+              "down-down-right": 55,
+              "right-down-right": 47,
+              "right-up-right": 46,
+              "up-up-right": 50
+            }
+          }
         }
       }
     },
@@ -656,6 +764,60 @@
           "sumsq": 8836,
           "max": 94
         }
+      },
+      "leaders": {
+        "width": {
+          "issue": 17,
+          "author": "pnguyen9",
+          "rank": [
+            11200,
+            9100,
+            166000
+          ],
+          "figures": {
+            "horizontal": 112,
+            "vertical": 91,
+            "overlap": 94
+          },
+          "measures": {
+            "left": {
+              "up": 45,
+              "left": 56,
+              "down": 46,
+              "right": 47,
+              "up-left": 58,
+              "down-left": 58,
+              "down-right": 52,
+              "up-right": 51,
+              "up-up-left": 50,
+              "left-up-left": 58,
+              "left-down-left": 58,
+              "down-down-left": 50,
+              "down-down-right": 50,
+              "right-down-right": 51,
+              "right-up-right": 51,
+              "up-up-right": 49
+            },
+            "right": {
+              "up": 45,
+              "left": 47,
+              "down": 46,
+              "right": 56,
+              "up-left": 51,
+              "down-left": 52,
+              "down-right": 58,
+              "up-right": 58,
+              "up-up-left": 49,
+              "left-up-left": 51,
+              "left-down-left": 51,
+              "down-down-left": 50,
+              "down-down-right": 50,
+              "right-down-right": 58,
+              "right-up-right": 58,
+              "up-up-right": 50
+            }
+          }
+        }
       }
     },
     "almost-flush|low|tuned|fixed": {
@@ -873,6 +1035,60 @@
           "sum": 182,
           "sumsq": 16580,
           "max": 94
+        }
+      },
+      "leaders": {
+        "width": {
+          "issue": 19,
+          "author": "pnguyen9",
+          "rank": [
+            11800,
+            9100,
+            165000
+          ],
+          "figures": {
+            "horizontal": 118,
+            "vertical": 91,
+            "overlap": 88
+          },
+          "measures": {
+            "left": {
+              "up": 45,
+              "left": 59,
+              "down": 46,
+              "right": 44,
+              "up-left": 60,
+              "down-left": 60,
+              "down-right": 49,
+              "up-right": 49,
+              "up-up-left": 50,
+              "left-up-left": 61,
+              "left-down-left": 61,
+              "down-down-left": 50,
+              "down-down-right": 48,
+              "right-down-right": 48,
+              "right-up-right": 48,
+              "up-up-right": 47
+            },
+            "right": {
+              "up": 45,
+              "left": 44,
+              "down": 46,
+              "right": 59,
+              "up-left": 49,
+              "down-left": 49,
+              "down-right": 60,
+              "up-right": 60,
+              "up-up-left": 47,
+              "left-up-left": 48,
+              "left-down-left": 48,
+              "down-down-left": 48,
+              "down-down-right": 50,
+              "right-down-right": 61,
+              "right-up-right": 61,
+              "up-up-right": 50
+            }
+          }
         }
       }
     }

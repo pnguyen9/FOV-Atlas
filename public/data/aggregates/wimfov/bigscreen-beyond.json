@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tool": "wimfov",
   "headset": "bigscreen-beyond",
   "count": 3,
@@ -220,6 +220,60 @@
           "sumsq": 6561,
           "max": 81
         }
+      },
+      "leaders": {
+        "width": {
+          "issue": 3,
+          "author": "pnguyen9",
+          "rank": [
+            9900,
+            9000,
+            150800
+          ],
+          "figures": {
+            "horizontal": 99,
+            "vertical": 90,
+            "overlap": 81
+          },
+          "measures": {
+            "left": {
+              "up": 39,
+              "left": 50,
+              "down": 51,
+              "right": 40,
+              "up-left": 48,
+              "down-left": 58,
+              "down-right": 49,
+              "up-right": 40,
+              "up-up-left": 44,
+              "left-up-left": 50,
+              "left-down-left": 55,
+              "down-down-left": 55,
+              "down-down-right": 51,
+              "right-down-right": 45,
+              "right-up-right": 41,
+              "up-up-right": 40
+            },
+            "right": {
+              "up": 39,
+              "left": 41,
+              "down": 50,
+              "right": 49,
+              "up-left": 41,
+              "down-left": 50,
+              "down-right": 56,
+              "up-right": 47,
+              "up-up-left": 41,
+              "left-up-left": 41,
+              "left-down-left": 46,
+              "down-down-left": 51,
+              "down-down-right": 54,
+              "right-down-right": 53,
+              "right-up-right": 49,
+              "up-up-right": 44
+            }
+          }
+        }
       }
     },
     "almost-flush|low|modded|free": {
@@ -438,6 +492,60 @@
           "sumsq": 3969,
           "max": 63
         }
+      },
+      "leaders": {
+        "width": {
+          "issue": 4,
+          "author": "pnguyen9",
+          "rank": [
+            8600,
+            8600,
+            125000
+          ],
+          "figures": {
+            "horizontal": 86,
+            "vertical": 86,
+            "overlap": 63
+          },
+          "measures": {
+            "left": {
+              "up": 38,
+              "left": 48,
+              "down": 48,
+              "right": 27,
+              "up-left": 42,
+              "down-left": 49,
+              "down-right": 39,
+              "up-right": 30,
+              "up-up-left": 40,
+              "left-up-left": 46,
+              "left-down-left": 49,
+              "down-down-left": 50,
+              "down-down-right": 43,
+              "right-down-right": 34,
+              "right-up-right": 26,
+              "up-up-right": 35
+            },
+            "right": {
+              "up": 37,
+              "left": 36,
+              "down": 42,
+              "right": 38,
+              "up-left": 34,
+              "down-left": 37,
+              "down-right": 41,
+              "up-right": 39,
+              "up-up-left": 36,
+              "left-up-left": 34,
+              "left-down-left": 36,
+              "down-down-left": 38,
+              "down-down-right": 42,
+              "right-down-right": 40,
+              "right-up-right": 38,
+              "up-up-right": 38
+            }
+          }
+        }
       }
     },
     "almost-flush|low|stock|fixed": {
@@ -655,6 +763,60 @@
           "sum": 81,
           "sumsq": 6561,
           "max": 81
+        }
+      },
+      "leaders": {
+        "width": {
+          "issue": 5,
+          "author": "pnguyen9",
+          "rank": [
+            9900,
+            8900,
+            143300
+          ],
+          "figures": {
+            "horizontal": 99,
+            "vertical": 89,
+            "overlap": 81
+          },
+          "measures": {
+            "left": {
+              "up": 39,
+              "left": 50,
+              "down": 50,
+              "right": 40,
+              "up-left": 45,
+              "down-left": 51,
+              "down-right": 45,
+              "up-right": 37,
+              "up-up-left": 42,
+              "left-up-left": 48,
+              "left-down-left": 51,
+              "down-down-left": 51,
+              "down-down-right": 47,
+              "right-down-right": 42,
+              "right-up-right": 38,
+              "up-up-right": 38
+            },
+            "right": {
+              "up": 39,
+              "left": 41,
+              "down": 50,
+              "right": 49,
+              "up-left": 39,
+              "down-left": 46,
+              "down-right": 50,
+              "up-right": 44,
+              "up-up-left": 39,
+              "left-up-left": 40,
+              "left-down-left": 44,
+              "down-down-left": 48,
+              "down-down-right": 51,
+              "right-down-right": 50,
+              "right-up-right": 47,
+              "up-up-right": 42
+            }
+          }
         }
       }
     }

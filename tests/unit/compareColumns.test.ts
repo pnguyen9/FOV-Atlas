@@ -5,12 +5,14 @@ import {
   defaultColumnsFor,
   formatCell,
   headlineColumnsFor,
+  headlineWidthOfRow,
   measureListColumnsFor,
   sortRows,
   type CompareRow,
 } from '../../src/pages/compare/columns'
 import { eyeDepthOptions, faceFitLabelOf, faceFitOptionOf } from '../../src/components/faceFit'
-import { figuresOfMeasure } from '../../src/lib/fovStats'
+import { combineCells, figuresOfCombined, figuresOfMeasure } from '../../src/lib/fovStats'
+import { aggregatePages, emptyPage, withEntry } from '../../src/lib/submissionStore'
 import { tools, type Submission } from '../../src/lib/submission'
 import { gazeLabelOf, headsetName, tuningLabelOf } from '../../src/components/measureLabels'
 import { renderedAverageOf } from '../../src/lib/renderedAverage'
@@ -49,7 +51,31 @@ describe('Compare columns', () => {
     expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestHorizontal')
     expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestOverlap')
     expect(cellsOf(index, 'vrhp').widthGap).toBe('—')
-    expect(cellsOf({ ...index, figures: { ...figuresOfMeasure(vrhpIndex), summaries: {} } }, 'vrhp').highestWidth).toBe('—')
+    expect(cellsOf({ ...index, figures: { ...figuresOfMeasure(vrhpIndex), pairs: new Map() } }, 'vrhp').highestWidth).toBe('—')
+  })
+
+  it('takes both eyes of a pair from one measure, the one leading the pair', () => {
+    const lopsided: Submission = {
+      ...vrhpBeyond,
+      measures: { left: { left: 40, right: 40, up: 45, down: 45 }, right: { left: 40, right: 60, up: 40, down: 40 } },
+    }
+    const page = withEntry(withEntry(emptyPage('vrhp', 'bigscreen-beyond-2', 0), 1, { author: 'even', submission: vrhpBeyond }), 2, {
+      author: 'lopsided',
+      submission: lopsided,
+    })
+    const anyFilters = { eyeDepth: [], noseBridge: [], tuning: [], gaze: [] }
+    const combined = combineCells(aggregatePages('vrhp', 'bigscreen-beyond-2', [page]), anyFilters)
+    const group = { ...beyond, figures: figuresOfCombined(combined) }
+    expect(cellsOf(group, 'vrhp')).toMatchObject({
+      highestWidth: '80.0° / 100.0°',
+      highestHeight: '96.9° / 96.7°',
+      widthGap: '16.9° / -3.4°',
+      renderedWidth: '97.0° / 96.6°',
+    })
+    expect(cellsOf({ ...group, averaged }, 'vrhp').averagedWidthGap).toBe('17.0° / -3.0°')
+    expect(headlineWidthOfRow('vrhp', group)).toBe(100)
+    expect(headlineWidthOfRow('vrhp', broken)).toBeUndefined()
+    expect(headlineWidthOfRow('atlas', rowOf('Atlas', atlasBeyond))).toBe(106)
   })
 
   it('sets VR Headset Picker figures against the model’s averaged pictures, per eye', () => {
@@ -62,9 +88,10 @@ describe('Compare columns', () => {
 
   it('shows one eye’s figure when only it exists, sorting by it', () => {
     const [width] = columnsFor('vrhp')
+    const ownFigures = figuresOfMeasure(vrhpBeyond)
     const leftOnly: CompareRow = {
       ...beyond,
-      figures: { ...figuresOfMeasure(vrhpBeyond), summaries: { leftWidth: { count: 1, mean: 90, sigma: 0, highest: 90 } } },
+      figures: { ...ownFigures, pairs: new Map([...ownFigures.pairs, ['width', new Map([['leftWidth', 90]])]]) },
     }
     expect(width === undefined ? '' : formatCell(width, leftOnly)).toBe('90.0° / —')
     expect(width?.value(leftOnly)).toBe(90)

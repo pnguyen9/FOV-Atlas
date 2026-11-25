@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tool": "wimfov",
   "headset": "bigscreen-beyond-2",
   "count": 5,
@@ -220,6 +220,60 @@
           "sumsq": 26244,
           "max": 81
         }
+      },
+      "leaders": {
+        "width": {
+          "issue": 10,
+          "author": "pnguyen9",
+          "rank": [
+            10600,
+            9300,
+            161300
+          ],
+          "figures": {
+            "horizontal": 106,
+            "vertical": 93,
+            "overlap": 81
+          },
+          "measures": {
+            "left": {
+              "up": 41,
+              "left": 54,
+              "down": 52,
+              "right": 40,
+              "up-left": 54,
+              "down-left": 63,
+              "down-right": 51,
+              "up-right": 43,
+              "up-up-left": 49,
+              "left-up-left": 58,
+              "left-down-left": 60,
+              "down-down-left": 59,
+              "down-down-right": 54,
+              "right-down-right": 48,
+              "right-up-right": 43,
+              "up-up-right": 43
+            },
+            "right": {
+              "up": 42,
+              "left": 41,
+              "down": 51,
+              "right": 52,
+              "up-left": 43,
+              "down-left": 53,
+              "down-right": 59,
+              "up-right": 52,
+              "up-up-left": 44,
+              "left-up-left": 43,
+              "left-down-left": 48,
+              "down-down-left": 54,
+              "down-down-right": 58,
+              "right-down-right": 58,
+              "right-up-right": 54,
+              "up-up-right": 49
+            }
+          }
+        }
       }
     },
     "almost-flush|low|stock|fixed": {
@@ -437,6 +491,60 @@
           "sum": 79,
           "sumsq": 6241,
           "max": 79
+        }
+      },
+      "leaders": {
+        "width": {
+          "issue": 6,
+          "author": "pnguyen9",
+          "rank": [
+            10600,
+            9200,
+            150700
+          ],
+          "figures": {
+            "horizontal": 106,
+            "vertical": 92,
+            "overlap": 79
+          },
+          "measures": {
+            "left": {
+              "up": 41,
+              "left": 54,
+              "down": 50,
+              "right": 39,
+              "up-left": 50,
+              "down-left": 56,
+              "down-right": 43,
+              "up-right": 40,
+              "up-up-left": 47,
+              "left-up-left": 53,
+              "left-down-left": 56,
+              "down-down-left": 53,
+              "down-down-right": 46,
+              "right-down-right": 41,
+              "right-up-right": 39,
+              "up-up-right": 41
+            },
+            "right": {
+              "up": 41,
+              "left": 40,
+              "down": 51,
+              "right": 52,
+              "up-left": 40,
+              "down-left": 47,
+              "down-right": 55,
+              "up-right": 49,
+              "up-up-left": 41,
+              "left-up-left": 40,
+              "left-down-left": 45,
+              "down-down-left": 50,
+              "down-down-right": 54,
+              "right-down-right": 55,
+              "right-up-right": 52,
+              "up-up-right": 46
+            }
+          }
         }
       }
     }

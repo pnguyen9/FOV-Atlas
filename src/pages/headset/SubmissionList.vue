@@ -11,9 +11,8 @@ import { ceilingWords, cornerMaskWords } from '../../lib/ceiling.ts'
 import { figuresOfMeasure } from '../../lib/fovStats.ts'
 import { issueUrl } from '../../lib/issueForm.ts'
 import type { EyeDepth, NoseBridge, Tool } from '../../lib/submission.ts'
-import { tuningOf, type StoredEntry } from '../../lib/submissionStore.ts'
+import { tuningOf, type ListedEntry, type StoredEntry } from '../../lib/submissionStore.ts'
 import { cellParts, measureListColumnsFor, type CompareRow } from '../compare/columns.ts'
-import type { ListedEntry } from './listedEntry.ts'
 
 const props = defineProps<{
   readonly tool: Tool

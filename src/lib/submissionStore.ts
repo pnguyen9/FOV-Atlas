@@ -8,12 +8,15 @@
  * An aggregate is split into cells, one per combination of the soft filters with a closed set of
  * values (face fit, tuning, gaze). Each cell keeps count, sum, sum of squares and max per direction
  * and per figure (`figuresOf`), so the site combines any selection of cells into
- * a mean, a spread and a maximum without the raw values. Tools never share a file, so nothing
- * combines across tools.
+ * a mean, a spread and a maximum without the raw values. Each cell also keeps its first measure in
+ * every ranking (`measureRanking.ts`), and the first of a selection is the first of its cells'
+ * firsts, so the site shows one whole measure as the highest without loading the pages. Tools
+ * never share a file, so nothing combines across tools.
  */
 
 import { toCenti } from './degrees.ts'
 import { isCount, isPlainObject, isPositiveCount, parseJson } from './json.ts'
+import { isAhead, ranksOf, type EyePair, type MeasureFigures, type Rank } from './measureRanking.ts'
 import {
   angleOriginOf,
   eyeDepths,
@@ -57,8 +60,13 @@ export function dataRootOf(path: string): string | null {
   return segments.every((segment) => /^[a-z0-9-]+$/.test(segment)) ? root : null
 }
 
-/** The version every data file the store writes carries. */
+/** The version every data file the store writes carries, aggregates aside. */
 export const formatVersion = 1
+/** The version of the aggregates, which carry each cell's first measures (see `Leader`). */
+export const aggregateVersion = 2
+
+/** A GitHub login, as the issue author of an accepted measure. */
+export const loginPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/
 
 export interface StoredEntry {
   /** The issue author's public GitHub login, shown next to the measure. */
@@ -79,6 +87,16 @@ export interface Page {
   /** Keyed by issue number. */
   readonly entries: Readonly<Record<string, StoredEntry>>
 }
+
+/** A published measure and the issue it was sent in. */
+export interface ListedEntry {
+  readonly issue: number
+  readonly entry: StoredEntry
+}
+
+/** A page's measures with their issue numbers. */
+export const listedEntriesOf = (page: Page): ListedEntry[] =>
+  Object.entries(page.entries).map(([issue, entry]) => ({ issue: Number(issue), entry }))
 
 /** Where an issue's entry is stored. */
 export interface Location {
@@ -142,14 +160,31 @@ export type FigureName = (typeof figureNames)[number]
 export const signedFigures: readonly FigureName[] = figureNames.filter((figure) => figure.endsWith('PastRendered'))
 
 
+/**
+ * The measure that comes first in one ranking (see `measureRanking.ts`), with what the site shows
+ * of it, so that it never needs the pages to draw or list it.
+ */
+export interface Leader {
+  readonly issue: number
+  readonly author: string
+  readonly rank: Rank
+  readonly figures: MeasureFigures
+  /** Its angles, kept for the width's first only, which the radar draws whole as the highest. */
+  readonly measures?: EyeMeasures
+}
+
+export type Leaders = Readonly<Partial<Record<EyePair, Leader>>>
+
 export interface CellStats {
   readonly left: Partial<Record<Direction, Stat>>
   readonly right: Partial<Record<Direction, Stat>>
   readonly figures: Partial<Record<FigureName, Stat>>
+  /** The first measure of the cell in each ranking its tool has; combines by taking the first of them. */
+  readonly leaders: Leaders
 }
 
 export interface Aggregate {
-  readonly version: typeof formatVersion
+  readonly version: typeof aggregateVersion
   readonly tool: Tool
   readonly headset: string
   readonly count: number
@@ -418,37 +453,49 @@ export function figuresOf(submission: Pick<Submission, 'tool' | 'measures' | 'ce
   return angleOriginOf(submission.tool) === 'picture' ? perEyeFigures(submission) : bothEyeFigures(submission)
 }
 
-function cellOf(submissions: readonly Submission[]): CellStats {
+/** Of two leaders of the same ranking, the one that comes first. */
+export const firstLeader = (first: Leader | undefined, second: Leader): Leader =>
+  first === undefined || isAhead(second, first) ? second : first
+
+function cellOf(entries: readonly ListedEntry[]): CellStats {
   const accumulators = new Map<string, Accumulator>()
+  const leaders = new Map<EyePair, Leader>()
   const add = (prefix: string, values: Readonly<Record<string, number>>): void => {
     for (const [key, degrees] of Object.entries(values)) accumulate(accumulators, `${prefix}${key}`, degrees)
   }
-  for (const submission of submissions) {
+  for (const { issue, entry } of entries) {
+    const { submission, author } = entry
+    const figures = figuresOf(submission)
     add('left:', submission.measures.left)
     add('right:', submission.measures.right)
-    add('figure:', figuresOf(submission))
+    add('figure:', figures)
+    for (const [pair, rank] of Object.entries(ranksOf(submission.tool, figures, submission.measures)) as [EyePair, Rank][]) {
+      const leader: Leader = { issue, author, rank, figures, ...(pair === 'width' ? { measures: submission.measures } : {}) }
+      leaders.set(pair, firstLeader(leaders.get(pair), leader))
+    }
   }
   return {
     left: statsOf(accumulators, 'left:'),
     right: statsOf(accumulators, 'right:'),
     figures: statsOf(accumulators, 'figure:'),
+    leaders: Object.fromEntries(leaders),
   }
 }
 
 /** Rebuilt from all of a headset's pages on every change: a maximum cannot be taken back out. */
 export function aggregatePages(tool: Tool, headset: string, pages: readonly Page[]): Aggregate {
-  const groups = new Map<string, Submission[]>()
-  const submissions = pages.flatMap((page) => Object.values(page.entries).map(({ submission }) => submission))
-  for (const submission of submissions) {
-    const key = cellKey(submission)
+  const groups = new Map<string, ListedEntry[]>()
+  const entries = pages.flatMap(listedEntriesOf)
+  for (const listed of entries) {
+    const key = cellKey(listed.entry.submission)
     const group = groups.get(key)
-    if (group === undefined) groups.set(key, [submission])
-    else group.push(submission)
+    if (group === undefined) groups.set(key, [listed])
+    else group.push(listed)
   }
   const cells = Object.fromEntries(
     [...groups].sort(([first], [second]) => first.localeCompare(second)).map(([key, group]) => [key, cellOf(group)]),
   )
-  return { version: formatVersion, tool, headset, count: submissions.length, cells }
+  return { version: aggregateVersion, tool, headset, count: entries.length, cells }
 }
 
 export const serialize = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`

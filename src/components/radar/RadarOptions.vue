@@ -53,6 +53,11 @@ const renderedOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
       label="Statistic"
       :options="statisticOptions"
     />
+    <p class="small muted hint">
+      Highest: the one measure wider than all others, drawn whole as that person measured it, never pieced together from
+      several{{ angleOriginOf(tool) === 'picture' ? ' (widest single eye)' : ' (widest horizontal, both eyes)' }}.
+      Mean: the mean angle in each direction.
+    </p>
     <label
       v-if="compareState.radar.statistic === 'highest'"
       class="also-mean"

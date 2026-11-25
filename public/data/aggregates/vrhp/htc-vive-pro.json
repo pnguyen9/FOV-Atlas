@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tool": "vrhp",
   "headset": "htc-vive-pro",
   "count": 1,
@@ -153,6 +153,174 @@
           "sum": 1.23,
           "sumsq": 1.5129,
           "max": 1.23
+        }
+      },
+      "leaders": {
+        "width": {
+          "issue": 14,
+          "author": "pnguyen9",
+          "rank": [
+            10382,
+            10891,
+            53444
+          ],
+          "figures": {
+            "leftWidth": 103.63,
+            "leftHeight": 108.73,
+            "rightWidth": 103.82,
+            "rightHeight": 108.91,
+            "renderedHorizontal": 106.88,
+            "renderedOverlap": 90.32,
+            "renderedLeftWidth": 98.51,
+            "renderedLeftHeight": 107.5,
+            "renderedRightWidth": 98.7,
+            "renderedRightHeight": 107.68,
+            "leftWidthPastRendered": 5.12,
+            "leftHeightPastRendered": 1.23,
+            "rightWidthPastRendered": 5.12,
+            "rightHeightPastRendered": 1.23
+          },
+          "measures": {
+            "left": {
+              "left": 53.39,
+              "right": 50.24,
+              "up": 54.08,
+              "down": 54.65,
+              "down-left": 54.59
+            },
+            "right": {
+              "left": 50.33,
+              "right": 53.49,
+              "up": 54.16,
+              "down": 54.75,
+              "up-right": 54.76
+            }
+          }
+        },
+        "height": {
+          "issue": 14,
+          "author": "pnguyen9",
+          "rank": [
+            10891,
+            10873,
+            53444
+          ],
+          "figures": {
+            "leftWidth": 103.63,
+            "leftHeight": 108.73,
+            "rightWidth": 103.82,
+            "rightHeight": 108.91,
+            "renderedHorizontal": 106.88,
+            "renderedOverlap": 90.32,
+            "renderedLeftWidth": 98.51,
+            "renderedLeftHeight": 107.5,
+            "renderedRightWidth": 98.7,
+            "renderedRightHeight": 107.68,
+            "leftWidthPastRendered": 5.12,
+            "leftHeightPastRendered": 1.23,
+            "rightWidthPastRendered": 5.12,
+            "rightHeightPastRendered": 1.23
+          }
+        },
+        "renderedWidth": {
+          "issue": 14,
+          "author": "pnguyen9",
+          "rank": [
+            9870,
+            9851,
+            53444
+          ],
+          "figures": {
+            "leftWidth": 103.63,
+            "leftHeight": 108.73,
+            "rightWidth": 103.82,
+            "rightHeight": 108.91,
+            "renderedHorizontal": 106.88,
+            "renderedOverlap": 90.32,
+            "renderedLeftWidth": 98.51,
+            "renderedLeftHeight": 107.5,
+            "renderedRightWidth": 98.7,
+            "renderedRightHeight": 107.68,
+            "leftWidthPastRendered": 5.12,
+            "leftHeightPastRendered": 1.23,
+            "rightWidthPastRendered": 5.12,
+            "rightHeightPastRendered": 1.23
+          }
+        },
+        "renderedHeight": {
+          "issue": 14,
+          "author": "pnguyen9",
+          "rank": [
+            10768,
+            10750,
+            53444
+          ],
+          "figures": {
+            "leftWidth": 103.63,
+            "leftHeight": 108.73,
+            "rightWidth": 103.82,
+            "rightHeight": 108.91,
+            "renderedHorizontal": 106.88,
+            "renderedOverlap": 90.32,
+            "renderedLeftWidth": 98.51,
+            "renderedLeftHeight": 107.5,
+            "renderedRightWidth": 98.7,
+            "renderedRightHeight": 107.68,
+            "leftWidthPastRendered": 5.12,
+            "leftHeightPastRendered": 1.23,
+            "rightWidthPastRendered": 5.12,
+            "rightHeightPastRendered": 1.23
+          }
+        },
+        "widthPastRendered": {
+          "issue": 14,
+          "author": "pnguyen9",
+          "rank": [
+            512,
+            512,
+            53444
+          ],
+          "figures": {
+            "leftWidth": 103.63,
+            "leftHeight": 108.73,
+            "rightWidth": 103.82,
+            "rightHeight": 108.91,
+            "renderedHorizontal": 106.88,
+            "renderedOverlap": 90.32,
+            "renderedLeftWidth": 98.51,
+            "renderedLeftHeight": 107.5,
+            "renderedRightWidth": 98.7,
+            "renderedRightHeight": 107.68,
+            "leftWidthPastRendered": 5.12,
+            "leftHeightPastRendered": 1.23,
+            "rightWidthPastRendered": 5.12,
+            "rightHeightPastRendered": 1.23
+          }
+        },
+        "heightPastRendered": {
+          "issue": 14,
+          "author": "pnguyen9",
+          "rank": [
+            123,
+            123,
+            53444
+          ],
+          "figures": {
+            "leftWidth": 103.63,
+            "leftHeight": 108.73,
+            "rightWidth": 103.82,
+            "rightHeight": 108.91,
+            "renderedHorizontal": 106.88,
+            "renderedOverlap": 90.32,
+            "renderedLeftWidth": 98.51,
+            "renderedLeftHeight": 107.5,
+            "renderedRightWidth": 98.7,
+            "renderedRightHeight": 107.68,
+            "leftWidthPastRendered": 5.12,
+            "leftHeightPastRendered": 1.23,
+            "rightWidthPastRendered": 5.12,
+            "rightHeightPastRendered": 1.23
+          }
         }
       }
     }

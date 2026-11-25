@@ -4,6 +4,7 @@
  * data at a time; nothing here combines measures of different tools.
  */
 
+import { eyePairNames, type EyePair, type FigureValues } from './measureRanking.ts'
 import {
   directions,
   measuresBothEyesAtOnce,
@@ -21,9 +22,11 @@ import {
   cellKey,
   cellKeyParts,
   figuresOf,
+  firstLeader,
   type Aggregate,
   type CellStats,
   type FigureName,
+  type Leaders,
   type Stat,
   type Tuning,
 } from './submissionStore.ts'
@@ -78,7 +81,15 @@ function cellCount(cell: CellStats): number {
   return Math.max(0, ...stats.map((stat) => stat.count))
 }
 
-const emptyStats = (): CellStats => ({ left: {}, right: {}, figures: {} })
+function addLeaders(total: Leaders, cell: Leaders): Leaders {
+  const firsts = new Map(Object.entries(total) as [EyePair, NonNullable<Leaders[EyePair]>][])
+  for (const [pair, leader] of Object.entries(cell) as [EyePair, NonNullable<Leaders[EyePair]>][]) {
+    firsts.set(pair, firstLeader(firsts.get(pair), leader))
+  }
+  return Object.fromEntries(firsts)
+}
+
+const emptyStats = (): CellStats => ({ left: {}, right: {}, figures: {}, leaders: {} })
 
 export interface Combined {
   readonly count: number
@@ -96,6 +107,7 @@ export function combineCells(aggregate: Aggregate, filters: Filters): Combined {
       left: addGroup(stats.left, cell.left),
       right: addGroup(stats.right, cell.right),
       figures: addGroup(stats.figures, cell.figures),
+      leaders: addLeaders(stats.leaders, cell.leaders),
     }
   }
   return { count, stats }
@@ -116,25 +128,36 @@ export function summarize(stat: Stat): Summary {
   return { count: stat.count, mean, sigma: Math.sqrt(variance), highest: stat.max }
 }
 
+/**
+ * What a radar draws for a group: `highest`, the measure leading the width ranking (see
+ * `measureRanking.ts`), whole, or `mean`, the mean angle in each direction.
+ */
 export type Statistic = 'highest' | 'mean'
 
-/** One eye's shape: the highest or the mean angle in each direction measured. */
-export function eyeShape(stats: Partial<Record<Direction, Stat>>, statistic: Statistic): EyeMeasure {
+/** One eye's largest or mean angle in each direction measured, each direction on its own. */
+export function eyeShape(stats: Partial<Record<Direction, Stat>>, statistic: 'max' | 'mean'): EyeMeasure {
   const byDirection = new Map(Object.entries(stats))
   return Object.fromEntries(
     directions.flatMap((direction) => {
       const stat = byDirection.get(direction)
       if (stat === undefined) return []
       const summary = summarize(stat)
-      return [[direction, statistic === 'highest' ? summary.highest : summary.mean]]
+      return [[direction, statistic === 'max' ? summary.highest : summary.mean]]
     }),
   )
 }
 
-export const shapeOf = (stats: CellStats, statistic: Statistic): EyeMeasures => ({
-  left: eyeShape(stats.left, statistic),
-  right: eyeShape(stats.right, statistic),
+/** The mean shape of both eyes. */
+export const meanShapeOf = (stats: CellStats): EyeMeasures => ({
+  left: eyeShape(stats.left, 'mean'),
+  right: eyeShape(stats.right, 'mean'),
 })
+
+/**
+ * For each pair of eye figures, the figures of the one measure both halves come from (see
+ * `measureRanking.ts`); a pair is missing when no measure has it.
+ */
+export type PairSources = ReadonlyMap<EyePair, FigureValues>
 
 /** The eye choices offered to visitors. */
 export type EyeChoice = 'left' | 'right' | 'union' | 'overlap'
@@ -206,16 +229,19 @@ export interface Figures {
   readonly diagonal: number | undefined
   /** Mean overlap as a share of mean horizontal, in percent. */
   readonly overlapShare: number | undefined
+  /** The one measure each pair of eye figures comes from, so both eyes of a pair are one person's. */
+  readonly pairs: PairSources
 }
 
 function figuresFrom(
   count: number,
   summaries: Readonly<Partial<Record<FigureName, Summary>>>,
   diagonal: number | undefined,
+  pairs: PairSources,
 ): Figures {
   const { horizontal, overlap } = summaries
   const overlapShare = horizontal === undefined || overlap === undefined ? undefined : (overlap.mean / horizontal.mean) * 100
-  return { count, summaries, diagonal, overlapShare }
+  return { count, summaries, diagonal, overlapShare, pairs }
 }
 
 function outerDiagonalOf(left: EyeMeasure, right: EyeMeasure): number | undefined {
@@ -227,17 +253,26 @@ function outerDiagonalOf(left: EyeMeasure, right: EyeMeasure): number | undefine
   ])
 }
 
+/** A group's figures, each pair from the measure leading that pair's ranking. */
 export function figuresOfCombined({ count, stats }: Combined): Figures {
   const summaries = Object.fromEntries(Object.entries(stats.figures).map(([figure, stat]) => [figure, summarize(stat)]))
-  return figuresFrom(count, summaries, outerDiagonalOf(eyeShape(stats.left, 'highest'), eyeShape(stats.right, 'highest')))
+  const leaders = new Map(Object.entries(stats.leaders))
+  const pairs = new Map(
+    eyePairNames.flatMap((pair) => {
+      const leader = leaders.get(pair)
+      return leader === undefined ? [] : [[pair, new Map(Object.entries(leader.figures))] as const]
+    }),
+  )
+  return figuresFrom(count, summaries, outerDiagonalOf(eyeShape(stats.left, 'max'), eyeShape(stats.right, 'max')), pairs)
 }
 
-/** The same figures for one measure, its own values standing as highest and mean. */
+/** The same figures for one measure, its own values standing as highest and mean and as every pair. */
 export function figuresOfMeasure(submission: Pick<Submission, 'tool' | 'measures' | 'ceiling'>): Figures {
-  const summaries = Object.fromEntries(
-    Object.entries(figuresOf(submission)).map(([figure, value]) => [figure, { count: 1, mean: value, sigma: 0, highest: value }]),
-  )
-  return figuresFrom(1, summaries, outerDiagonalOf(submission.measures.left, submission.measures.right))
+  const own = Object.entries(figuresOf(submission))
+  const summaries = Object.fromEntries(own.map(([figure, value]) => [figure, { count: 1, mean: value, sigma: 0, highest: value }]))
+  const values = new Map(own)
+  const pairs = new Map(eyePairNames.map((pair) => [pair, values]))
+  return figuresFrom(1, summaries, outerDiagonalOf(submission.measures.left, submission.measures.right), pairs)
 }
 
 /** The largest angle in a set of shapes and lone angles, to size the chart that draws them. */

@@ -36,6 +36,7 @@ import {
   entriesPerPage,
   headsetsOf,
   indexPath,
+  loginPattern,
   lookupNumberOf,
   lookupPath,
   pagePath,
@@ -83,8 +84,6 @@ export interface ActionResult {
   /** An accepted measure whose rendered field of view differs from its model's average. */
   readonly renderedDiffers: boolean
 }
-
-const loginPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/
 
 function field(value: unknown, name: string): unknown {
   if (typeof value !== 'object' || value === null) return undefined

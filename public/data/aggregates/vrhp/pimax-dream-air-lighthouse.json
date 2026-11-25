@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tool": "vrhp",
   "headset": "pimax-dream-air-lighthouse",
   "count": 5,
@@ -154,6 +154,174 @@
           "sumsq": 0,
           "max": 0
         }
+      },
+      "leaders": {
+        "width": {
+          "issue": 24,
+          "author": "pnguyen9",
+          "rank": [
+            10800,
+            9600,
+            53170
+          ],
+          "figures": {
+            "leftWidth": 108,
+            "leftHeight": 96,
+            "rightWidth": 108,
+            "rightHeight": 96,
+            "renderedHorizontal": 116.71,
+            "renderedOverlap": 99.29,
+            "renderedLeftWidth": 108,
+            "renderedLeftHeight": 96,
+            "renderedRightWidth": 108,
+            "renderedRightHeight": 96,
+            "leftWidthPastRendered": 0,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          },
+          "measures": {
+            "left": {
+              "left": 56.36,
+              "right": 51.64,
+              "up": 47.43,
+              "down": 48.57,
+              "down-left": 62.02
+            },
+            "right": {
+              "left": 51.64,
+              "right": 56.36,
+              "up": 47.43,
+              "down": 48.57,
+              "up-right": 61.68
+            }
+          }
+        },
+        "height": {
+          "issue": 24,
+          "author": "pnguyen9",
+          "rank": [
+            9600,
+            9600,
+            53170
+          ],
+          "figures": {
+            "leftWidth": 108,
+            "leftHeight": 96,
+            "rightWidth": 108,
+            "rightHeight": 96,
+            "renderedHorizontal": 116.71,
+            "renderedOverlap": 99.29,
+            "renderedLeftWidth": 108,
+            "renderedLeftHeight": 96,
+            "renderedRightWidth": 108,
+            "renderedRightHeight": 96,
+            "leftWidthPastRendered": 0,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "renderedWidth": {
+          "issue": 24,
+          "author": "pnguyen9",
+          "rank": [
+            10800,
+            10800,
+            53170
+          ],
+          "figures": {
+            "leftWidth": 108,
+            "leftHeight": 96,
+            "rightWidth": 108,
+            "rightHeight": 96,
+            "renderedHorizontal": 116.71,
+            "renderedOverlap": 99.29,
+            "renderedLeftWidth": 108,
+            "renderedLeftHeight": 96,
+            "renderedRightWidth": 108,
+            "renderedRightHeight": 96,
+            "leftWidthPastRendered": 0,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "renderedHeight": {
+          "issue": 24,
+          "author": "pnguyen9",
+          "rank": [
+            9600,
+            9600,
+            53170
+          ],
+          "figures": {
+            "leftWidth": 108,
+            "leftHeight": 96,
+            "rightWidth": 108,
+            "rightHeight": 96,
+            "renderedHorizontal": 116.71,
+            "renderedOverlap": 99.29,
+            "renderedLeftWidth": 108,
+            "renderedLeftHeight": 96,
+            "renderedRightWidth": 108,
+            "renderedRightHeight": 96,
+            "leftWidthPastRendered": 0,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "widthPastRendered": {
+          "issue": 24,
+          "author": "pnguyen9",
+          "rank": [
+            0,
+            0,
+            53170
+          ],
+          "figures": {
+            "leftWidth": 108,
+            "leftHeight": 96,
+            "rightWidth": 108,
+            "rightHeight": 96,
+            "renderedHorizontal": 116.71,
+            "renderedOverlap": 99.29,
+            "renderedLeftWidth": 108,
+            "renderedLeftHeight": 96,
+            "renderedRightWidth": 108,
+            "renderedRightHeight": 96,
+            "leftWidthPastRendered": 0,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "heightPastRendered": {
+          "issue": 24,
+          "author": "pnguyen9",
+          "rank": [
+            0,
+            0,
+            53170
+          ],
+          "figures": {
+            "leftWidth": 108,
+            "leftHeight": 96,
+            "rightWidth": 108,
+            "rightHeight": 96,
+            "renderedHorizontal": 116.71,
+            "renderedOverlap": 99.29,
+            "renderedLeftWidth": 108,
+            "renderedLeftHeight": 96,
+            "renderedRightWidth": 108,
+            "renderedRightHeight": 96,
+            "leftWidthPastRendered": 0,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        }
       }
     },
     "almost-flush|low|stock|fixed": {
@@ -306,6 +474,174 @@
           "sumsq": 0.0001,
           "max": 0.01
         }
+      },
+      "leaders": {
+        "width": {
+          "issue": 16,
+          "author": "pnguyen9",
+          "rank": [
+            9994,
+            8910,
+            49220
+          ],
+          "figures": {
+            "leftWidth": 99.94,
+            "leftHeight": 89.1,
+            "rightWidth": 99.94,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 110.15,
+            "renderedOverlap": 91.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.68,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.68,
+            "rightHeightPastRendered": 0.01
+          },
+          "measures": {
+            "left": {
+              "left": 54.4,
+              "right": 45.54,
+              "up": 44.55,
+              "down": 44.55,
+              "down-left": 57.06
+            },
+            "right": {
+              "left": 45.54,
+              "right": 54.4,
+              "up": 44.55,
+              "down": 44.55,
+              "up-right": 57.06
+            }
+          }
+        },
+        "height": {
+          "issue": 16,
+          "author": "pnguyen9",
+          "rank": [
+            8910,
+            8910,
+            49220
+          ],
+          "figures": {
+            "leftWidth": 99.94,
+            "leftHeight": 89.1,
+            "rightWidth": 99.94,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 110.15,
+            "renderedOverlap": 91.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.68,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.68,
+            "rightHeightPastRendered": 0.01
+          }
+        },
+        "renderedWidth": {
+          "issue": 16,
+          "author": "pnguyen9",
+          "rank": [
+            10062,
+            10062,
+            49220
+          ],
+          "figures": {
+            "leftWidth": 99.94,
+            "leftHeight": 89.1,
+            "rightWidth": 99.94,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 110.15,
+            "renderedOverlap": 91.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.68,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.68,
+            "rightHeightPastRendered": 0.01
+          }
+        },
+        "renderedHeight": {
+          "issue": 16,
+          "author": "pnguyen9",
+          "rank": [
+            8909,
+            8909,
+            49220
+          ],
+          "figures": {
+            "leftWidth": 99.94,
+            "leftHeight": 89.1,
+            "rightWidth": 99.94,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 110.15,
+            "renderedOverlap": 91.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.68,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.68,
+            "rightHeightPastRendered": 0.01
+          }
+        },
+        "widthPastRendered": {
+          "issue": 16,
+          "author": "pnguyen9",
+          "rank": [
+            -68,
+            -68,
+            49220
+          ],
+          "figures": {
+            "leftWidth": 99.94,
+            "leftHeight": 89.1,
+            "rightWidth": 99.94,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 110.15,
+            "renderedOverlap": 91.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.68,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.68,
+            "rightHeightPastRendered": 0.01
+          }
+        },
+        "heightPastRendered": {
+          "issue": 16,
+          "author": "pnguyen9",
+          "rank": [
+            1,
+            1,
+            49220
+          ],
+          "figures": {
+            "leftWidth": 99.94,
+            "leftHeight": 89.1,
+            "rightWidth": 99.94,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 110.15,
+            "renderedOverlap": 91.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.68,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.68,
+            "rightHeightPastRendered": 0.01
+          }
+        }
       }
     },
     "almost-flush|low|tuned|fixed": {
@@ -457,6 +793,174 @@
           "sum": 0.01,
           "sumsq": 0.0001,
           "max": 0.01
+        }
+      },
+      "leaders": {
+        "width": {
+          "issue": 18,
+          "author": "pnguyen9",
+          "rank": [
+            10001,
+            8910,
+            49757
+          ],
+          "figures": {
+            "leftWidth": 100.01,
+            "leftHeight": 89.1,
+            "rightWidth": 100.01,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 116.15,
+            "renderedOverlap": 85.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.61,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.61,
+            "rightHeightPastRendered": 0.01
+          },
+          "measures": {
+            "left": {
+              "left": 57.47,
+              "right": 42.54,
+              "up": 44.55,
+              "down": 44.55,
+              "down-left": 60.01
+            },
+            "right": {
+              "left": 42.54,
+              "right": 57.47,
+              "up": 44.55,
+              "down": 44.55,
+              "up-right": 59.34
+            }
+          }
+        },
+        "height": {
+          "issue": 18,
+          "author": "pnguyen9",
+          "rank": [
+            8910,
+            8910,
+            49757
+          ],
+          "figures": {
+            "leftWidth": 100.01,
+            "leftHeight": 89.1,
+            "rightWidth": 100.01,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 116.15,
+            "renderedOverlap": 85.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.61,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.61,
+            "rightHeightPastRendered": 0.01
+          }
+        },
+        "renderedWidth": {
+          "issue": 18,
+          "author": "pnguyen9",
+          "rank": [
+            10062,
+            10062,
+            49757
+          ],
+          "figures": {
+            "leftWidth": 100.01,
+            "leftHeight": 89.1,
+            "rightWidth": 100.01,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 116.15,
+            "renderedOverlap": 85.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.61,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.61,
+            "rightHeightPastRendered": 0.01
+          }
+        },
+        "renderedHeight": {
+          "issue": 18,
+          "author": "pnguyen9",
+          "rank": [
+            8909,
+            8909,
+            49757
+          ],
+          "figures": {
+            "leftWidth": 100.01,
+            "leftHeight": 89.1,
+            "rightWidth": 100.01,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 116.15,
+            "renderedOverlap": 85.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.61,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.61,
+            "rightHeightPastRendered": 0.01
+          }
+        },
+        "widthPastRendered": {
+          "issue": 20,
+          "author": "pnguyen9",
+          "rank": [
+            0,
+            0,
+            48611
+          ],
+          "figures": {
+            "leftWidth": 98,
+            "leftHeight": 88,
+            "rightWidth": 98,
+            "rightHeight": 88,
+            "renderedHorizontal": 102,
+            "renderedOverlap": 94,
+            "renderedLeftWidth": 98,
+            "renderedLeftHeight": 88,
+            "renderedRightWidth": 98,
+            "renderedRightHeight": 88,
+            "leftWidthPastRendered": 0,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "heightPastRendered": {
+          "issue": 18,
+          "author": "pnguyen9",
+          "rank": [
+            1,
+            1,
+            49757
+          ],
+          "figures": {
+            "leftWidth": 100.01,
+            "leftHeight": 89.1,
+            "rightWidth": 100.01,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 116.15,
+            "renderedOverlap": 85.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.61,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.61,
+            "rightHeightPastRendered": 0.01
+          }
         }
       }
     }

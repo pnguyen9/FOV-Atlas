@@ -2,10 +2,16 @@
 
 import { keptMeasureName } from '../measureLabels.ts'
 import { renderedFrameOf, type OutlinePoint, type RenderedFrame } from '../../lib/ceiling.ts'
-import { shapeOf, type Combined, type OneEyeValue, type Statistic } from '../../lib/fovStats.ts'
+import { meanShapeOf, type Combined, type OneEyeValue, type Statistic } from '../../lib/fovStats.ts'
 import { averagedHeadFrame, averagedPictureFrame, unitDifference, unitDifferenceWords, type RenderedAverage } from '../../lib/renderedAverage.ts'
 import { loadedValue, type Loaded } from '../../lib/siteData.ts'
 import { angleOriginOf, showsRenderedAverage, type EyeMeasure, type EyeMeasures, type KeptSubmission, type Submission, type Tool } from '../../lib/submission.ts'
+
+/** A published measure drawn on its own for a group, which the legend names and links to. */
+export interface DrawnMeasure {
+  readonly issue: number
+  readonly author: string
+}
 
 export interface RadarSeries {
   readonly key: string
@@ -19,6 +25,8 @@ export interface RadarSeries {
   readonly measures: EyeMeasures | null
   /** A group's mean shape, which the radar can draw beside its main one; null for a single measure. */
   readonly meanMeasures: EyeMeasures | null
+  /** The measure a group's highest draws; null for a mean or a single measure, which its label names. */
+  readonly drawn: DrawnMeasure | null
   /** The rendered field of view of the series' own headsets, drawn as an outline per eye. */
   readonly rendered: RenderedFrame | undefined
   /** Where the outline comes from, for the note under the chart. */
@@ -80,22 +88,40 @@ function averagedOutline(
   }
 }
 
+/** What a statistic draws for a group, in words for the "What you see" note. */
+export const statisticWords = (statistic: Statistic): string => (statistic === 'highest' ? 'widest measure' : 'mean shape')
+
+/** The shape a group draws for the statistic, and the published measure it is for the highest. */
+function groupShape(name: string, matching: Combined, statistic: Statistic): Pick<RadarSeries, 'label' | 'measures' | 'drawn'> {
+  const count = String(matching.count)
+  const widest = matching.stats.leaders.width
+  if (statistic === 'mean' || widest?.measures === undefined) {
+    return { label: `${name} · mean (n=${count})`, measures: meanShapeOf(matching.stats), drawn: null }
+  }
+  return {
+    label: `${name} · widest measure (n=${count})`,
+    measures: widest.measures,
+    drawn: { issue: widest.issue, author: widest.author },
+  }
+}
+
 /**
  * Everyone measured on a headset who passes the filters, with the average of what the model's
- * headsets report drawing. The mean shape goes along for the radar to draw beside the highest.
+ * headsets report drawing. The highest is the measure leading the width ranking, drawn whole, so
+ * the shape is one a person saw; the mean shape goes along for the radar to draw beside it.
  */
 export function aggregateSeries({ key, name, colour, combined, statistic, seeText, tool, average }: AggregateSeriesOptions): RadarSeries {
   const matching = combined !== null && combined.count > 0 ? combined : null
-  let label = `${name} · couldn't load`
-  if (matching !== null) label = `${name} · ${statistic} (n=${String(matching.count)})`
-  else if (combined !== null) label = `${name} · no matching measure`
+  const shape =
+    matching === null
+      ? { label: combined === null ? `${name} · couldn't load` : `${name} · no matching measure`, measures: null, drawn: null }
+      : groupShape(name, matching, statistic)
   return {
     key,
-    label,
+    ...shape,
     name,
     colour,
-    measures: matching === null ? null : shapeOf(matching.stats, statistic),
-    meanMeasures: matching === null ? null : shapeOf(matching.stats, 'mean'),
+    meanMeasures: matching === null ? null : meanShapeOf(matching.stats),
     ...averagedOutline(name, tool, average),
     seeText,
   }
@@ -121,6 +147,7 @@ export function measureSeries({ key, label, name, colour, seeText, submission }:
     colour,
     measures: submission.measures,
     meanMeasures: null,
+    drawn: null,
     rendered: renderedFrameOf(submission),
     renderedNote: measureRenderedNote(name, submission),
     renderedWarning: null,
@@ -144,6 +171,8 @@ export interface ChartCurve {
   readonly key: string
   readonly colourClass: string
   readonly label: string
+  /** The published measure the shape is, for the legend to name and link. */
+  readonly drawn: DrawnMeasure | null
   readonly shape: EyeMeasure
   /** Angles only one eye has, drawn as marked dots beside an either-eye or both-eyes shape. */
   readonly oneEye: readonly OneEyeValue[]

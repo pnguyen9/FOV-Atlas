@@ -62,7 +62,9 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
     </p>
     <p>
       A measure gives an angle for each direction: left, right, up, down, and for some tools the diagonals in between.
-      Joined together, these angles draw the shape of what you see.
+      Joined together, these angles draw the shape of what you see. On the radar, the highest of a headset is the one
+      measure wider than all the others that match your filters, drawn whole, so its shape is one somebody actually saw.
+      The mean takes the average angle in each direction.
     </p>
 
     <h2>One tool at a time</h2>

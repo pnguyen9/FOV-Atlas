@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tool": "vrhp",
   "headset": "bigscreen-beyond",
   "count": 1,
@@ -153,6 +153,174 @@
           "sum": 0,
           "sumsq": 0,
           "max": 0
+        }
+      },
+      "leaders": {
+        "width": {
+          "issue": 2,
+          "author": "pnguyen9",
+          "rank": [
+            8867,
+            8864,
+            45475
+          ],
+          "figures": {
+            "leftWidth": 88.67,
+            "leftHeight": 88.64,
+            "rightWidth": 88.51,
+            "rightHeight": 88.5,
+            "renderedHorizontal": 97.55,
+            "renderedOverlap": 79.62,
+            "renderedLeftWidth": 88.66,
+            "renderedLeftHeight": 88.64,
+            "renderedRightWidth": 88.51,
+            "renderedRightHeight": 88.5,
+            "leftWidthPastRendered": 0.01,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          },
+          "measures": {
+            "left": {
+              "left": 49.03,
+              "right": 39.64,
+              "up": 38.42,
+              "down": 50.22,
+              "down-left": 54.14
+            },
+            "right": {
+              "left": 39.99,
+              "right": 48.52,
+              "up": 38.77,
+              "down": 49.73,
+              "up-right": 46.29
+            }
+          }
+        },
+        "height": {
+          "issue": 2,
+          "author": "pnguyen9",
+          "rank": [
+            8864,
+            8850,
+            45475
+          ],
+          "figures": {
+            "leftWidth": 88.67,
+            "leftHeight": 88.64,
+            "rightWidth": 88.51,
+            "rightHeight": 88.5,
+            "renderedHorizontal": 97.55,
+            "renderedOverlap": 79.62,
+            "renderedLeftWidth": 88.66,
+            "renderedLeftHeight": 88.64,
+            "renderedRightWidth": 88.51,
+            "renderedRightHeight": 88.5,
+            "leftWidthPastRendered": 0.01,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "renderedWidth": {
+          "issue": 2,
+          "author": "pnguyen9",
+          "rank": [
+            8866,
+            8851,
+            45475
+          ],
+          "figures": {
+            "leftWidth": 88.67,
+            "leftHeight": 88.64,
+            "rightWidth": 88.51,
+            "rightHeight": 88.5,
+            "renderedHorizontal": 97.55,
+            "renderedOverlap": 79.62,
+            "renderedLeftWidth": 88.66,
+            "renderedLeftHeight": 88.64,
+            "renderedRightWidth": 88.51,
+            "renderedRightHeight": 88.5,
+            "leftWidthPastRendered": 0.01,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "renderedHeight": {
+          "issue": 2,
+          "author": "pnguyen9",
+          "rank": [
+            8864,
+            8850,
+            45475
+          ],
+          "figures": {
+            "leftWidth": 88.67,
+            "leftHeight": 88.64,
+            "rightWidth": 88.51,
+            "rightHeight": 88.5,
+            "renderedHorizontal": 97.55,
+            "renderedOverlap": 79.62,
+            "renderedLeftWidth": 88.66,
+            "renderedLeftHeight": 88.64,
+            "renderedRightWidth": 88.51,
+            "renderedRightHeight": 88.5,
+            "leftWidthPastRendered": 0.01,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "widthPastRendered": {
+          "issue": 2,
+          "author": "pnguyen9",
+          "rank": [
+            1,
+            0,
+            45475
+          ],
+          "figures": {
+            "leftWidth": 88.67,
+            "leftHeight": 88.64,
+            "rightWidth": 88.51,
+            "rightHeight": 88.5,
+            "renderedHorizontal": 97.55,
+            "renderedOverlap": 79.62,
+            "renderedLeftWidth": 88.66,
+            "renderedLeftHeight": 88.64,
+            "renderedRightWidth": 88.51,
+            "renderedRightHeight": 88.5,
+            "leftWidthPastRendered": 0.01,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
+        },
+        "heightPastRendered": {
+          "issue": 2,
+          "author": "pnguyen9",
+          "rank": [
+            0,
+            0,
+            45475
+          ],
+          "figures": {
+            "leftWidth": 88.67,
+            "leftHeight": 88.64,
+            "rightWidth": 88.51,
+            "rightHeight": 88.5,
+            "renderedHorizontal": 97.55,
+            "renderedOverlap": 79.62,
+            "renderedLeftWidth": 88.66,
+            "renderedLeftHeight": 88.64,
+            "renderedRightWidth": 88.51,
+            "renderedRightHeight": 88.5,
+            "leftWidthPastRendered": 0.01,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
+          }
         }
       }
     }

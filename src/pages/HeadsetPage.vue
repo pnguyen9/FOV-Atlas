@@ -10,14 +10,13 @@ import { compareState, seriesSlotCount, togglePick, type SeriesPick } from './co
 import CatalogInfo from './headset/CatalogInfo.vue'
 import DirectionStats from './headset/DirectionStats.vue'
 import RenderedAverageSection from './headset/RenderedAverageSection.vue'
-import type { ListedEntry } from './headset/listedEntry.ts'
 import SubmissionList from './headset/SubmissionList.vue'
 import { useDataIndex } from './dataIndex.ts'
 import DataIndexState from '../components/DataIndexState.vue'
 import FilterPanel from '../components/FilterPanel.vue'
 import RadarOptions from '../components/radar/RadarOptions.vue'
 import RadarPanel from '../components/radar/RadarPanel.vue'
-import { aggregateSeries, keptSeries, measureSeries, type RadarSeries } from '../components/radar/radarSeries.ts'
+import { aggregateSeries, keptSeries, measureSeries, statisticWords, type RadarSeries } from '../components/radar/radarSeries.ts'
 import SegmentedControl from '../components/SegmentedControl.vue'
 import { combineCells, figuresOfCombined, submissionMatches } from '../lib/fovStats.ts'
 import { catalogHeadset } from '../lib/headsets.ts'
@@ -25,7 +24,7 @@ import { routeHref } from '../lib/hashRoute.ts'
 import type { RenderedAverage } from '../lib/renderedAverage.ts'
 import { loadAggregate, loadedValue, loadPage, loadRenderedAverage, type Loaded } from '../lib/siteData.ts'
 import { showsRenderedAverage, toolNameOf, tools, type Tool } from '../lib/submission.ts'
-import { headsetsOf, type Aggregate } from '../lib/submissionStore.ts'
+import { headsetsOf, listedEntriesOf, type Aggregate, type ListedEntry } from '../lib/submissionStore.ts'
 
 const props = defineProps<{ readonly headset: string }>()
 
@@ -91,8 +90,7 @@ async function loadOlder(): Promise<void> {
     return
   }
   pageFailed.value = false
-  const added = Object.entries(loaded.value.entries).map(([issue, entry]) => ({ issue: Number(issue), entry }))
-  entries.value = [...entries.value, ...added].sort((first, second) => second.issue - first.issue)
+  entries.value = [...entries.value, ...listedEntriesOf(loaded.value)].sort((first, second) => second.issue - first.issue)
   nextPage.value -= 1
 }
 
@@ -155,7 +153,7 @@ const radarSeries = computed<RadarSeries[]>(() => {
       colour: 1,
       combined: combined.value,
       statistic,
-      seeText: `the ${statistic} shape of everyone who matches the filters`,
+      seeText: `the ${statisticWords(statistic)} of everyone who matches the filters`,
       tool: currentTool,
       average: average.value,
     }),

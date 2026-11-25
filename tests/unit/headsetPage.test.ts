@@ -140,7 +140,7 @@ describe('HeadsetPage', () => {
     await wrapper.findAll('tbody tr.clickable')[1]?.trigger('click')
     await wrapper.findAll('tbody tr.clickable input')[2]?.trigger('change')
     expect(wrapper.findAll('.legend li').map((item) => item.text())).toEqual([
-      'Everyone · highest (n=3)',
+      'Everyone · widest measure (n=3): #3 by lens-fox',
       'quiet-owl · issue #5',
       'lens-fox · issue #3',
     ])
@@ -153,7 +153,7 @@ describe('HeadsetPage', () => {
     expect(wrapper.find('.rendered-notes').text()).toContain('Everyone: average of 2 headsets of this model, as they report drawing it')
     expect(wrapper.find('.rendered-notes').text()).toContain('lens-fox #3: its link gives only totals, set against its own figures')
     await clickButton(wrapper, 'What you see')
-    expect(wrapper.text()).toContain('Clear: inside the highest shape of everyone who matches the filters')
+    expect(wrapper.text()).toContain('Clear: inside the widest measure of everyone who matches the filters')
     await wrapper.findAll('.radar-panel button').find((button) => button.text() === 'lens-fox #3')?.trigger('click')
     expect(wrapper.text()).toContain('the measure lens-fox sent in issue #3')
     await wrapper.findAll('tbody tr.clickable')[1]?.trigger('click')

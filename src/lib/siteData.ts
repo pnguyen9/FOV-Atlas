@@ -13,12 +13,13 @@
 import { isCount, isPlainObject, isPositiveCount, parseJson } from './json.ts'
 import {
   aggregatePath,
+  aggregateVersion,
   cellKeyParts,
   dataRoot,
   emptyIndex,
   figureNames,
-  formatVersion,
   indexPath,
+  loginPattern,
   pagePath,
   parseIndex,
   parsePage,
@@ -26,11 +27,14 @@ import {
   type Aggregate,
   type CellStats,
   type DataIndex,
+  type FigureName,
+  type Leader,
   type Page,
   type Stat,
 } from './submissionStore.ts'
 import { parseRenderedAverage, renderedPath, type RenderedAverage } from './renderedAverage.ts'
-import { directions, isHeadsetId, maximumTotalDegrees, tools, type Tool } from './submission.ts'
+import { rankingsFor } from './measureRanking.ts'
+import { directions, isEyeShape, isHeadsetId, maximumRadialDegrees, maximumTotalDegrees, tools, type Tool } from './submission.ts'
 
 /** The part of a fetch Response this module reads, so tests can stand in for the network. */
 export interface FetchedResponse {
@@ -171,14 +175,56 @@ function isStatGroup(value: unknown, keys: readonly string[], signedKeys: readon
   )
 }
 
-const cellGroups = ['left', 'right', 'figures'] as const
+const cellGroups = ['left', 'right', 'figures', 'leaders'] as const
 
-function isCell(value: unknown): value is CellStats {
+/** Far above the angles of a measure added up, in hundredths of a degree. */
+const maximumRankValue = 10_000_000
+const isRankValue = (value: unknown): boolean =>
+  value === null || (Number.isSafeInteger(value) && Math.abs(value as number) <= maximumRankValue)
+
+const isAngles = (value: unknown): boolean =>
+  isEyeShape(value) && Object.values(value).every((degrees) => Math.abs(degrees) <= maximumRadialDegrees)
+
+/** A leader's figures, its rank, and its angles, which the width's leader carries and no other. */
+function isLeader(value: unknown, carriesAngles: boolean): value is Leader {
+  if (!isPlainObject(value)) return false
+  const { issue, author, rank, figures, measures, ...rest } = value
+  const anglesValid = carriesAngles
+    ? isPlainObject(measures) && Object.keys(measures).length === 2 && isAngles(measures.left) && isAngles(measures.right)
+    : measures === undefined
+  return (
+    Object.keys(rest).length === 0 &&
+    isPositiveCount(issue) &&
+    typeof author === 'string' &&
+    loginPattern.test(author) &&
+    Array.isArray(rank) &&
+    rank.length <= 4 &&
+    rank.every(isRankValue) &&
+    isPlainObject(figures) &&
+    Object.entries(figures).every(
+      ([figure, degrees]) => figureNames.includes(figure as FigureName) && isDegrees(degrees, maximumStatDegrees, signedFigures.includes(figure as FigureName)),
+    ) &&
+    anglesValid
+  )
+}
+
+/** Exactly one leader per ranking the tool has. */
+function isLeaders(value: unknown, tool: Tool): boolean {
+  if (!isPlainObject(value)) return false
+  const rankings: readonly string[] = rankingsFor(tool)
+  return (
+    Object.keys(value).length === rankings.length &&
+    Object.entries(value).every(([pair, leader]) => rankings.includes(pair) && isLeader(leader, pair === 'width'))
+  )
+}
+
+function isCell(value: unknown, tool: Tool): value is CellStats {
   if (!isPlainObject(value) || Object.keys(value).length !== cellGroups.length) return false
   return (
     isStatGroup(value.left, directions) &&
     isStatGroup(value.right, directions) &&
-    isStatGroup(value.figures, figureNames, signedFigures)
+    isStatGroup(value.figures, figureNames, signedFigures) &&
+    isLeaders(value.leaders, tool)
   )
 }
 
@@ -190,8 +236,8 @@ export function parseAggregate(json: string, tool: Tool, headset: string): Aggre
   const aggregate = parseJson(json)
   if (!isPlainObject(aggregate)) return null
   const { version, count, cells } = aggregate
-  if (version !== formatVersion || aggregate.tool !== tool || aggregate.headset !== headset) return null
+  if (version !== aggregateVersion || aggregate.tool !== tool || aggregate.headset !== headset) return null
   if (!isCount(count) || !isPlainObject(cells)) return null
-  const cellsValid = Object.entries(cells).every(([key, cell]) => cellKeyParts(key) !== null && isCell(cell))
+  const cellsValid = Object.entries(cells).every(([key, cell]) => cellKeyParts(key) !== null && isCell(cell, tool))
   return cellsValid ? (aggregate as unknown as Aggregate) : null
 }

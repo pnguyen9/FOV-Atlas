@@ -11,6 +11,7 @@ import { colourClass, type ChartCurve, type ChartOutline, type RadarSeries } fro
 import { compareState } from '../../pages/compare/compareState.ts'
 import { pictureOutline } from '../../lib/ceiling.ts'
 import { eyeModeFor, eyeView, type EyeMode } from '../../lib/fovStats.ts'
+import { issueUrl } from '../../lib/issueForm.ts'
 import { hasUnmeasured } from '../../lib/radarGeometry.ts'
 import { sceneNames, sceneOf, type SceneName } from '../../lib/scene.ts'
 import { showsRenderedAverage, toolNameOf, type Eye, type EyeMeasure, type EyeMeasures, type Tool } from '../../lib/submission.ts'
@@ -40,6 +41,7 @@ const curves = computed<ChartCurve[]>(() =>
       key: item.key,
       colourClass: colourClass(item.colour),
       label: item.label,
+      drawn: item.drawn,
       ...viewOf(item.measures),
       filled: !seeing.value,
       dashed: item.colour === 'kept',
@@ -51,6 +53,7 @@ const curves = computed<ChartCurve[]>(() =>
       ...main,
       key: `${item.key}:mean`,
       label: `${item.name} · mean`,
+      drawn: null,
       shape: viewOf(item.meanMeasures).shape,
       oneEye: [],
       filled: false,
@@ -194,7 +197,11 @@ onBeforeUnmount(() => {
             class="legend-line"
             :class="{ dashed: curve.dashed }"
             aria-hidden="true"
-          />{{ curve.label }}
+          />{{ curve.label }}<span v-if="curve.drawn !== null">: <a
+            :href="issueUrl(curve.drawn.issue)"
+            rel="noopener noreferrer"
+            :title="`GitHub issue #${curve.drawn.issue}`"
+          >#{{ curve.drawn.issue }} by {{ curve.drawn.author }}</a></span>
         </li>
         <li v-if="sceneProps.bothEyes !== null">
           <span
@@ -207,7 +214,8 @@ onBeforeUnmount(() => {
         v-if="showsMeans"
         class="small muted line-key"
       >
-        Solid: the highest of each direction. Dash-dot: the mean of what people measured.<template v-if="renderedNotes.length > 0">
+        Solid: the widest single measure, drawn as it was measured. Dash-dot: the mean of what people measured in each
+        direction.<template v-if="renderedNotes.length > 0">
           Dotted: what the headsets report drawing.
         </template>
       </p>

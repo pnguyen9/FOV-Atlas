@@ -5,7 +5,7 @@
  * measure can be set beside them when it is of the same tool.
  */
 import { computed, ref, shallowRef, watch } from 'vue'
-import { columnsFor, type CompareRow } from './compare/columns.ts'
+import { headlineWidthOfRow, type CompareRow } from './compare/columns.ts'
 import CompareTable from './compare/CompareTable.vue'
 import { compareState, seriesSlotCount, slotOf, togglePick, withPick } from './compare/compareState.ts'
 import KeptMeasureCard from './compare/KeptMeasureCard.vue'
@@ -15,7 +15,7 @@ import FilterPanel from '../components/FilterPanel.vue'
 import { headsetName, keptMeasureName } from '../components/measureLabels.ts'
 import RadarOptions from '../components/radar/RadarOptions.vue'
 import RadarPanel from '../components/radar/RadarPanel.vue'
-import { aggregateSeries, keptSeries, type RadarSeries } from '../components/radar/radarSeries.ts'
+import { aggregateSeries, keptSeries, statisticWords, type RadarSeries } from '../components/radar/radarSeries.ts'
 import SegmentedControl from '../components/SegmentedControl.vue'
 import { combineCells, figuresOfCombined, figuresOfMeasure, type Combined } from '../lib/fovStats.ts'
 import { routeHref, type CompareView } from '../lib/hashRoute.ts'
@@ -139,17 +139,16 @@ const filterCounts = computed(() => {
 })
 
 /**
- * Opening the radar with nothing ticked shows the two widest headsets, by the tool's first
- * column, so it never starts blank. While another tool's figures load, the rows still belong to
- * the previous tool, so it waits.
+ * Opening the radar with nothing ticked shows the two widest headsets, by the headline width of
+ * the measure each draws as highest, so it never starts blank. While another tool's figures load,
+ * the rows still belong to the previous tool, so it waits.
  */
 function pickWidestWhenEmpty(): void {
   const tool = compareState.tool
-  const widestColumn = tool === null ? undefined : columnsFor(tool)[0]
-  if (props.view !== 'radar' || !ready.value || compareState.picks.length > 0 || widestColumn === undefined) return
+  if (props.view !== 'radar' || !ready.value || compareState.picks.length > 0 || tool === null) return
   const widest = rows.value
     .flatMap((row) => {
-      const value = widestColumn.value(row)
+      const value = headlineWidthOfRow(tool, row)
       return value === undefined || row.figures?.count === 0 ? [] : [{ headset: row.headset, value }]
     })
     .sort((first, second) => second.value - first.value)
@@ -171,7 +170,7 @@ const radarSeries = computed<RadarSeries[]>(() => {
       colour: pick.slot,
       combined: combined.value.get(pick.key) ?? null,
       statistic,
-      seeText: `the ${statistic} shape measured on the ${name}`,
+      seeText: `the ${statisticWords(statistic)} on the ${name}`,
       tool,
       average: averages.value.get(pick.key) ?? null,
     })
