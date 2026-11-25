@@ -12,7 +12,6 @@ import {
   shapePath,
   shapePoints,
   spokesOf,
-  turnOf,
 } from '../../src/lib/radarGeometry'
 
 describe('reachOf', () => {
@@ -35,7 +34,6 @@ describe('positions', () => {
     expect(up?.screenY).toBeCloseTo(-plotRadius)
     expect(left?.screenX).toBeCloseTo(-plotRadius / 2)
     expect(left?.screenY).toBeCloseTo(0)
-    expect(turnOf('right')).toBeCloseTo((3 * Math.PI) / 2)
   })
 
   it('draws a closed smooth curve through two points or more', () => {

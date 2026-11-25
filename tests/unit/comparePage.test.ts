@@ -175,7 +175,8 @@ describe('ComparePage table', () => {
     expect(compareState.columns.vrhp).toEqual(['count'])
     await pickTool(wrapper, 'FOV Atlas')
     expect(wrapper.findAll('th button').map((button) => button.text())).toEqual([
-      'Highest horizontal ▾',
+      'Area ▾',
+      'Highest horizontal',
       'Highest vertical',
       'Diagonal (outer)',
       'Overlap °',
@@ -183,7 +184,7 @@ describe('ComparePage table', () => {
       'Rendered horizontal',
       'Gap to rendered',
     ])
-    expect(cellsOf(wrapper, 0)).toEqual(['113.4°', '97.7°', '65.1°', '85.0°', '2', '134.0°', '10.6°'])
+    expect(cellsOf(wrapper, 0)).toEqual(['39.6 %', '113.4°', '97.7°', '65.1°', '85.0°', '2', '134.0°', '10.6°'])
     await clickButton(wrapper, 'Rendered horizontal (model average)')
     expect(cellsOf(wrapper, 0).at(-1)).toBe('129.0°')
     await pickTool(wrapper, 'WIMFOV')

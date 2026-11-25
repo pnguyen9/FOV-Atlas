@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "wimfov",
   "headset": "bigscreen-beyond-2",
   "count": 5,
@@ -219,13 +219,26 @@
           "sum": 324,
           "sumsq": 26244,
           "max": 81
+        },
+        "area": {
+          "count": 4,
+          "sum": 164.83,
+          "sumsq": 6794.8341,
+          "max": 42.22
+        },
+        "overlapArea": {
+          "count": 4,
+          "sum": 119.98,
+          "sumsq": 3600.3612,
+          "max": 31.07
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 10,
           "author": "pnguyen9",
           "rank": [
+            4222,
             10600,
             9300,
             161300
@@ -233,7 +246,9 @@
           "figures": {
             "horizontal": 106,
             "vertical": 93,
-            "overlap": 81
+            "overlap": 81,
+            "area": 42.22,
+            "overlapArea": 31.07
           },
           "measures": {
             "left": {
@@ -491,13 +506,26 @@
           "sum": 79,
           "sumsq": 6241,
           "max": 79
+        },
+        "area": {
+          "count": 1,
+          "sum": 37.89,
+          "sumsq": 1435.6521,
+          "max": 37.89
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 26.63,
+          "sumsq": 709.1569,
+          "max": 26.63
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 6,
           "author": "pnguyen9",
           "rank": [
+            3789,
             10600,
             9200,
             150700
@@ -505,7 +533,9 @@
           "figures": {
             "horizontal": 106,
             "vertical": 92,
-            "overlap": 79
+            "overlap": 79,
+            "area": 37.89,
+            "overlapArea": 26.63
           },
           "measures": {
             "left": {

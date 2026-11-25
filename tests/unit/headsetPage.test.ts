@@ -230,6 +230,7 @@ describe('HeadsetPage', () => {
     compareState.tool = 'atlas'
     const wrapper = await mountPage('bigscreen-beyond-2')
     expect(wrapper.findAll('.kpi-value').map((value) => value.text().replace(/\s+/g, ' '))).toEqual([
+      '35.8 %',
       '106.0°',
       '106.0°',
       '120.0°',

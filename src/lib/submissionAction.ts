@@ -26,7 +26,7 @@ import {
   type RenderedDifference,
 } from './renderedAverage.ts'
 import { formatDegrees } from './degrees.ts'
-import { readsOwnEdges, toolNameOf, type Submission, type TextField, type Tool } from './submission.ts'
+import { readsOwnEdges, toolNameOf, tools, type Submission, type TextField, type Tool } from './submission.ts'
 import {
   aggregatePages,
   aggregatePath,
@@ -250,6 +250,21 @@ function readPages(files: DataFiles, index: DataIndex, tool: Tool, headset: stri
   })
 }
 
+function writeAggregate(files: DataFiles, tool: Tool, headset: string, pages: readonly Page[]): void {
+  files.write(aggregatePath(tool, headset), serialize(aggregatePages(tool, headset, pages)))
+}
+
+/**
+ * Rebuilds every headset's aggregate from its pages, for when the aggregate format changes and
+ * the site's code and data must ship together. Returns how many aggregates were written.
+ */
+export function rebuildAggregates(files: DataFiles): number {
+  const index = readIndex(files)
+  const headsets = tools.flatMap((tool) => [...headsetsOf(index, tool).keys()].map((headset) => ({ tool, headset })))
+  for (const { tool, headset } of headsets) writeAggregate(files, tool, headset, readPages(files, index, tool, headset))
+  return headsets.length
+}
+
 const entryCount = (page: Page): number => Object.keys(page.entries).length
 
 /**
@@ -267,7 +282,7 @@ function savePages(files: DataFiles, index: DataIndex, pages: readonly Page[], c
   if (changed.page < updated.length) files.write(pagePath(tool, headset, changed.page), serializePage(changed))
   const count = updated.reduce((total, page) => total + entryCount(page), 0)
   if (count === 0) files.remove(aggregatePath(tool, headset))
-  else files.write(aggregatePath(tool, headset), serialize(aggregatePages(tool, headset, updated)))
+  else writeAggregate(files, tool, headset, updated)
   const summary = count === 0 ? null : { count, pages: updated.length }
   const updatedIndex = withSummary(index, tool, headset, summary)
   return readsOwnEdges(tool) ? saveRendered(files, updatedIndex, headset, updated) : updatedIndex

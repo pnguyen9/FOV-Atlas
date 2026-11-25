@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "atlas",
   "headset": "pimax-dream-air-lighthouse",
   "count": 1,
@@ -220,6 +220,18 @@
           "sumsq": 8820.9664,
           "max": 93.92
         },
+        "area": {
+          "count": 1,
+          "sum": 43.36,
+          "sumsq": 1880.0896,
+          "max": 43.36
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 36.98,
+          "sumsq": 1367.5204,
+          "max": 36.98
+        },
         "renderedHorizontal": {
           "count": 1,
           "sum": 117.7,
@@ -240,10 +252,11 @@
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 27,
           "author": "pnguyen9",
           "rank": [
+            4336,
             11334,
             9094,
             169968
@@ -252,6 +265,8 @@
             "horizontal": 113.34,
             "vertical": 90.94,
             "overlap": 93.92,
+            "area": 43.36,
+            "overlapArea": 36.98,
             "renderedHorizontal": 117.7,
             "renderedOverlap": 98.28,
             "horizontalPastRendered": -4.36

@@ -5,11 +5,11 @@ import { eyeDepthOptions } from '../components/faceFit.ts'
 import { routeHref, type MethodSection } from '../lib/hashRoute.ts'
 
 const props = withDefaults(defineProps<{ readonly section?: MethodSection | null }>(), { section: null })
-const credits = useTemplateRef<HTMLElement>('credits')
+const sections = { credits: useTemplateRef<HTMLElement>('credits'), highest: useTemplateRef<HTMLElement>('highest') }
 
 // The fragment holds the route, so a link to a section is scrolled to here.
 function scrollToSection(): void {
-  if (props.section === 'credits') credits.value?.scrollIntoView()
+  if (props.section !== null) sections[props.section].value?.scrollIntoView()
 }
 onMounted(scrollToSection)
 watch(() => props.section, scrollToSection, { flush: 'post' })
@@ -63,8 +63,14 @@ watch(() => props.section, scrollToSection, { flush: 'post' })
     <p>
       A measure gives an angle for each direction: left, right, up, down, and for some tools the diagonals in between.
       Joined together, these angles draw the shape of what you see. On the radar, the highest of a headset is the one
-      measure wider than all the others that match your filters, drawn whole, so its shape is one somebody actually saw.
+      measure ahead of all the others that match your filters, drawn whole, so its shape is one somebody actually saw.
       The mean takes the average angle in each direction.
+    </p>
+    <p ref="highest">
+      With FOV Atlas and WIMFOV, which measure many directions for each eye, the highest is the measure that shows the
+      largest area with both eyes, given as a share of a half sphere. A view that is wider but shorter can show less
+      overall, so the widest is not always the one that sees the most. With VR Headset Picker and TestHMD, which give
+      too few directions to draw that whole shape, the highest is the widest.
     </p>
 
     <h2>One tool at a time</h2>

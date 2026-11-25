@@ -153,7 +153,7 @@ const radarSeries = computed<RadarSeries[]>(() => {
       colour: 1,
       combined: combined.value,
       statistic,
-      seeText: `the ${statisticWords(statistic)} of everyone who matches the filters`,
+      seeText: `the ${statisticWords(statistic, currentTool)} of everyone who matches the filters`,
       tool: currentTool,
       average: average.value,
     }),

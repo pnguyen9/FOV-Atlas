@@ -5,7 +5,7 @@ import {
   defaultColumnsFor,
   formatCell,
   headlineColumnsFor,
-  headlineWidthOfRow,
+  leadingFigureOfRow,
   measureListColumnsFor,
   sortRows,
   type CompareRow,
@@ -51,7 +51,7 @@ describe('Compare columns', () => {
     expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestHorizontal')
     expect(columnsFor('vrhp').map((column) => column.id)).not.toContain('highestOverlap')
     expect(cellsOf(index, 'vrhp').widthGap).toBe('—')
-    expect(cellsOf({ ...index, figures: { ...figuresOfMeasure(vrhpIndex), pairs: new Map() } }, 'vrhp').highestWidth).toBe('—')
+    expect(cellsOf({ ...index, figures: { ...figuresOfMeasure(vrhpIndex), sources: new Map() } }, 'vrhp').highestWidth).toBe('—')
   })
 
   it('takes both eyes of a pair from one measure, the one leading the pair', () => {
@@ -73,9 +73,9 @@ describe('Compare columns', () => {
       renderedWidth: '97.0° / 96.6°',
     })
     expect(cellsOf({ ...group, averaged }, 'vrhp').averagedWidthGap).toBe('17.0° / -3.0°')
-    expect(headlineWidthOfRow('vrhp', group)).toBe(100)
-    expect(headlineWidthOfRow('vrhp', broken)).toBeUndefined()
-    expect(headlineWidthOfRow('atlas', rowOf('Atlas', atlasBeyond))).toBe(106)
+    expect(leadingFigureOfRow('vrhp', group)).toBe(100)
+    expect(leadingFigureOfRow('vrhp', broken)).toBeUndefined()
+    expect(leadingFigureOfRow('atlas', rowOf('Atlas', atlasBeyond))).toBe(35.82)
   })
 
   it('sets VR Headset Picker figures against the model’s averaged pictures, per eye', () => {
@@ -91,7 +91,7 @@ describe('Compare columns', () => {
     const ownFigures = figuresOfMeasure(vrhpBeyond)
     const leftOnly: CompareRow = {
       ...beyond,
-      figures: { ...ownFigures, pairs: new Map([...ownFigures.pairs, ['width', new Map([['leftWidth', 90]])]]) },
+      figures: { ...ownFigures, sources: new Map([...ownFigures.sources, ['width', new Map([['leftWidth', 90]])]]) },
     }
     expect(width === undefined ? '' : formatCell(width, leftOnly)).toBe('90.0° / —')
     expect(width?.value(leftOnly)).toBe(90)
@@ -163,8 +163,8 @@ describe('measure list columns', () => {
   })
 
   it('lists both eyes’ figures for the tools measuring from the head', () => {
-    expect(measureListColumnsFor('atlas').map((column) => column.label)).toEqual(['Horiz.', 'Vert.', 'Overlap', 'Gap'])
-    expect(measureListColumnsFor('wimfov').map((column) => column.label)).toEqual(['Horiz.', 'Vert.', 'Overlap'])
+    expect(measureListColumnsFor('atlas').map((column) => column.label)).toEqual(['Area', 'Horiz.', 'Vert.', 'Overlap', 'Gap'])
+    expect(measureListColumnsFor('wimfov').map((column) => column.label)).toEqual(['Area', 'Horiz.', 'Vert.', 'Overlap'])
     expect(measureListColumnsFor('testhmd').map((column) => column.label)).toEqual(['Horiz.', 'Vert.'])
     expect(listOf(rowOf('Quest', testHmdQuest), 'testhmd').map(([, , parts]) => parts)).toEqual(
       measureListColumnsFor('testhmd').map((column) => [formatCell(column, rowOf('Quest', testHmdQuest))]),

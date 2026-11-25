@@ -35,6 +35,8 @@ describe('HowItWorksPage', () => {
     await wrapper.setProps({ section: 'credits' })
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
     expect(scrollIntoView.mock.contexts[0]).toBe(wrapper.find('section').element)
+    await wrapper.setProps({ section: 'highest' })
+    expect((scrollIntoView.mock.contexts[1] as HTMLElement | undefined)?.textContent).toContain('the highest is the measure that shows the')
   })
 
   it('keeps every tool apart', () => {

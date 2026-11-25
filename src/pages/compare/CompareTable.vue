@@ -7,9 +7,11 @@
 import { computed } from 'vue'
 import { columnsFor, formatCell, sortRows, type CompareColumnId, type CompareRow } from './columns.ts'
 import { compareState, seriesSlotCount, slotOf, togglePick } from './compareState.ts'
+import { highestAdjective, highestBasis } from '../../components/radar/radarSeries.ts'
 import { routeHref } from '../../lib/hashRoute.ts'
 import { unitDifference, unitDifferenceWords } from '../../lib/renderedAverage.ts'
 import { angleOriginOf, readsOwnEdges, showsRenderedAverage, type Tool } from '../../lib/submission.ts'
+import { hasViewArea } from '../../lib/viewArea.ts'
 
 const props = defineProps<{
   readonly tool: Tool
@@ -210,6 +212,13 @@ const ariaSort = (id: CompareColumnId): 'ascending' | 'descending' | undefined =
       {{ column.label }}
     </button>
   </div>
+  <p
+    v-if="hasViewArea(tool)"
+    class="small muted"
+  >
+    The highest measure is the one with the {{ highestAdjective(tool) }} {{ highestBasis(tool) }}, not the widest:
+    <a :href="routeHref({ page: 'method', section: 'highest' })">why</a>.
+  </p>
   <p
     v-if="angleOriginOf(tool) === 'picture'"
     class="small muted"

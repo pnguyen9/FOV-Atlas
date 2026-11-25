@@ -103,7 +103,7 @@ function combinedOf(entries: readonly ListedEntry[], filters: Filters = anyFilte
   const page = entries.reduce((built, { issue, entry }) => withEntry(built, issue, entry), emptyPage(tool, headset, 0))
   return combineCells(aggregatePages(tool, headset, [page]), filters)
 }
-const widestMeasure = (entries: readonly ListedEntry[], filters: Filters) => combinedOf(entries, filters).stats.leaders.width
+const widestMeasure = (entries: readonly ListedEntry[], filters: Filters) => combinedOf(entries, filters).stats.leaders.highest
 
 describe('the measure leading the width, combined from the cells passing the filters', () => {
   const listed = (issue: number, submission: Submission): ListedEntry => ({ issue, entry: { author: `author${String(issue)}`, submission } })
@@ -170,25 +170,25 @@ describe('pairs of eye figures', () => {
 
   it('takes each pair from one measure: the width from the widest measure, the height from the tallest single eye', () => {
     const entries = [listed(1, eyes(100, 80, 90, 90)), listed(2, eyes(90, 95, 96, 80)), listed(3, eyes(90, 90, 96, 85))]
-    const { pairs } = figuresOfCombined(combinedOf(entries))
+    const { sources: pairs } = figuresOfCombined(combinedOf(entries))
     expect([pairs.get('width')?.get('leftWidth'), pairs.get('width')?.get('rightWidth')]).toEqual([100, 80])
     expect([pairs.get('height')?.get('leftHeight'), pairs.get('height')?.get('rightHeight')]).toEqual([96, 85])
   })
 
   it('takes a gap pair from the measure closest to its own headset’s picture', () => {
-    const { pairs } = figuresOfCombined(combinedOf([listed(1, eyes(90, 90, 90, 90)), listed(2, eyes(96, 80, 90, 90))]))
+    const { sources: pairs } = figuresOfCombined(combinedOf([listed(1, eyes(90, 90, 90, 90)), listed(2, eyes(96, 80, 90, 90))]))
     const gaps = pairs.get('widthPastRendered')
     expect([gaps?.get('leftWidthPastRendered'), gaps?.get('rightWidthPastRendered')]).toEqual([-0.95, -16.62])
     expect(pairs.get('renderedWidth')?.get('renderedLeftWidth')).toBe(96.95)
   })
 
   it('has no source for any pair when no measure passes the filters', () => {
-    expect(figuresOfCombined(combinedOf([listed(1, vrhpBeyond)], { ...anyFilters, gaze: ['free'] })).pairs.size).toBe(0)
+    expect(figuresOfCombined(combinedOf([listed(1, vrhpBeyond)], { ...anyFilters, gaze: ['free'] })).sources.size).toBe(0)
   })
 
   it('gives a single measure as the source of every pair', () => {
-    const { pairs } = figuresOfMeasure(vrhpBeyond)
-    expect(pairs.size).toBe(6)
+    const { sources: pairs } = figuresOfMeasure(vrhpBeyond)
+    expect(pairs.size).toBe(7)
     expect([...pairs.values()].every((source) => source.get('leftWidth') === 96.95)).toBe(true)
   })
 })

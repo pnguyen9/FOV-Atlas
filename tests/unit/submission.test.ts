@@ -14,6 +14,8 @@ import {
   showsRenderedAverage,
   submissionProblem,
   tools,
+  turnAt,
+  turnOf,
   type Submission,
   type Tool,
 } from '../../src/lib/submission'
@@ -63,6 +65,11 @@ describe('directions', () => {
   it('lists sixteen directions with the eight principal ones every other place', () => {
     expect(directions).toHaveLength(16)
     expect(principalDirections).toEqual(['up', 'up-left', 'left', 'down-left', 'down', 'down-right', 'right', 'up-right'])
+  })
+
+  it('turns from up toward the wearer’s left', () => {
+    expect(turnOf('right')).toBeCloseTo((3 * Math.PI) / 2)
+    expect(turnAt(2)).toBeCloseTo(Math.PI / 4)
   })
 })
 

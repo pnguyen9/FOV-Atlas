@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "vrhp",
   "headset": "pimax-dream-air-lighthouse",
   "count": 5,
@@ -156,10 +156,11 @@
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 24,
           "author": "pnguyen9",
           "rank": [
+            10800,
             10800,
             9600,
             53170
@@ -195,6 +196,31 @@
               "down": 48.57,
               "up-right": 61.68
             }
+          }
+        },
+        "width": {
+          "issue": 24,
+          "author": "pnguyen9",
+          "rank": [
+            10800,
+            10800,
+            53170
+          ],
+          "figures": {
+            "leftWidth": 108,
+            "leftHeight": 96,
+            "rightWidth": 108,
+            "rightHeight": 96,
+            "renderedHorizontal": 116.71,
+            "renderedOverlap": 99.29,
+            "renderedLeftWidth": 108,
+            "renderedLeftHeight": 96,
+            "renderedRightWidth": 108,
+            "renderedRightHeight": 96,
+            "leftWidthPastRendered": 0,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
           }
         },
         "height": {
@@ -476,10 +502,11 @@
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 16,
           "author": "pnguyen9",
           "rank": [
+            9994,
             9994,
             8910,
             49220
@@ -515,6 +542,31 @@
               "down": 44.55,
               "up-right": 57.06
             }
+          }
+        },
+        "width": {
+          "issue": 16,
+          "author": "pnguyen9",
+          "rank": [
+            9994,
+            9994,
+            49220
+          ],
+          "figures": {
+            "leftWidth": 99.94,
+            "leftHeight": 89.1,
+            "rightWidth": 99.94,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 110.15,
+            "renderedOverlap": 91.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.68,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.68,
+            "rightHeightPastRendered": 0.01
           }
         },
         "height": {
@@ -796,10 +848,11 @@
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 18,
           "author": "pnguyen9",
           "rank": [
+            10001,
             10001,
             8910,
             49757
@@ -835,6 +888,31 @@
               "down": 44.55,
               "up-right": 59.34
             }
+          }
+        },
+        "width": {
+          "issue": 18,
+          "author": "pnguyen9",
+          "rank": [
+            10001,
+            10001,
+            49757
+          ],
+          "figures": {
+            "leftWidth": 100.01,
+            "leftHeight": 89.1,
+            "rightWidth": 100.01,
+            "rightHeight": 89.1,
+            "renderedHorizontal": 116.15,
+            "renderedOverlap": 85.08,
+            "renderedLeftWidth": 100.62,
+            "renderedLeftHeight": 89.09,
+            "renderedRightWidth": 100.62,
+            "renderedRightHeight": 89.09,
+            "leftWidthPastRendered": -0.61,
+            "leftHeightPastRendered": 0.01,
+            "rightWidthPastRendered": -0.61,
+            "rightHeightPastRendered": 0.01
           }
         },
         "height": {

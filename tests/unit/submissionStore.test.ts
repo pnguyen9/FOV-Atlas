@@ -158,6 +158,8 @@ describe('figuresOf', () => {
       horizontal: 108.4,
       vertical: 95.8,
       overlap: 82.8,
+      area: 37.23,
+      overlapArea: 33.03,
       renderedHorizontal: 110,
       renderedOverlap: 84,
       horizontalPastRendered: -1.6,
@@ -228,24 +230,24 @@ describe('aggregatePages', () => {
     expect(fixed?.left['up-up-left']).toBeUndefined()
   })
 
-  it('keeps the first measure of each cell, the width’s with its angles for the radar', () => {
+  it('keeps the first measure of each cell, the highest’s with its angles for the radar', () => {
     const fixed = aggregate.cells['in-between|low|tuned|fixed']
-    expect(Object.keys(fixed?.leaders ?? {})).toEqual(['width'])
-    expect(fixed?.leaders.width).toMatchObject({ issue: 1, author: 'someone', measures: atlasSubmission.measures })
-    expect(aggregate.cells['in-between|low|tuned|free']?.leaders.width?.issue).toBe(11)
+    expect(Object.keys(fixed?.leaders ?? {})).toEqual(['highest'])
+    expect(fixed?.leaders.highest).toMatchObject({ issue: 1, author: 'someone', measures: atlasSubmission.measures })
+    expect(aggregate.cells['in-between|low|tuned|free']?.leaders.highest?.issue).toBe(11)
   })
 
   it('keeps a first measure per eye pair for a tool measuring from the centre of each picture, without angles', () => {
     const page = withEntry(emptyPage('vrhp', 'bigscreen-beyond-2', 0), 3, { author: 'lens-fox', submission: vrhpBeyond })
     const [cell] = Object.values(aggregatePages('vrhp', 'bigscreen-beyond-2', [page]).cells)
     const leaders = cell?.leaders ?? {}
-    expect(Object.keys(leaders)).toEqual(['width', 'height', 'renderedWidth', 'renderedHeight', 'widthPastRendered', 'heightPastRendered'])
+    expect(Object.keys(leaders)).toEqual(['highest', 'width', 'height', 'renderedWidth', 'renderedHeight', 'widthPastRendered', 'heightPastRendered'])
     expect(leaders.height).toEqual({ issue: 3, author: 'lens-fox', rank: [9693, 9667, 49737], figures: figuresOf(vrhpBeyond) })
   })
 
   it('is empty without entries', () => {
     expect(aggregatePages('vrhp', 'valve-index', [emptyPage('vrhp', 'valve-index', 0)])).toEqual({
-      version: 2,
+      version: 3,
       tool: 'vrhp',
       headset: 'valve-index',
       count: 0,

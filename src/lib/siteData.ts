@@ -185,7 +185,7 @@ const isRankValue = (value: unknown): boolean =>
 const isAngles = (value: unknown): boolean =>
   isEyeShape(value) && Object.values(value).every((degrees) => Math.abs(degrees) <= maximumRadialDegrees)
 
-/** A leader's figures, its rank, and its angles, which the width's leader carries and no other. */
+/** A leader's figures, its rank, and its angles, which the highest's leader carries and no other. */
 function isLeader(value: unknown, carriesAngles: boolean): value is Leader {
   if (!isPlainObject(value)) return false
   const { issue, author, rank, figures, measures, ...rest } = value
@@ -214,7 +214,7 @@ function isLeaders(value: unknown, tool: Tool): boolean {
   const rankings: readonly string[] = rankingsFor(tool)
   return (
     Object.keys(value).length === rankings.length &&
-    Object.entries(value).every(([pair, leader]) => rankings.includes(pair) && isLeader(leader, pair === 'width'))
+    Object.entries(value).every(([pair, leader]) => rankings.includes(pair) && isLeader(leader, pair === 'highest'))
   )
 }
 

@@ -18,8 +18,7 @@ import { ringFill, type AnswerTarget, type HoldState, type TargetAction } from '
 import { degreesOf, radians } from './ceiling.ts'
 import { added, cross, dot, headDirection, lengthOf, normalized, scaled, straightAhead, upward, type Vector3 } from './headFrame.ts'
 import type { Probe } from './measureSession.ts'
-import { turnOf } from './radarGeometry.ts'
-import { directions } from './submission.ts'
+import { directions, turnOf } from './submission.ts'
 
 export const sceneLook = {
   /** The line covers this many degrees of turn on each side of its direction, its direction's own share. */

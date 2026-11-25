@@ -16,7 +16,7 @@
 
 import { toCenti } from './degrees.ts'
 import { isCount, isPlainObject, isPositiveCount, parseJson } from './json.ts'
-import { isAhead, ranksOf, type EyePair, type MeasureFigures, type Rank } from './measureRanking.ts'
+import { isAhead, ranksOf, type MeasureFigures, type Rank, type Ranking } from './measureRanking.ts'
 import {
   angleOriginOf,
   eyeDepths,
@@ -32,6 +32,7 @@ import {
   type Submission,
   type Tool,
 } from './submission.ts'
+import { hasViewArea, viewAreasOf } from './viewArea.ts'
 
 export const dataRoot = 'public/data'
 export const indexPath = `${dataRoot}/index.json`
@@ -63,7 +64,7 @@ export function dataRootOf(path: string): string | null {
 /** The version every data file the store writes carries, aggregates aside. */
 export const formatVersion = 1
 /** The version of the aggregates, which carry each cell's first measures (see `Leader`). */
-export const aggregateVersion = 2
+export const aggregateVersion = 3
 
 /** A GitHub login, as the issue author of an accepted measure. */
 export const loginPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/
@@ -122,11 +123,13 @@ export interface Stat {
 }
 
 /**
- * Figures worked out from each measure, in degrees. Which ones a measure has depends on its tool
- * and on whether it carries the rendered field of view of its own headset:
+ * Figures worked out from each measure, in degrees but for the areas. Which ones a measure has
+ * depends on its tool and on whether it carries the rendered field of view of its own headset:
  *
  * - `horizontal`, `vertical`, `overlap`: both eyes together, for tools whose angles all start
  *   straight ahead of the head (every tool but VR Headset Picker).
+ * - `area`, `overlapArea`: what either eye and both eyes at once see, in percent of the half
+ *   sphere in front, for the tools that outline each eye from straight ahead (`viewArea.ts`).
  * - `leftWidth` … `rightHeight`: each eye on its own, for VR Headset Picker, whose angles start
  *   at the centre of each eye's picture. Adding the left eye's left angle to the right eye's
  *   right angle would mix two starting points on headsets that turn each eye's picture outward.
@@ -139,6 +142,8 @@ export const figureNames = [
   'horizontal',
   'vertical',
   'overlap',
+  'area',
+  'overlapArea',
   'leftWidth',
   'leftHeight',
   'rightWidth',
@@ -169,11 +174,11 @@ export interface Leader {
   readonly author: string
   readonly rank: Rank
   readonly figures: MeasureFigures
-  /** Its angles, kept for the width's first only, which the radar draws whole as the highest. */
+  /** Its angles, kept for the highest's first only, which the radar draws whole. */
   readonly measures?: EyeMeasures
 }
 
-export type Leaders = Readonly<Partial<Record<EyePair, Leader>>>
+export type Leaders = Readonly<Partial<Record<Ranking, Leader>>>
 
 export interface CellStats {
   readonly left: Partial<Record<Direction, Stat>>
@@ -436,8 +441,8 @@ export function bothEyeFiguresOf({ left, right }: EyeMeasures): Figures {
   })
 }
 
-function bothEyeFigures({ measures, ceiling }: Pick<Submission, 'measures' | 'ceiling'>): Figures {
-  const measured = bothEyeFiguresOf(measures)
+function bothEyeFigures({ tool, measures, ceiling }: Pick<Submission, 'tool' | 'measures' | 'ceiling'>): Figures {
+  const measured = hasViewArea(tool) ? definedOnly({ ...bothEyeFiguresOf(measures), ...viewAreasOf(measures) }) : bothEyeFiguresOf(measures)
   if (ceiling.source !== 'measured') return measured
   const renderedHorizontal = sumOf(ceiling.left.left, ceiling.right.right)
   return definedOnly({
@@ -459,7 +464,7 @@ export const firstLeader = (first: Leader | undefined, second: Leader): Leader =
 
 function cellOf(entries: readonly ListedEntry[]): CellStats {
   const accumulators = new Map<string, Accumulator>()
-  const leaders = new Map<EyePair, Leader>()
+  const leaders = new Map<Ranking, Leader>()
   const add = (prefix: string, values: Readonly<Record<string, number>>): void => {
     for (const [key, degrees] of Object.entries(values)) accumulate(accumulators, `${prefix}${key}`, degrees)
   }
@@ -469,9 +474,9 @@ function cellOf(entries: readonly ListedEntry[]): CellStats {
     add('left:', submission.measures.left)
     add('right:', submission.measures.right)
     add('figure:', figures)
-    for (const [pair, rank] of Object.entries(ranksOf(submission.tool, figures, submission.measures)) as [EyePair, Rank][]) {
-      const leader: Leader = { issue, author, rank, figures, ...(pair === 'width' ? { measures: submission.measures } : {}) }
-      leaders.set(pair, firstLeader(leaders.get(pair), leader))
+    for (const [ranking, rank] of Object.entries(ranksOf(submission.tool, figures, submission.measures)) as [Ranking, Rank][]) {
+      const leader: Leader = { issue, author, rank, figures, ...(ranking === 'highest' ? { measures: submission.measures } : {}) }
+      leaders.set(ranking, firstLeader(leaders.get(ranking), leader))
     }
   }
   return {

@@ -8,9 +8,10 @@
 
 import { formatDegrees } from '../../lib/degrees.ts'
 import type { Figures, Summary } from '../../lib/fovStats.ts'
-import { eyePairFigures, headlineWidthOf, type EyePair } from '../../lib/measureRanking.ts'
+import { eyePairFigures, leadingFigureOf, type EyePair } from '../../lib/measureRanking.ts'
 import { renderedMean, type RenderedAverage, type RenderedValueName } from '../../lib/renderedAverage.ts'
 import type { Tool } from '../../lib/submission.ts'
+import { hasViewArea } from '../../lib/viewArea.ts'
 import type { FigureName } from '../../lib/submissionStore.ts'
 
 export interface CompareRow {
@@ -27,6 +28,7 @@ export interface CompareRow {
 }
 
 export const compareColumnIds = [
+  'area',
   'highestHorizontal',
   'highestVertical',
   'highestWidth',
@@ -34,6 +36,7 @@ export const compareColumnIds = [
   'diagonal',
   'highestOverlap',
   'overlapShare',
+  'overlapArea',
   'count',
   'meanHorizontal',
   'sigmaHorizontal',
@@ -95,10 +98,10 @@ const smallestGap =
     return closest === undefined ? undefined : -closest
   }
 
-/** A row's headline width (see `headlineFiguresOf`): its widest measure's, the one the radar draws as highest. */
-export function headlineWidthOfRow(tool: Tool, row: CompareRow): number | undefined {
-  const widest = row.figures?.pairs.get('width')
-  return widest === undefined ? undefined : headlineWidthOf(tool, widest)
+/** The figure a row's highest measure, the one the radar draws, was chosen by (see `leadingFigureOf`). */
+export function leadingFigureOfRow(tool: Tool, row: CompareRow): number | undefined {
+  const highestMeasure = row.figures?.sources.get('highest')
+  return highestMeasure === undefined ? undefined : leadingFigureOf(tool, highestMeasure)
 }
 
 /** A gap between a measure and what its own headset draws: its "past rendered" turned around. */
@@ -109,11 +112,11 @@ const turnedAround =
     return past === undefined ? undefined : -past
   }
 
-const degreeColumn = (id: CompareColumnId, label: string, title: string, value: Column['value']): Column => ({
+const figureColumn = (id: CompareColumnId, label: string, title: string, value: Column['value'], unit: Column['unit'] = '°'): Column => ({
   id,
   label,
   title,
-  unit: '°',
+  unit,
   value,
 })
 
@@ -174,22 +177,29 @@ function measurePairColumn(
   const figureOf =
     (name: FigureName): Column['value'] =>
     (row) =>
-      row.figures?.pairs.get(pair)?.get(name)
+      row.figures?.sources.get(pair)?.get(name)
   return eyePairColumn(id, label, title, cellOf(figureOf(left), 'left'), cellOf(figureOf(right), 'right'))
 }
 
 const allColumns: readonly Column[] = [
-  degreeColumn(
+  figureColumn(
+    'area',
+    'Area',
+    'Share of a half sphere you can see with both eyes, from the highest measure: the one with the largest area, which the radar draws',
+    (row) => row.figures?.sources.get('highest')?.get('area'),
+    '%',
+  ),
+  figureColumn(
     'highestHorizontal',
     'Highest horizontal',
     'Widest measure from the left edge of the left eye to the right edge of the right eye',
     summaryValue('horizontal', highest),
   ),
-  degreeColumn('highestVertical', 'Highest vertical', 'Tallest measure, top to bottom, of the taller eye', summaryValue('vertical', highest)),
+  figureColumn('highestVertical', 'Highest vertical', 'Tallest measure, top to bottom, of the taller eye', summaryValue('vertical', highest)),
   measurePairColumn('highestWidth', 'Highest width', `Each eye’s width, left edge to right edge, ${fromOneMeasure('the widest single eye')}`, 'width'),
   measurePairColumn('highestHeight', 'Highest height', `Each eye’s height, top to bottom, ${fromOneMeasure('the tallest single eye')}`, 'height'),
-  degreeColumn('diagonal', 'Diagonal (outer)', 'Highest angle toward an outer corner, away from the nose, of either eye', (row) => row.figures?.diagonal),
-  degreeColumn('highestOverlap', 'Overlap °', 'Highest width both eyes see at once', summaryValue('overlap', highest)),
+  figureColumn('diagonal', 'Diagonal (outer)', 'Highest angle toward an outer corner, away from the nose, of either eye', (row) => row.figures?.diagonal),
+  figureColumn('highestOverlap', 'Overlap °', 'Highest width both eyes see at once', summaryValue('overlap', highest)),
   {
     id: 'overlapShare',
     label: 'Overlap %',
@@ -197,22 +207,29 @@ const allColumns: readonly Column[] = [
     unit: '%',
     value: (row) => row.figures?.overlapShare,
   },
+  figureColumn(
+    'overlapArea',
+    'Overlap area',
+    'Share of a half sphere both eyes see at once (the largest of the measures)',
+    summaryValue('overlapArea', highest),
+    '%',
+  ),
   { id: 'count', label: 'Measures', title: 'Measures matching the filters', unit: '', value: (row) => row.figures?.count },
-  degreeColumn('meanHorizontal', 'Mean horizontal', 'Mean horizontal', summaryValue('horizontal', mean)),
-  degreeColumn('sigmaHorizontal', 'σ horizontal', 'Spread (standard deviation) of the horizontal measures', summaryValue('horizontal', sigma)),
-  degreeColumn('meanVertical', 'Mean vertical', 'Mean vertical', summaryValue('vertical', mean)),
-  degreeColumn('sigmaVertical', 'σ vertical', 'Spread (standard deviation) of the vertical measures', summaryValue('vertical', sigma)),
-  degreeColumn('meanOverlap', 'Mean overlap', 'Mean overlap', summaryValue('overlap', mean)),
-  degreeColumn('sigmaOverlap', 'σ overlap', 'Spread (standard deviation) of the overlap measures', summaryValue('overlap', sigma)),
+  figureColumn('meanHorizontal', 'Mean horizontal', 'Mean horizontal', summaryValue('horizontal', mean)),
+  figureColumn('sigmaHorizontal', 'σ horizontal', 'Spread (standard deviation) of the horizontal measures', summaryValue('horizontal', sigma)),
+  figureColumn('meanVertical', 'Mean vertical', 'Mean vertical', summaryValue('vertical', mean)),
+  figureColumn('sigmaVertical', 'σ vertical', 'Spread (standard deviation) of the vertical measures', summaryValue('vertical', sigma)),
+  figureColumn('meanOverlap', 'Mean overlap', 'Mean overlap', summaryValue('overlap', mean)),
+  figureColumn('sigmaOverlap', 'σ overlap', 'Spread (standard deviation) of the overlap measures', summaryValue('overlap', sigma)),
   eyePairColumn('meanWidth', 'Mean width', 'Mean width of each eye', summaryValue('leftWidth', mean), summaryValue('rightWidth', mean)),
   eyePairColumn('meanHeight', 'Mean height', 'Mean height of each eye', summaryValue('leftHeight', mean), summaryValue('rightHeight', mean)),
-  degreeColumn(
+  figureColumn(
     'renderedHorizontal',
     'Rendered horizontal',
     'What the measurers’ own headsets report drawing from edge to edge, both eyes together (the highest of them)',
     summaryValue('renderedHorizontal', highest),
   ),
-  degreeColumn('renderedGap', 'Gap to rendered', gapTitle('horizontal'), smallestGap('horizontalPastRendered')),
+  figureColumn('renderedGap', 'Gap to rendered', gapTitle('horizontal'), smallestGap('horizontalPastRendered')),
   measurePairColumn(
     'renderedWidth',
     'Rendered width',
@@ -227,19 +244,19 @@ const allColumns: readonly Column[] = [
   ),
   measurePairColumn('widthGap', 'Width gap', `${gapTitle('width')}, ${fromOneMeasure('the smallest gap of a single eye')}`, 'widthPastRendered', turnedAround),
   measurePairColumn('heightGap', 'Height gap', `${gapTitle('height')}, ${fromOneMeasure('the smallest gap of a single eye')}`, 'heightPastRendered', turnedAround),
-  degreeColumn(
+  figureColumn(
     'linkOverlap',
     'Rendered overlap (link)',
     'Width both eyes’ pictures share, exactly as the link reports it (the highest of the measures)',
     summaryValue('renderedOverlap', highest),
   ),
-  degreeColumn(
+  figureColumn(
     'averagedHorizontal',
     'Rendered horizontal (model average)',
     `Both eyes together, edge to edge, as headsets of this model report drawing it ${averageSource}`,
     averagedValue('horizontal'),
   ),
-  degreeColumn(
+  figureColumn(
     'averagedGap',
     'Gap to model average',
     'How far the widest horizontal measure stays inside the model’s averaged rendered horizontal',
@@ -374,8 +391,13 @@ const columnsOf = (ids: readonly CompareColumnId[], words: ColumnWords | undefin
     return [own === undefined ? column : { ...column, ...own }]
   })
 
+/** A tool whose measures carry an area (see `viewArea.ts`) leads with its area columns. */
+const withArea = (tool: Tool, ids: readonly CompareColumnId[], areaIds: readonly CompareColumnId[] = ['area']): CompareColumnId[] =>
+  hasViewArea(tool) ? [...areaIds, ...ids] : [...ids]
+
 /** Every column the tool's figures can fill, in table order. */
-export const columnsFor = (tool: Tool): Column[] => columnsOf(toolColumns.get(tool)?.available ?? [], toolWords.get(tool))
+export const columnsFor = (tool: Tool): Column[] =>
+  columnsOf(withArea(tool, toolColumns.get(tool)?.available ?? [], ['area', 'overlapArea']), toolWords.get(tool))
 
 const headlineIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
   ['atlas', ['highestHorizontal', 'meanHorizontal', 'renderedHorizontal', 'renderedGap']],
@@ -385,7 +407,7 @@ const headlineIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
 ])
 
 /** The few figures a headset page leads with for the tool. */
-export const headlineColumnsFor = (tool: Tool): Column[] => columnsOf(headlineIds.get(tool) ?? [], toolWords.get(tool))
+export const headlineColumnsFor = (tool: Tool): Column[] => columnsOf(withArea(tool, headlineIds.get(tool) ?? []), toolWords.get(tool))
 
 const measureListIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
   ['atlas', ['highestHorizontal', 'highestVertical', 'highestOverlap', 'renderedGap']],
@@ -396,6 +418,7 @@ const measureListIds: ReadonlyMap<Tool, readonly CompareColumnId[]> = new Map([
 
 /** Short words for a headset page's list, where each row is a single measure. */
 const measureListWords: ColumnWords = new Map([
+  ['area', { label: 'Area', title: 'Share of a half sphere seen with both eyes' }],
   ['highestHorizontal', { label: 'Horiz.', title: 'Horizontal, both eyes' }],
   ['highestVertical', { label: 'Vert.', title: 'Vertical, the taller eye' }],
   ['highestOverlap', { label: 'Overlap', title: 'Width both eyes see at once' }],
@@ -412,10 +435,10 @@ const measureListWords: ColumnWords = new Map([
 ])
 
 /** The figures a headset page lists for each single measure of the tool. */
-export const measureListColumnsFor = (tool: Tool): Column[] => columnsOf(measureListIds.get(tool) ?? [], measureListWords)
+export const measureListColumnsFor = (tool: Tool): Column[] => columnsOf(withArea(tool, measureListIds.get(tool) ?? []), measureListWords)
 
 /** The columns shown for the tool until the visitor picks others. */
-export const defaultColumnsFor = (tool: Tool): CompareColumnId[] => [...(toolColumns.get(tool)?.shown ?? [])]
+export const defaultColumnsFor = (tool: Tool): CompareColumnId[] => withArea(tool, toolColumns.get(tool)?.shown ?? [])
 
 export function formatCell(column: Column, row: CompareRow): string {
   if (column.display !== undefined) return column.display(row)

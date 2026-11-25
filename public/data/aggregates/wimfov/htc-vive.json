@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "wimfov",
   "headset": "htc-vive",
   "count": 1,
@@ -219,13 +219,26 @@
           "sum": 90,
           "sumsq": 8100,
           "max": 90
+        },
+        "area": {
+          "count": 1,
+          "sum": 44.09,
+          "sumsq": 1943.9281,
+          "max": 44.09
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 39.16,
+          "sumsq": 1533.5056,
+          "max": 39.16
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 12,
           "author": "pnguyen9",
           "rank": [
+            4409,
             11000,
             11200,
             173500
@@ -233,7 +246,9 @@
           "figures": {
             "horizontal": 110,
             "vertical": 112,
-            "overlap": 90
+            "overlap": 90,
+            "area": 44.09,
+            "overlapArea": 39.16
           },
           "measures": {
             "left": {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderIssueBody, type IssueError } from '../../src/lib/issueForm'
-import { messageFor, readEvent, runAction, type ActionEvent, type DataFiles } from '../../src/lib/submissionAction'
+import { messageFor, readEvent, rebuildAggregates, runAction, type ActionEvent, type DataFiles } from '../../src/lib/submissionAction'
 import {
   aggregatePath,
   emptyPage,
@@ -516,5 +516,31 @@ describe('messageFor', () => {
   it('keeps every message on one line', () => {
     const errors: IssueError[] = ['body-malformed', 'vrhp-too-short', 'wimfov-mismatch', 'tuning-details-markup']
     for (const error of errors) expect(messageFor(error)).not.toMatch(/[\r\n]/)
+  })
+})
+
+describe('rebuildAggregates', () => {
+  it('rewrites every headset’s aggregate from its pages', () => {
+    const files = memoryFiles()
+    runAction(submissionEvent(atlasBody, 1), files)
+    runAction(submissionEvent(renderIssueBody(issueFieldsOf({ ...testHmdSubmission, headset: 'valve-index' })), 2), files)
+    const atlasAggregate = aggregatePath('atlas', 'bigscreen-beyond-2')
+    const built = files.contents.get(atlasAggregate)
+    files.write(atlasAggregate, 'stale')
+    files.remove(aggregatePath('testhmd', 'valve-index'))
+    expect(rebuildAggregates(files)).toBe(2)
+    expect(files.contents.get(atlasAggregate)).toBe(built)
+    expect(files.contents.get(aggregatePath('testhmd', 'valve-index'))).toContain('"count": 1')
+  })
+
+  it('refuses a missing page the index lists', () => {
+    const files = memoryFiles()
+    runAction(submissionEvent(atlasBody, 1), files)
+    files.remove(atlasPage)
+    expect(() => rebuildAggregates(files)).toThrow(`${atlasPage} is missing`)
+  })
+
+  it('writes nothing without an index', () => {
+    expect(rebuildAggregates(memoryFiles())).toBe(0)
   })
 })

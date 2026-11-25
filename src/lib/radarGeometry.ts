@@ -8,7 +8,7 @@
 import { scaleLinear, type ScaleLinear } from 'd3-scale'
 import { curveCatmullRomClosed, curveCatmullRomOpen, curveLinearClosed, lineRadial, type CurveFactory, type LineRadial } from 'd3-shape'
 import type { OutlinePoint } from './ceiling.ts'
-import { directions, maximumRadialDegrees, principalDirections, type Direction, type EyeMeasure } from './submission.ts'
+import { directions, maximumRadialDegrees, principalDirections, turnOf, type Direction, type EyeMeasure } from './submission.ts'
 
 export const radarHalfSize = 260
 export const plotRadius = 210
@@ -26,9 +26,6 @@ export function reachOf(largestDegrees: number): number {
 }
 
 export const radialScale = (reach: number, radius = plotRadius): RadialScale => scaleLinear().domain([0, reach]).range([0, radius])
-
-/** Directions run from up toward the wearer's left, so counter-clockwise on screen. */
-export const turnOf = (direction: Direction): number => (directions.indexOf(direction) * 2 * Math.PI) / directions.length
 
 export interface ScreenPoint {
   readonly screenX: number

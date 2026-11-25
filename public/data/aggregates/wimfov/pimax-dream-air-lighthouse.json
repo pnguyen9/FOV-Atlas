@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "wimfov",
   "headset": "pimax-dream-air-lighthouse",
   "count": 6,
@@ -219,13 +219,26 @@
           "sum": 190,
           "sumsq": 18052,
           "max": 96
+        },
+        "area": {
+          "count": 2,
+          "sum": 92.63,
+          "sumsq": 4295.8369,
+          "max": 48
+        },
+        "overlapArea": {
+          "count": 2,
+          "sum": 79.69,
+          "sumsq": 3175.2625,
+          "max": 39.93
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 25,
           "author": "pnguyen9",
           "rank": [
+            4800,
             11400,
             9200,
             178400
@@ -233,7 +246,9 @@
           "figures": {
             "horizontal": 114,
             "vertical": 92,
-            "overlap": 94
+            "overlap": 94,
+            "area": 48,
+            "overlapArea": 39.93
           },
           "measures": {
             "left": {
@@ -491,13 +506,26 @@
           "sum": 94,
           "sumsq": 8836,
           "max": 94
+        },
+        "area": {
+          "count": 1,
+          "sum": 38.52,
+          "sumsq": 1483.7904,
+          "max": 38.52
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 34.1,
+          "sumsq": 1162.81,
+          "max": 34.1
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 26,
           "author": "pnguyen9",
           "rank": [
+            3852,
             10200,
             9200,
             161200
@@ -505,7 +533,9 @@
           "figures": {
             "horizontal": 102,
             "vertical": 92,
-            "overlap": 94
+            "overlap": 94,
+            "area": 38.52,
+            "overlapArea": 34.1
           },
           "measures": {
             "left": {
@@ -763,13 +793,26 @@
           "sum": 94,
           "sumsq": 8836,
           "max": 94
+        },
+        "area": {
+          "count": 1,
+          "sum": 41.65,
+          "sumsq": 1734.7225,
+          "max": 41.65
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 35.17,
+          "sumsq": 1236.9289,
+          "max": 35.17
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 17,
           "author": "pnguyen9",
           "rank": [
+            4165,
             11200,
             9100,
             166000
@@ -777,7 +820,9 @@
           "figures": {
             "horizontal": 112,
             "vertical": 91,
-            "overlap": 94
+            "overlap": 94,
+            "area": 41.65,
+            "overlapArea": 35.17
           },
           "measures": {
             "left": {
@@ -1035,13 +1080,26 @@
           "sum": 184,
           "sumsq": 16960,
           "max": 96
+        },
+        "area": {
+          "count": 2,
+          "sum": 84.37,
+          "sumsq": 3566.1797,
+          "max": 44.06
+        },
+        "overlapArea": {
+          "count": 2,
+          "sum": 69.88,
+          "sumsq": 2456.404,
+          "max": 37.66
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 19,
           "author": "pnguyen9",
           "rank": [
+            4406,
             11800,
             9100,
             165000
@@ -1049,7 +1107,9 @@
           "figures": {
             "horizontal": 118,
             "vertical": 91,
-            "overlap": 88
+            "overlap": 88,
+            "area": 44.06,
+            "overlapArea": 32.22
           },
           "measures": {
             "left": {

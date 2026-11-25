@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "vrhp",
   "headset": "bigscreen-beyond",
   "count": 1,
@@ -156,10 +156,11 @@
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 2,
           "author": "pnguyen9",
           "rank": [
+            8867,
             8867,
             8864,
             45475
@@ -195,6 +196,31 @@
               "down": 49.73,
               "up-right": 46.29
             }
+          }
+        },
+        "width": {
+          "issue": 2,
+          "author": "pnguyen9",
+          "rank": [
+            8867,
+            8851,
+            45475
+          ],
+          "figures": {
+            "leftWidth": 88.67,
+            "leftHeight": 88.64,
+            "rightWidth": 88.51,
+            "rightHeight": 88.5,
+            "renderedHorizontal": 97.55,
+            "renderedOverlap": 79.62,
+            "renderedLeftWidth": 88.66,
+            "renderedLeftHeight": 88.64,
+            "renderedRightWidth": 88.51,
+            "renderedRightHeight": 88.5,
+            "leftWidthPastRendered": 0.01,
+            "leftHeightPastRendered": 0,
+            "rightWidthPastRendered": 0,
+            "rightHeightPastRendered": 0
           }
         },
         "height": {

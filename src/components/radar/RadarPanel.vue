@@ -7,7 +7,7 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import RadarChart from './RadarChart.vue'
 import SegmentedControl from '../SegmentedControl.vue'
-import { colourClass, type ChartCurve, type ChartOutline, type RadarSeries } from './radarSeries.ts'
+import { colourClass, highestAdjective, type ChartCurve, type ChartOutline, type RadarSeries } from './radarSeries.ts'
 import { compareState } from '../../pages/compare/compareState.ts'
 import { pictureOutline } from '../../lib/ceiling.ts'
 import { eyeModeFor, eyeView, type EyeMode } from '../../lib/fovStats.ts'
@@ -214,7 +214,7 @@ onBeforeUnmount(() => {
         v-if="showsMeans"
         class="small muted line-key"
       >
-        Solid: the widest single measure, drawn as it was measured. Dash-dot: the mean of what people measured in each
+        Solid: the {{ highestAdjective(tool) }} single measure, drawn as it was measured. Dash-dot: the mean of what people measured in each
         direction.<template v-if="renderedNotes.length > 0">
           Dotted: what the headsets report drawing.
         </template>

@@ -6,6 +6,7 @@ import { meanShapeOf, type Combined, type OneEyeValue, type Statistic } from '..
 import { averagedHeadFrame, averagedPictureFrame, unitDifference, unitDifferenceWords, type RenderedAverage } from '../../lib/renderedAverage.ts'
 import { loadedValue, type Loaded } from '../../lib/siteData.ts'
 import { angleOriginOf, showsRenderedAverage, type EyeMeasure, type EyeMeasures, type KeptSubmission, type Submission, type Tool } from '../../lib/submission.ts'
+import { hasViewArea } from '../../lib/viewArea.ts'
 
 /** A published measure drawn on its own for a group, which the legend names and links to. */
 export interface DrawnMeasure {
@@ -88,34 +89,49 @@ function averagedOutline(
   }
 }
 
+/**
+ * How a tool's highest measure is chosen, in words: the largest for a tool whose measures carry an
+ * area (see `viewArea.ts`), the widest for the others.
+ */
+export const highestAdjective = (tool: Tool): string => (hasViewArea(tool) ? 'largest' : 'widest')
+export const highestMeasureWords = (tool: Tool): string => `${highestAdjective(tool)} measure`
+
+/** What a tool's highest measure is the largest or the widest of. */
+export function highestBasis(tool: Tool): string {
+  if (hasViewArea(tool)) return 'area both eyes see'
+  return angleOriginOf(tool) === 'picture' ? 'single eye' : 'horizontal, both eyes'
+}
+
 /** What a statistic draws for a group, in words for the "What you see" note. */
-export const statisticWords = (statistic: Statistic): string => (statistic === 'highest' ? 'widest measure' : 'mean shape')
+export const statisticWords = (statistic: Statistic, tool: Tool): string =>
+  statistic === 'highest' ? highestMeasureWords(tool) : 'mean shape'
 
 /** The shape a group draws for the statistic, and the published measure it is for the highest. */
-function groupShape(name: string, matching: Combined, statistic: Statistic): Pick<RadarSeries, 'label' | 'measures' | 'drawn'> {
+function groupShape(name: string, matching: Combined, statistic: Statistic, tool: Tool): Pick<RadarSeries, 'label' | 'measures' | 'drawn'> {
   const count = String(matching.count)
-  const widest = matching.stats.leaders.width
-  if (statistic === 'mean' || widest?.measures === undefined) {
+  const highestMeasure = matching.stats.leaders.highest
+  if (statistic === 'mean' || highestMeasure?.measures === undefined) {
     return { label: `${name} · mean (n=${count})`, measures: meanShapeOf(matching.stats), drawn: null }
   }
   return {
-    label: `${name} · widest measure (n=${count})`,
-    measures: widest.measures,
-    drawn: { issue: widest.issue, author: widest.author },
+    label: `${name} · ${highestMeasureWords(tool)} (n=${count})`,
+    measures: highestMeasure.measures,
+    drawn: { issue: highestMeasure.issue, author: highestMeasure.author },
   }
 }
 
 /**
  * Everyone measured on a headset who passes the filters, with the average of what the model's
- * headsets report drawing. The highest is the measure leading the width ranking, drawn whole, so
- * the shape is one a person saw; the mean shape goes along for the radar to draw beside it.
+ * headsets report drawing. The highest is the measure leading the `highest` ranking (see
+ * `measureRanking.ts`), drawn whole, so the shape is one a person saw; the mean shape goes along
+ * for the radar to draw beside it.
  */
 export function aggregateSeries({ key, name, colour, combined, statistic, seeText, tool, average }: AggregateSeriesOptions): RadarSeries {
   const matching = combined !== null && combined.count > 0 ? combined : null
   const shape =
     matching === null
       ? { label: combined === null ? `${name} · couldn't load` : `${name} · no matching measure`, measures: null, drawn: null }
-      : groupShape(name, matching, statistic)
+      : groupShape(name, matching, statistic, tool)
   return {
     key,
     ...shape,

@@ -34,6 +34,13 @@ export const directions = [
 export type Direction = (typeof directions)[number]
 export const principalDirections: readonly Direction[] = directions.filter((_, index) => index % 2 === 0)
 
+/**
+ * The turn of the direction at a place in `directions`, in radians from up toward the wearer's
+ * left: counter-clockwise on the radar.
+ */
+export const turnAt = (directionIndex: number): number => (directionIndex * 2 * Math.PI) / directions.length
+export const turnOf = (direction: Direction): number => turnAt(directions.indexOf(direction))
+
 export type EyeMeasure = Readonly<Partial<Record<Direction, number>>>
 export interface EyeMeasures {
   readonly left: EyeMeasure

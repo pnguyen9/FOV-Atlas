@@ -16,6 +16,7 @@ describe('parseRoute', () => {
     ['#measure', { page: 'measure' }],
     ['method', { page: 'method', section: null }],
     ['#method/credits', { page: 'method', section: 'credits' }],
+    ['#method/highest', { page: 'method', section: 'highest' }],
     ['#headset/bigscreen-beyond-2', { page: 'headset', headset: 'bigscreen-beyond-2' }],
   ])('reads %j', (hash, expected) => {
     expect(parseRoute(hash)).toEqual(expected)

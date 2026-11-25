@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** How the radar draws its shapes: which eye, which statistic, and the rendered outline when the tool has one. */
 import SegmentedControl from '../SegmentedControl.vue'
+import { highestBasis, highestMeasureWords } from './radarSeries.ts'
 import { compareState } from '../../pages/compare/compareState.ts'
 import type { EyeChoice, Statistic } from '../../lib/fovStats.ts'
 import { angleOriginOf, measuresBothEyesAtOnce, readsOwnEdges, showsRenderedAverage, toolNameOf, type Tool } from '../../lib/submission.ts'
@@ -54,8 +55,8 @@ const renderedOptions: readonly { value: 'show' | 'hide'; label: string }[] = [
       :options="statisticOptions"
     />
     <p class="small muted hint">
-      Highest: the one measure wider than all others, drawn whole as that person measured it, never pieced together from
-      several{{ angleOriginOf(tool) === 'picture' ? ' (widest single eye)' : ' (widest horizontal, both eyes)' }}.
+      Highest: the {{ highestMeasureWords(tool) }} ({{ highestBasis(tool) }}), drawn whole as that person measured it,
+      never pieced together from several.
       Mean: the mean angle in each direction.
     </p>
     <label

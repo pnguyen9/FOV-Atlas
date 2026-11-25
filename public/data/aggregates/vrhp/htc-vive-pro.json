@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "vrhp",
   "headset": "htc-vive-pro",
   "count": 1,
@@ -156,10 +156,11 @@
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 14,
           "author": "pnguyen9",
           "rank": [
+            10382,
             10382,
             10891,
             53444
@@ -195,6 +196,31 @@
               "down": 54.75,
               "up-right": 54.76
             }
+          }
+        },
+        "width": {
+          "issue": 14,
+          "author": "pnguyen9",
+          "rank": [
+            10382,
+            10363,
+            53444
+          ],
+          "figures": {
+            "leftWidth": 103.63,
+            "leftHeight": 108.73,
+            "rightWidth": 103.82,
+            "rightHeight": 108.91,
+            "renderedHorizontal": 106.88,
+            "renderedOverlap": 90.32,
+            "renderedLeftWidth": 98.51,
+            "renderedLeftHeight": 107.5,
+            "renderedRightWidth": 98.7,
+            "renderedRightHeight": 107.68,
+            "leftWidthPastRendered": 5.12,
+            "leftHeightPastRendered": 1.23,
+            "rightWidthPastRendered": 5.12,
+            "rightHeightPastRendered": 1.23
           }
         },
         "height": {

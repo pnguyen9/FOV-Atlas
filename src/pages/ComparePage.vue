@@ -5,7 +5,7 @@
  * measure can be set beside them when it is of the same tool.
  */
 import { computed, ref, shallowRef, watch } from 'vue'
-import { headlineWidthOfRow, type CompareRow } from './compare/columns.ts'
+import { leadingFigureOfRow, type CompareRow } from './compare/columns.ts'
 import CompareTable from './compare/CompareTable.vue'
 import { compareState, seriesSlotCount, slotOf, togglePick, withPick } from './compare/compareState.ts'
 import KeptMeasureCard from './compare/KeptMeasureCard.vue'
@@ -68,7 +68,7 @@ async function loadTool(tool: Tool, dataIndex: DataIndex): Promise<void> {
   averages.value = new Map(loadedAverages)
   loadedTool.value = tool
   compareState.picks = compareState.picks.filter((pick) => headsets.includes(pick.key))
-  pickWidestWhenEmpty()
+  pickHighestWhenEmpty()
 }
 
 watch(
@@ -139,24 +139,24 @@ const filterCounts = computed(() => {
 })
 
 /**
- * Opening the radar with nothing ticked shows the two widest headsets, by the headline width of
- * the measure each draws as highest, so it never starts blank. While another tool's figures load,
+ * Opening the radar with nothing ticked shows the two headsets whose highest measures lead, by the
+ * figure each was chosen by (see `leadingFigureOf`), so it never starts blank. While another tool's figures load,
  * the rows still belong to the previous tool, so it waits.
  */
-function pickWidestWhenEmpty(): void {
+function pickHighestWhenEmpty(): void {
   const tool = compareState.tool
   if (props.view !== 'radar' || !ready.value || compareState.picks.length > 0 || tool === null) return
-  const widest = rows.value
+  const leading = rows.value
     .flatMap((row) => {
-      const value = headlineWidthOfRow(tool, row)
+      const value = leadingFigureOfRow(tool, row)
       return value === undefined || row.figures?.count === 0 ? [] : [{ headset: row.headset, value }]
     })
     .sort((first, second) => second.value - first.value)
     .slice(0, 2)
-  compareState.picks = widest.reduce((picks, { headset }) => withPick(picks, headset), compareState.picks)
+  compareState.picks = leading.reduce((picks, { headset }) => withPick(picks, headset), compareState.picks)
 }
 
-watch(() => props.view, pickWidestWhenEmpty)
+watch(() => props.view, pickHighestWhenEmpty)
 
 const radarSeries = computed<RadarSeries[]>(() => {
   const { statistic } = compareState.radar
@@ -170,7 +170,7 @@ const radarSeries = computed<RadarSeries[]>(() => {
       colour: pick.slot,
       combined: combined.value.get(pick.key) ?? null,
       statistic,
-      seeText: `the ${statisticWords(statistic)} on the ${name}`,
+      seeText: `the ${statisticWords(statistic, tool)} on the ${name}`,
       tool,
       average: averages.value.get(pick.key) ?? null,
     })

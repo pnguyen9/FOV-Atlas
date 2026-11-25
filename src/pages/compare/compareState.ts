@@ -42,8 +42,11 @@ interface CompareState {
   filters: FilterChoices
   /** Each tool has its own columns. */
   columns: Record<Tool, CompareColumnId[]>
-  /** Falls back to the first shown column when the tool lacks this one. */
-  sort: { column: CompareColumnId; descending: boolean }
+  /**
+   * Null, or a column the tool lacks, sorts by the first shown column: by default the figure the
+   * tool ranks its highest measure by.
+   */
+  sort: { column: CompareColumnId | null; descending: boolean }
   radar: {
     eye: EyeChoice
     statistic: Statistic
@@ -69,7 +72,7 @@ function initialState(): CompareState {
     picks: [],
     filters: { eyeDepth: [], noseBridge: [], tuning: [], gaze: [] },
     columns: Object.fromEntries(tools.map((tool) => [tool, defaultColumnsFor(tool)])) as Record<Tool, CompareColumnId[]>,
-    sort: { column: 'highestHorizontal', descending: true },
+    sort: { column: null, descending: true },
     radar: { eye: 'union', statistic: 'highest', alsoMean: false, showRendered: true, view: 'shape', scene: 'room', through: null, enlarged: false },
     kept: null,
     keptOnRadar: true,

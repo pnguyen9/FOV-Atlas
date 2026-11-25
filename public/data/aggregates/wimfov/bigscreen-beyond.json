@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "wimfov",
   "headset": "bigscreen-beyond",
   "count": 3,
@@ -219,13 +219,26 @@
           "sum": 81,
           "sumsq": 6561,
           "max": 81
+        },
+        "area": {
+          "count": 1,
+          "sum": 36.11,
+          "sumsq": 1303.9321,
+          "max": 36.11
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 28.42,
+          "sumsq": 807.6964,
+          "max": 28.42
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 3,
           "author": "pnguyen9",
           "rank": [
+            3611,
             9900,
             9000,
             150800
@@ -233,7 +246,9 @@
           "figures": {
             "horizontal": 99,
             "vertical": 90,
-            "overlap": 81
+            "overlap": 81,
+            "area": 36.11,
+            "overlapArea": 28.42
           },
           "measures": {
             "left": {
@@ -491,13 +506,26 @@
           "sum": 63,
           "sumsq": 3969,
           "max": 63
+        },
+        "area": {
+          "count": 1,
+          "sum": 27,
+          "sumsq": 729,
+          "max": 27
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 18.49,
+          "sumsq": 341.8801,
+          "max": 18.49
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 4,
           "author": "pnguyen9",
           "rank": [
+            2700,
             8600,
             8600,
             125000
@@ -505,7 +533,9 @@
           "figures": {
             "horizontal": 86,
             "vertical": 86,
-            "overlap": 63
+            "overlap": 63,
+            "area": 27,
+            "overlapArea": 18.49
           },
           "measures": {
             "left": {
@@ -763,13 +793,26 @@
           "sum": 81,
           "sumsq": 6561,
           "max": 81
+        },
+        "area": {
+          "count": 1,
+          "sum": 32.58,
+          "sumsq": 1061.4564,
+          "max": 32.58
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 25.92,
+          "sumsq": 671.8464,
+          "max": 25.92
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 5,
           "author": "pnguyen9",
           "rank": [
+            3258,
             9900,
             8900,
             143300
@@ -777,7 +820,9 @@
           "figures": {
             "horizontal": 99,
             "vertical": 89,
-            "overlap": 81
+            "overlap": 81,
+            "area": 32.58,
+            "overlapArea": 25.92
           },
           "measures": {
             "left": {

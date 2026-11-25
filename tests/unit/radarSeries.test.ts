@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateSeries, keptSeries, measureSeries } from '../../src/components/radar/radarSeries'
+import { aggregateSeries, keptSeries, measureSeries, statisticWords } from '../../src/components/radar/radarSeries'
 import { combineCells, meanShapeOf, type Filters } from '../../src/lib/fovStats'
 import { averagedHeadFrame, averagedPictureFrame, renderedAverageOf } from '../../src/lib/renderedAverage'
 import { renderedFrameOf } from '../../src/lib/ceiling'
@@ -29,7 +29,7 @@ describe('aggregateSeries', () => {
     const series = groupOf('atlas', atlasBeyond, { ok: true, value: average })
     expect(series.rendered).toEqual(averagedHeadFrame(average))
     expect(series.renderedNote).toBe('Beyond: average of 2 headsets of this model, as they report drawing it')
-    expect(series.label).toBe('Beyond · widest measure (n=1)')
+    expect(series.label).toBe('Beyond · largest measure (n=1)')
   })
 
   it('outlines a VR Headset Picker group from the centre of each picture', () => {
@@ -107,5 +107,13 @@ describe('measureSeries', () => {
     [wimfovBeyond, "Kept measure: the headset's report wasn't read"],
   ])('words where a kept measure’s outline comes from', (submission, note) => {
     expect(keptSeries(submission).renderedNote).toBe(note)
+  })
+})
+
+describe('statisticWords', () => {
+  it('names the highest by what it is chosen by: the area or the width', () => {
+    expect(statisticWords('highest', 'wimfov')).toBe('largest measure')
+    expect(statisticWords('highest', 'testhmd')).toBe('widest measure')
+    expect(statisticWords('mean', 'atlas')).toBe('mean shape')
   })
 })

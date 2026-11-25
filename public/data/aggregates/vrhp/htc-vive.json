@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tool": "vrhp",
   "headset": "htc-vive",
   "count": 1,
@@ -156,10 +156,11 @@
         }
       },
       "leaders": {
-        "width": {
+        "highest": {
           "issue": 13,
           "author": "pnguyen9",
           "rank": [
+            10313,
             10313,
             10887,
             52887
@@ -195,6 +196,31 @@
               "down": 51.52,
               "up-right": 54.43
             }
+          }
+        },
+        "width": {
+          "issue": 13,
+          "author": "pnguyen9",
+          "rank": [
+            10313,
+            10241,
+            52887
+          ],
+          "figures": {
+            "leftWidth": 103.13,
+            "leftHeight": 108.87,
+            "rightWidth": 102.41,
+            "rightHeight": 104.65,
+            "renderedHorizontal": 108.77,
+            "renderedOverlap": 93.47,
+            "renderedLeftWidth": 101.04,
+            "renderedLeftHeight": 111.48,
+            "renderedRightWidth": 101.19,
+            "renderedRightHeight": 111.62,
+            "leftWidthPastRendered": 2.09,
+            "leftHeightPastRendered": -2.61,
+            "rightWidthPastRendered": 1.22,
+            "rightHeightPastRendered": -6.97
           }
         },
         "height": {

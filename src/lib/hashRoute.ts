@@ -14,7 +14,7 @@ import { isHeadsetId } from './submission.ts'
 
 export const pageNames = ['home', 'measure', 'compare', 'submit', 'method'] as const
 export type PageName = (typeof pageNames)[number]
-export const methodSections = ['credits'] as const
+export const methodSections = ['credits', 'highest'] as const
 export type MethodSection = (typeof methodSections)[number]
 
 export type CompareView = 'table' | 'radar'

@@ -16,8 +16,7 @@ import {
   type Vector3,
 } from '../../src/lib/headFrame'
 import { degreesOf, radians } from '../../src/lib/ceiling'
-import { turnOf } from '../../src/lib/radarGeometry'
-import type { Direction } from '../../src/lib/submission'
+import { turnOf, type Direction } from '../../src/lib/submission'
 import { domPoint } from './xrFixtures'
 
 const expectVector = (actual: Vector3, expected: Vector3): void => {
