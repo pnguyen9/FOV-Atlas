@@ -7,18 +7,17 @@ import { computed, useId } from 'vue'
 import { formatDegrees } from '../../lib/degrees.ts'
 import { largestAngle } from '../../lib/fovStats.ts'
 import {
+  directionPoint,
   plotRadius,
   radarHalfSize,
   radialScale,
   reachOf,
   outlinePath,
   ringsOf,
-  screenPoint,
+  shapeCurve,
   shapePath,
   shapePoints,
-  shapeSpans,
   spokesOf,
-  turnOf,
 } from '../../lib/radarGeometry.ts'
 import { photoLimitDegrees, sceneOf, sceneShapes, type SceneName } from '../../lib/scene.ts'
 import type { EyeMeasure } from '../../lib/submission.ts'
@@ -52,16 +51,18 @@ const oneEyeLabelGap = 11
 const drawnCurves = computed(() =>
   props.curves.map((curve) => ({
     ...curve,
-    path: shapePath(curve.shape, scale.value),
-    spans: shapeSpans(curve.shape, scale.value),
+    ...shapeCurve(curve.shape, scale.value),
     points: shapePoints(curve.shape, scale.value),
-    oneEyeDots: curve.oneEye.map(({ eye, direction, degrees }) => ({
-      key: `${eye}-${direction}`,
-      dot: screenPoint(turnOf(direction), scale.value(degrees)),
-      label: screenPoint(turnOf(direction), scale.value(degrees) + oneEyeLabelGap),
-      letter: eye === 'left' ? 'L' : 'R',
-      title: `${curve.label}, ${direction}: ${formatDegrees(degrees)}, ${eye} eye only`,
-    })),
+    oneEyeDots: curve.oneEye.map(({ eye, direction, degrees }) => {
+      const distance = scale.value(degrees)
+      return {
+        key: `${eye}-${direction}`,
+        dot: directionPoint(direction, distance),
+        label: directionPoint(direction, distance + oneEyeLabelGap),
+        letter: eye === 'left' ? 'L' : 'R',
+        title: `${curve.label}, ${direction}: ${formatDegrees(degrees)}, ${eye} eye only`,
+      }
+    }),
   })),
 )
 const drawnOutlines = computed(() =>
@@ -73,12 +74,12 @@ const sceneView = computed(() => {
   const scene = sceneOf(props.scene)
   const outside = `M${String(-plotRadius)},${String(-plotRadius)}h${String(2 * plotRadius)}v${String(2 * plotRadius)}h${String(-2 * plotRadius)}Z`
   return {
-    photo: scene.photo === null ? null : { href: `${import.meta.env.BASE_URL}${scene.photo}`, radius: scale.value(photoLimitDegrees) },
+    photo: scene.kind === 'photo' ? { href: `${import.meta.env.BASE_URL}${scene.photo}`, radius: scale.value(photoLimitDegrees) } : null,
+    shapes: scene.kind === 'sketch' ? sceneShapes(scene, reach.value, scale.value) : [],
     sky: scene.sky,
     ground: scene.ground,
-    shapes: sceneShapes(props.scene, reach.value, scale.value),
     dimmer: `${outside} ${shapePath(props.window, scale.value)}`,
-    bothEyes: props.bothEyes === null ? [] : shapeSpans(props.bothEyes, scale.value),
+    bothEyes: props.bothEyes === null ? [] : shapeCurve(props.bothEyes, scale.value).spans,
   }
 })
 
@@ -249,15 +250,13 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
         >{{ oneEyeDot.letter }}</text>
       </g>
     </g>
-    <template v-if="sceneView !== null">
-      <path
-        v-for="(span, spanIndex) in sceneView.bothEyes"
-        :key="`both-eyes-${spanIndex}`"
-        class="both-eyes"
-        :class="{ unmeasured: !span.measured }"
-        :d="span.path"
-      />
-    </template>
+    <path
+      v-for="(span, spanIndex) in sceneView?.bothEyes ?? []"
+      :key="`both-eyes-${spanIndex}`"
+      class="both-eyes"
+      :class="{ unmeasured: !span.measured }"
+      :d="span.path"
+    />
     <circle
       class="centre"
       r="2.5"
@@ -321,14 +320,6 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
   stroke-dasharray: 7 4;
   stroke-width: 2.4;
 }
-.curve.mean .edge {
-  stroke-width: 1.5;
-  stroke-dasharray: 9 3 2 3;
-  opacity: 0.8;
-}
-.curve.mean circle {
-  display: none;
-}
 .curve.emphasised .edge {
   stroke-width: 3;
 }
@@ -337,11 +328,18 @@ const viewBox = `${String(-radarHalfSize)} ${String(-radarHalfSize)} ${String(2 
   stroke-dasharray: 4 4;
   opacity: 0.75;
 }
+.curve.mean .edge {
+  stroke-width: 1.5;
+  stroke-dasharray: 9 3 2 3;
+  opacity: 0.8;
+}
 /* A mean keeps its dash-dot where unmeasured, only fainter, so it never passes for the highest. */
 .curve.mean .edge.unmeasured {
   stroke-width: 1.3;
-  stroke-dasharray: 9 3 2 3;
   opacity: 0.5;
+}
+.curve.mean circle {
+  display: none;
 }
 .curve circle {
   fill: var(--series);

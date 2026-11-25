@@ -102,21 +102,21 @@ describe('eyeView', () => {
     { eye: 'right', direction: 'up-right', degrees: 55 },
   ]
   it('shows one eye as it is, its own diagonal included', () => {
-    expect(eyeView(measures, 'left', 'vrhp')).toEqual({ shape: measures.left, oneEye: [] })
-    expect(eyeView(measures, 'right', 'vrhp').shape).toBe(measures.right)
+    expect(eyeView(measures, 'left')).toEqual({ shape: measures.left, oneEye: [] })
+    expect(eyeView(measures, 'right').shape).toBe(measures.right)
   })
   it('takes the farther angle for either eye, only where both eyes were measured', () => {
-    expect(eyeView(measures, 'union', 'vrhp')).toEqual({ shape: { left: 50, right: 52 }, oneEye })
+    expect(eyeView(measures, 'union')).toEqual({ shape: { left: 50, right: 52 }, oneEye })
   })
   it('takes the nearer angle for both eyes, setting one-eye angles beside it too', () => {
-    expect(eyeView(measures, 'overlap', 'vrhp')).toEqual({ shape: { left: 42, right: 40 }, oneEye })
+    expect(eyeView(measures, 'overlap')).toEqual({ shape: { left: 42, right: 40 }, oneEye })
   })
   it('keeps each eye’s outer edge in the one shape for a tool measuring both eyes at once', () => {
     const together = { left: { up: 40, left: 50, down: 45 }, right: { up: 42, right: 52, down: 44 } }
-    expect(eyeView(together, 'union', 'testhmd')).toEqual({ shape: { up: 42, left: 50, down: 45, right: 52 }, oneEye: [] })
+    expect(eyeView(together, 'together')).toEqual({ shape: { up: 42, left: 50, down: 45, right: 52 }, oneEye: [] })
   })
-  it('shows a tool measuring both eyes at once as their union', () => {
-    expect(eyeModeFor('testhmd', 'left')).toBe('union')
+  it('shows a tool measuring both eyes at once together, whatever the choice', () => {
+    expect(eyeModeFor('testhmd', 'left')).toBe('together')
     expect(eyeModeFor('vrhp', 'left')).toBe('left')
   })
 })

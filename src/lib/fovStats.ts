@@ -8,6 +8,7 @@ import {
   directions,
   measuresBothEyesAtOnce,
   type Direction,
+  type Eye,
   type EyeDepth,
   type EyeMeasure,
   type EyeMeasures,
@@ -135,13 +136,17 @@ export const shapeOf = (stats: CellStats, statistic: Statistic): EyeMeasures => 
   right: eyeShape(stats.right, statistic),
 })
 
-export type EyeMode = 'left' | 'right' | 'union' | 'overlap'
+/** The eye choices offered to visitors. */
+export type EyeChoice = 'left' | 'right' | 'union' | 'overlap'
+/**
+ * How the radar shows the eyes: a choice, or `together` for a tool measuring both eyes at once,
+ * which has each eye's outer edge on that eye's side only, so both belong to the one shape.
+ */
+export type EyeMode = EyeChoice | 'together'
 
-export function eyeModeFor(tool: Tool, mode: EyeMode): EyeMode {
-  return measuresBothEyesAtOnce(tool) ? 'union' : mode
+export function eyeModeFor(tool: Tool, choice: EyeChoice): EyeMode {
+  return measuresBothEyesAtOnce(tool) ? 'together' : choice
 }
-
-export type Eye = keyof EyeMeasures
 
 /** An angle measured on one eye only, which either eye and both eyes leave out of their shape. */
 export interface OneEyeValue {
@@ -159,14 +164,13 @@ export interface EyeView {
 /**
  * What one eye, either eye (union: the farther of the two in each direction) or both eyes at once
  * (overlap: the nearer) see. Union and overlap take only the directions measured on both eyes: an
- * angle one eye alone has says nothing about the other eye, so it is set beside the shape. A tool
- * measuring both eyes at once has each eye's outer edge on that eye's side only, and both belong
- * to the one shape.
+ * angle one eye alone has says nothing about the other eye, so it is set beside the shape.
+ * Together takes the farther of the two as union does, and an angle one eye alone has joins the
+ * shape.
  */
-export function eyeView({ left, right }: EyeMeasures, mode: EyeMode, tool: Tool): EyeView {
+export function eyeView({ left, right }: EyeMeasures, mode: EyeMode): EyeView {
   if (mode === 'left') return { shape: left, oneEye: [] }
   if (mode === 'right') return { shape: right, oneEye: [] }
-  const together = measuresBothEyesAtOnce(tool)
   const leftAngles = new Map(Object.entries(left))
   const rightAngles = new Map(Object.entries(right))
   const shape: [Direction, number][] = []
@@ -175,12 +179,12 @@ export function eyeView({ left, right }: EyeMeasures, mode: EyeMode, tool: Tool)
     const leftDegrees = leftAngles.get(direction)
     const rightDegrees = rightAngles.get(direction)
     if (leftDegrees !== undefined && rightDegrees !== undefined) {
-      shape.push([direction, mode === 'union' ? Math.max(leftDegrees, rightDegrees) : Math.min(leftDegrees, rightDegrees)])
+      shape.push([direction, mode === 'overlap' ? Math.min(leftDegrees, rightDegrees) : Math.max(leftDegrees, rightDegrees)])
       continue
     }
     const degrees = leftDegrees ?? rightDegrees
     if (degrees === undefined) continue
-    if (together) shape.push([direction, degrees])
+    if (mode === 'together') shape.push([direction, degrees])
     else oneEye.push({ eye: leftDegrees === undefined ? 'right' : 'left', direction, degrees })
   }
   return { shape: Object.fromEntries(shape), oneEye }

@@ -24,9 +24,9 @@ import {
   type AtlasMeasure,
   type DirectionChoice,
 } from './measureSession.ts'
-import { readRenderedViews, relativeOrientation, type Eye, type RenderedReadResult } from './renderedViews.ts'
+import { readRenderedViews, relativeOrientation, type RenderedReadResult } from './renderedViews.ts'
 import { clipMatrix, createSceneRenderer, type Viewport } from './sceneRenderer.ts'
-import type { Ceiling, CornerMask } from './submission.ts'
+import type { Ceiling, CornerMask, Eye } from './submission.ts'
 
 export interface XrTransformLike {
   readonly orientation: DomQuaternion

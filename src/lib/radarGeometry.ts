@@ -6,7 +6,7 @@
  */
 
 import { scaleLinear, type ScaleLinear } from 'd3-scale'
-import { curveCatmullRomClosed, curveLinearClosed, lineRadial } from 'd3-shape'
+import { curveCatmullRomClosed, curveCatmullRomOpen, curveLinearClosed, lineRadial, type CurveFactory, type LineRadial } from 'd3-shape'
 import type { OutlinePoint } from './ceiling.ts'
 import { directions, maximumRadialDegrees, principalDirections, type Direction, type EyeMeasure } from './submission.ts'
 
@@ -48,22 +48,25 @@ function entriesOf(shape: EyeMeasure): Entry[] {
   })
 }
 
+/**
+ * The Catmull-Rom parameterisation of the shape curves (d3's alpha; 0.5 is centripetal). The
+ * closed curve and the open runs cut from it share it, so that a run lies exactly on the closed curve.
+ */
+const catmullRomAlpha = 0.5
+
+function entryLine(curve: CurveFactory, scale: RadialScale): LineRadial<Entry> {
+  // d3 measures angles clockwise from the top, the opposite way round from the directions.
+  return lineRadial<Entry>()
+    .angle(([direction]) => -turnOf(direction))
+    .radius(([, degrees]) => scale(degrees))
+    .curve(curve)
+}
+
 /** A smooth closed curve through the shape's points; empty below two points. */
 export function shapePath(shape: EyeMeasure, scale: RadialScale): string {
   const entries = entriesOf(shape)
   if (entries.length < 2) return ''
-  // d3 measures angles clockwise from the top, the opposite way round from the directions.
-  const line = lineRadial<Entry>()
-    .angle(([direction]) => -turnOf(direction))
-    .radius(([, degrees]) => scale(degrees))
-    .curve(curveCatmullRomClosed)
-  return line(entries) ?? ''
-}
-
-/** A stretch of a shape's curve, and whether the tool measured every principal direction it passes. */
-export interface CurveSpan {
-  readonly path: string
-  readonly measured: boolean
+  return entryLine(curveCatmullRomClosed.alpha(catmullRomAlpha), scale)(entries) ?? ''
 }
 
 const isPrincipal = (direction: Direction): boolean => principalDirections.includes(direction)
@@ -71,46 +74,78 @@ const isPrincipal = (direction: Direction): boolean => principalDirections.inclu
 /** Whether a principal direction lies strictly between two directions, going round from the first. */
 function passesPrincipal(from: Direction, to: Direction): boolean {
   const start = directions.indexOf(from)
-  const steps = (directions.indexOf(to) - start + directions.length) % directions.length || directions.length
-  return Array.from({ length: steps - 1 }, (_, stepIndex) => directions[(start + stepIndex + 1) % directions.length]).some(
-    (direction) => direction !== undefined && isPrincipal(direction),
-  )
+  // Every other direction is principal, so this ends within two steps.
+  for (let step = 1; ; step += 1) {
+    const direction = directions[(start + step) % directions.length] as Direction
+    if (direction === to) return false
+    if (isPrincipal(direction)) return true
+  }
 }
 
-/** Whether a shape lacks any principal direction, so that part of its curve is not measured. */
-export function missesPrincipal(shape: EyeMeasure): boolean {
-  const measured = new Set(entriesOf(shape).map(([direction]) => direction))
-  return principalDirections.some((direction) => !measured.has(direction))
+/** The stretch of a shape's curve between two neighbouring measured directions. */
+export interface CurveSegment {
+  readonly from: Direction
+  readonly to: Direction
+  /** False where it passes over a principal direction nobody measured, so it only joins its ends. */
+  readonly measured: boolean
 }
 
 /**
- * The curve of `shapePath` split where it changes between measured and not: a stretch passing over
- * a principal direction nobody measured only joins the points on either side. In-between
- * directions are optional, so passing over one of those counts as measured.
+ * The segments of a shape's closed curve, from each measured direction to the next. In-between
+ * directions are optional, so passing over one of those counts as measured. Below three points
+ * the curve is only a line between them, and none of it counts as measured.
  */
-export function shapeSpans(shape: EyeMeasure, scale: RadialScale): CurveSpan[] {
+export function curveSegments(shape: EyeMeasure): CurveSegment[] {
   const entries = entriesOf(shape)
-  const path = shapePath(shape, scale)
-  if (entries.length < 3) return path === '' ? [] : [{ path, measured: false }]
-  // d3 starts the closed curve at the second point and draws one cubic per pair of neighbours.
-  const [start = '', ...cubics] = path.slice(1).replace(/Z$/, '').split('C')
-  let pen = start
-  const pieces = cubics.map((cubic, cubicIndex) => {
-    const [from] = entries[(cubicIndex + 1) % entries.length] ?? []
-    const [to] = entries[(cubicIndex + 2) % entries.length] ?? []
-    const piece = { from: pen, cubic, measured: from === undefined || to === undefined || !passesPrincipal(from, to) }
-    pen = cubic.split(',').slice(-2).join(',')
-    return piece
+  if (entries.length < 2) return []
+  return entries.map(([from], entryIndex) => {
+    const [to] = entries[(entryIndex + 1) % entries.length] as Entry
+    return { from, to, measured: entries.length >= 3 && !passesPrincipal(from, to) }
   })
-  const firstChange = pieces.findIndex((piece, pieceIndex) => piece.measured !== pieces.at(pieceIndex - 1)?.measured)
-  if (firstChange === -1) return [{ path, measured: pieces[0]?.measured ?? true }]
-  const spans: { from: string; cubics: string[]; measured: boolean }[] = []
-  for (const piece of [...pieces.slice(firstChange), ...pieces.slice(0, firstChange)]) {
-    const current = spans.at(-1)
-    if (current?.measured === piece.measured) current.cubics.push(piece.cubic)
-    else spans.push({ from: piece.from, cubics: [piece.cubic], measured: piece.measured })
+}
+
+/** Whether any of a shape's curve is drawn without being measured. */
+export const hasUnmeasured = (shape: EyeMeasure): boolean => curveSegments(shape).some((segment) => !segment.measured)
+
+/** A stretch of a shape's curve, and whether the tool measured every principal direction it passes. */
+export interface CurveSpan {
+  readonly path: string
+  readonly measured: boolean
+}
+
+export interface ShapeCurve {
+  /** The whole closed curve, as `shapePath` draws it. */
+  readonly path: string
+  /** The same curve split where it changes between measured and not. */
+  readonly spans: readonly CurveSpan[]
+}
+
+/**
+ * A shape's closed curve and its measured and unmeasured stretches. The closed Catmull-Rom curve
+ * between two neighbouring points depends only on the point before and the point after, so each
+ * run of segments is the open curve through its points with one more on either side.
+ */
+export function shapeCurve(shape: EyeMeasure, scale: RadialScale): ShapeCurve {
+  const path = shapePath(shape, scale)
+  const segments = curveSegments(shape)
+  const firstChange = segments.findIndex((segment, segmentIndex) => segment.measured !== segments.at(segmentIndex - 1)?.measured)
+  if (firstChange === -1) return { path, spans: path === '' ? [] : [{ path, measured: segments[0]?.measured ?? false }] }
+  const entries = entriesOf(shape)
+  const runs: { first: number; count: number; measured: boolean }[] = []
+  for (let step = 0; step < segments.length; step += 1) {
+    const segmentIndex = (firstChange + step) % segments.length
+    const { measured } = segments.at(segmentIndex) as CurveSegment
+    const current = runs.at(-1)
+    if (current?.measured === measured) current.count += 1
+    else runs.push({ first: segmentIndex, count: 1, measured })
   }
-  return spans.map(({ from, cubics: spanCubics, measured }) => ({ path: `M${from}C${spanCubics.join('C')}`, measured }))
+  const line = entryLine(curveCatmullRomOpen.alpha(catmullRomAlpha), scale)
+  const spans = runs.map(({ first, count, measured }) => {
+    // The run's points, from the one before its first segment to the one after its last.
+    const points = Array.from({ length: count + 3 }, (_, pointIndex) => entries.at((first - 1 + pointIndex) % entries.length) as Entry)
+    return { path: line(points) ?? '', measured }
+  })
+  return { path, spans }
 }
 
 export interface ShapePoint extends ScreenPoint {
@@ -118,8 +153,11 @@ export interface ShapePoint extends ScreenPoint {
   readonly degrees: number
 }
 
+/** Where a direction's point lies at a distance from the centre, in SVG units. */
+export const directionPoint = (direction: Direction, distance: number): ScreenPoint => screenPoint(turnOf(direction), distance)
+
 export function shapePoints(shape: EyeMeasure, scale: RadialScale): ShapePoint[] {
-  return entriesOf(shape).map(([direction, degrees]) => ({ direction, degrees, ...screenPoint(turnOf(direction), scale(degrees)) }))
+  return entriesOf(shape).map(([direction, degrees]) => ({ direction, degrees, ...directionPoint(direction, scale(degrees)) }))
 }
 
 /** A closed outline through points given by turn and angle, for a rendered picture's border. */
@@ -156,7 +194,7 @@ export interface Spoke {
 export function spokesOf(): Spoke[] {
   return principalDirections.map((direction) => ({
     direction,
-    end: screenPoint(turnOf(direction), plotRadius),
-    label: screenPoint(turnOf(direction), plotRadius + labelGap),
+    end: directionPoint(direction, plotRadius),
+    label: directionPoint(direction, plotRadius + labelGap),
   }))
 }

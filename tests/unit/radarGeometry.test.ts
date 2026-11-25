@@ -4,11 +4,13 @@ import {
   plotRadius,
   radialScale,
   reachOf,
-  missesPrincipal,
+  curveSegments,
+  directionPoint,
+  hasUnmeasured,
   ringsOf,
+  shapeCurve,
   shapePath,
   shapePoints,
-  shapeSpans,
   spokesOf,
   turnOf,
 } from '../../src/lib/radarGeometry'
@@ -72,55 +74,77 @@ describe('positions', () => {
   })
 })
 
-describe('shapeSpans', () => {
+describe('shapeCurve', () => {
   const scale = radialScale(90)
   const principal = { up: 40, 'up-left': 50, left: 55, 'down-left': 60, down: 50, 'down-right': 52, right: 45, 'up-right': 48 }
-  const numbersOf = (text: string): number[] => text.split(',').map(Number)
-  const endOf = (path: string): number[] => path.split(/[C,]/).slice(-2).map(Number)
-  const startOf = (path: string): number[] => numbersOf(path.slice(1).split('C')[0] ?? '')
-  const expectNear = (actual: readonly number[], expected: readonly number[]): void => {
+  /** The points a path passes or steers by: its start, then three per cubic. */
+  const pointsOf = (path: string): number[][] => {
+    const numbers = path.slice(1).split(/[C,]/).map(Number)
+    return Array.from({ length: numbers.length / 2 }, (_, pairIndex) => numbers.slice(2 * pairIndex, 2 * pairIndex + 2))
+  }
+  const expectNear = (actual: readonly number[] | undefined, expected: readonly number[]): void => {
     expect(actual).toHaveLength(2)
-    actual.forEach((value, valueIndex) => {
+    actual?.forEach((value, valueIndex) => {
       expect(value).toBeCloseTo(expected.at(valueIndex) ?? Number.NaN, 2)
     })
   }
 
   it('draws a fully measured shape as one solid closed curve, in-betweens optional', () => {
-    expect(shapeSpans(principal, scale)).toEqual([{ path: shapePath(principal, scale), measured: true }])
+    const path = shapePath(principal, scale)
+    expect(shapeCurve(principal, scale)).toEqual({ path, spans: [{ path, measured: true }] })
     const withInBetween = { ...principal, 'up-up-left': 46 }
-    expect(shapeSpans(withInBetween, scale)).toEqual([{ path: shapePath(withInBetween, scale), measured: true }])
-    expect(missesPrincipal(principal)).toBe(false)
+    const withInBetweenPath = shapePath(withInBetween, scale)
+    expect(shapeCurve(withInBetween, scale).spans).toEqual([{ path: withInBetweenPath, measured: true }])
+    expect(hasUnmeasured(principal)).toBe(false)
+    expect(hasUnmeasured(withInBetween)).toBe(false)
   })
 
   it('dashes the stretches passing over an unmeasured principal direction', () => {
     // One eye of VR Headset Picker: four edges and one diagonal.
     const leftEye = { up: 40, left: 55, 'down-left': 60, down: 50, right: 45 }
-    const spans = shapeSpans(leftEye, scale)
-    expect(missesPrincipal(leftEye)).toBe(true)
+    const { path, spans } = shapeCurve(leftEye, scale)
+    expect(path).toBe(shapePath(leftEye, scale))
+    expect(hasUnmeasured(leftEye)).toBe(true)
+    expect(curveSegments(leftEye).map((segment) => segment.measured)).toEqual([false, true, true, false, false])
     expect(spans.map((span) => span.measured)).toEqual([true, false])
     const points = shapePoints(leftEye, scale)
     const at = (direction: string): number[] => {
       const point = points.find((candidate) => candidate.direction === direction)
       return [point?.screenX ?? Number.NaN, point?.screenY ?? Number.NaN]
     }
-    const [leftToDown, downRoundToLeft] = spans
+    const [leftToDown, downRoundToLeft] = spans.map((span) => pointsOf(span.path))
     // Left through the measured diagonal to down.
-    expectNear(startOf(leftToDown?.path ?? ''), at('left'))
-    expectNear(endOf(leftToDown?.path ?? ''), at('down'))
-    // Down round through right and up back to left, missing down-right, up-right and up-left.
-    expectNear(startOf(downRoundToLeft?.path ?? ''), at('down'))
-    expectNear(endOf(downRoundToLeft?.path ?? ''), at('left'))
-    expect(downRoundToLeft?.path.split('C')).toHaveLength(4)
+    expectNear(leftToDown?.at(0), at('left'))
+    expectNear(leftToDown?.at(-1), at('down'))
+    // Down round through right and up back to left, missing down-right, up-right and up-left: three cubics.
+    expectNear(downRoundToLeft?.at(0), at('down'))
+    expectNear(downRoundToLeft?.at(-1), at('left'))
+    expect(downRoundToLeft).toHaveLength(1 + 3 * 3)
+    expectNear(downRoundToLeft?.at(3), at('right'))
+    expectNear(downRoundToLeft?.at(6), at('up'))
     expect(spans.every((span) => span.path.startsWith('M') && !span.path.endsWith('Z'))).toBe(true)
   })
 
   it('dashes all of a curve that joins only the four edges', () => {
     const edges = { up: 40, left: 55, down: 50, right: 45 }
-    expect(shapeSpans(edges, scale)).toEqual([{ path: shapePath(edges, scale), measured: false }])
+    const path = shapePath(edges, scale)
+    expect(shapeCurve(edges, scale)).toEqual({ path, spans: [{ path, measured: false }] })
+    expect(hasUnmeasured(edges)).toBe(true)
   })
 
   it('draws too few points as unmeasured or not at all', () => {
-    expect(shapeSpans({ up: 40 }, scale)).toEqual([])
-    expect(shapeSpans({ up: 40, down: 40 }, scale)).toEqual([{ path: shapePath({ up: 40, down: 40 }, scale), measured: false }])
+    expect(shapeCurve({ up: 40 }, scale)).toEqual({ path: '', spans: [] })
+    expect(hasUnmeasured({ up: 40 })).toBe(false)
+    const twoPoints = { up: 40, 'up-up-left': 40 }
+    const path = shapePath(twoPoints, scale)
+    expect(shapeCurve(twoPoints, scale)).toEqual({ path, spans: [{ path, measured: false }] })
+    expect(hasUnmeasured(twoPoints)).toBe(true)
+  })
+
+  it('places a direction’s point at a distance from the centre', () => {
+    expectNear(
+      [directionPoint('left', 100).screenX, directionPoint('left', 100).screenY],
+      [-100, 0],
+    )
   })
 })

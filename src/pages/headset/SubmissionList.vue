@@ -169,7 +169,7 @@ const rows = computed(() => props.entries.map(({ issue, entry }) => ({ issue, en
             {{ tuningLabelOf(tuningOf(entry.submission)) }}
             <span
               v-if="entry.submission.tuning.details"
-              class="details muted"
+              class="details small muted"
             >{{ entry.submission.tuning.details }}</span>
           </td>
           <td class="text-cell">
@@ -225,7 +225,6 @@ const rows = computed(() => props.entries.map(({ issue, entry }) => ({ issue, en
 }
 .details {
   display: block;
-  font-size: 0.88em;
 }
 tr.picked {
   background: var(--accent-soft);

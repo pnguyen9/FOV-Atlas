@@ -6,7 +6,7 @@
  */
 
 import { reactive } from 'vue'
-import type { EyeMode, FilterChoices, Statistic } from '../../lib/fovStats.ts'
+import type { EyeChoice, FilterChoices, Statistic } from '../../lib/fovStats.ts'
 import type { SceneName } from '../../lib/scene.ts'
 import { tools, type KeptSubmission, type Tool } from '../../lib/submission.ts'
 import { defaultColumnsFor, type CompareColumnId } from './columns.ts'
@@ -45,7 +45,7 @@ interface CompareState {
   /** Falls back to the first shown column when the tool lacks this one. */
   sort: { column: CompareColumnId; descending: boolean }
   radar: {
-    eye: EyeMode
+    eye: EyeChoice
     statistic: Statistic
     /** With the highest shown, each group's mean shape is drawn beside it. */
     alsoMean: boolean

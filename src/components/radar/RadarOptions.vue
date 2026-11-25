@@ -2,12 +2,12 @@
 /** How the radar draws its shapes: which eye, which statistic, and the rendered outline when the tool has one. */
 import SegmentedControl from '../SegmentedControl.vue'
 import { compareState } from '../../pages/compare/compareState.ts'
-import type { EyeMode, Statistic } from '../../lib/fovStats.ts'
+import type { EyeChoice, Statistic } from '../../lib/fovStats.ts'
 import { angleOriginOf, measuresBothEyesAtOnce, readsOwnEdges, showsRenderedAverage, toolNameOf, type Tool } from '../../lib/submission.ts'
 
 defineProps<{ readonly tool: Tool }>()
 
-const eyeOptions: readonly { value: EyeMode; label: string }[] = [
+const eyeOptions: readonly { value: EyeChoice; label: string }[] = [
   { value: 'left', label: 'Left' },
   { value: 'right', label: 'Right' },
   { value: 'union', label: 'Union' },

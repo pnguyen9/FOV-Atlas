@@ -26,7 +26,7 @@ interface Segment {
   readonly end: Point3
   readonly stroke: string
   readonly strokeWidth: number
-  readonly strokeOpacity?: number
+  readonly strokeOpacity: number
 }
 
 type Item = Polygon | Segment
@@ -35,20 +35,30 @@ type Item = Polygon | Segment
 export interface SceneShape {
   readonly path: string
   readonly fill: string
-  readonly stroke: string | undefined
-  readonly strokeWidth: number | undefined
-  readonly strokeOpacity: number | undefined
+  readonly stroke?: string
+  readonly strokeWidth?: number
+  readonly strokeOpacity?: number
 }
 
-export interface Scene {
+interface SceneBase {
   readonly name: string
   /** Painted first, and all there is of a photo scene while its image loads. */
   readonly sky: readonly [top: string, bottom: string]
   readonly ground: string
-  readonly items: () => Item[]
-  /** A photo in the radar's projection, served from `public/`, its disc reaching `photoLimitDegrees`. */
-  readonly photo: string | null
 }
+
+export interface SketchScene extends SceneBase {
+  readonly kind: 'sketch'
+  readonly items: () => Item[]
+}
+
+export interface PhotoScene extends SceneBase {
+  readonly kind: 'photo'
+  /** A photo in the radar's projection, served from `public/`, its disc reaching `photoLimitDegrees`. */
+  readonly photo: string
+}
+
+export type Scene = SketchScene | PhotoScene
 
 /** The angle from straight ahead at the edge of a photo scene's disc: straight behind. */
 export const photoLimitDegrees = 180
@@ -142,13 +152,13 @@ export function scenePath(points: readonly Point3[], closed: boolean, scale: Rad
 
 const polygon = (points: readonly Point3[], fill: string): Polygon => ({ kind: 'polygon', points, fill })
 
-const segment = (start: Point3, end: Point3, stroke: string, strokeWidth: number, extra: Partial<Segment> = {}): Segment => ({
+const segment = (start: Point3, end: Point3, stroke: string, strokeWidth: number, strokeOpacity: number): Segment => ({
   kind: 'segment',
   start,
   end,
   stroke,
   strokeWidth,
-  ...extra,
+  strokeOpacity,
 })
 
 type Axis = 'across' | 'height' | 'depth'
@@ -188,13 +198,14 @@ function box(low: Point3, high: Point3, colours: BoxColours): Polygon[] {
 function gridVoid(): Item[] {
   const floor = -1.6
   const gridColour = '#2f6fd6'
+  const gridOpacity = 0.7
   const blocks = { top: '#2a4a80', side: '#1a3060', front: '#21396d' }
   const items: Item[] = [polygon([[-300, floor, 0], [300, floor, 0], [300, floor, 300], [-300, floor, 300]], '#0a1222')]
   for (let across = -30; across <= 30; across += 1) {
-    items.push(segment([across, floor, 0], [across, floor, 60], gridColour, across % 5 === 0 ? 1.3 : 0.7, { strokeOpacity: 0.7 }))
+    items.push(segment([across, floor, 0], [across, floor, 60], gridColour, across % 5 === 0 ? 1.3 : 0.7, gridOpacity))
   }
   for (let depth = 1; depth <= 60; depth += 1) {
-    items.push(segment([-30, floor, depth], [30, floor, depth], gridColour, depth % 5 === 0 ? 1.3 : 0.7, { strokeOpacity: 0.7 }))
+    items.push(segment([-30, floor, depth], [30, floor, depth], gridColour, depth % 5 === 0 ? 1.3 : 0.7, gridOpacity))
   }
   items.push(...box([1.2, floor, 4], [2.2, floor + 1, 5], blocks), ...box([-3.5, floor, 7], [-2, floor + 2.5, 8.5], blocks))
   return items
@@ -204,14 +215,14 @@ export const sceneNames = ['void', 'room', 'cockpit'] as const
 export type SceneName = (typeof sceneNames)[number]
 
 const scenes: ReadonlyMap<SceneName, Scene> = new Map([
-  ['void', { name: 'Grid void', sky: ['#03060d', '#0b1630'], ground: '#060a12', items: gridVoid, photo: null }],
+  ['void', { kind: 'sketch', name: 'Grid void', sky: ['#03060d', '#0b1630'], ground: '#060a12', items: gridVoid }],
   [
     'room',
     {
+      kind: 'photo',
       name: 'Living room',
       sky: ['#efe3bd', '#e3d3a4'],
       ground: '#9b8c78',
-      items: () => [],
       // "Anniversary Lounge" by Greg Zaal, Poly Haven, CC0.
       photo: 'scenes/living-room.webp',
     },
@@ -219,10 +230,10 @@ const scenes: ReadonlyMap<SceneName, Scene> = new Map([
   [
     'cockpit',
     {
+      kind: 'photo',
       name: 'Cockpit',
       sky: ['#d9dcdc', '#c4c7c6'],
       ground: '#3a3d40',
-      items: () => [],
       // "Eesti Lennundusmuuseum. Hävitaja F-4C Phantom II kabiin" by Lauri Veerde, Wikimedia Commons, CC BY-SA 4.0.
       // The reprojected image is shared under the same licence.
       photo: 'scenes/cockpit.webp',
@@ -248,23 +259,17 @@ function shapeOf(item: Item, scale: RadialScale): SceneShape | null {
   }
   const clipped = clipPolygon(item.points)
   if (clipped.length < 3) return null
-  return {
-    path: scenePath(clipped, true, scale),
-    fill: item.fill,
-    stroke: undefined,
-    strokeWidth: undefined,
-    strokeOpacity: undefined,
-  }
+  return { path: scenePath(clipped, true, scale), fill: item.fill }
 }
 
 /** Projecting a scene is the slow part, so each scene is projected once per chart reach. */
 const projected = new Map<string, readonly SceneShape[]>()
 
-export function sceneShapes(name: SceneName, reach: number, scale: RadialScale): readonly SceneShape[] {
-  const key = `${name}:${String(reach)}`
+export function sceneShapes(scene: SketchScene, reach: number, scale: RadialScale): readonly SceneShape[] {
+  const key = `${scene.name}:${String(reach)}`
   const cached = projected.get(key)
   if (cached !== undefined) return cached
-  const shapes = sceneOf(name).items().flatMap((item) => {
+  const shapes = scene.items().flatMap((item) => {
     const shape = shapeOf(item, scale)
     return shape === null ? [] : [shape]
   })

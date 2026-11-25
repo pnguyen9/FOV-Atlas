@@ -39,6 +39,7 @@ export interface EyeMeasures {
   readonly left: EyeMeasure
   readonly right: EyeMeasure
 }
+export type Eye = keyof EyeMeasures
 
 /**
  * How far one eye's picture reaches, as the headset reports it to the browser while measuring

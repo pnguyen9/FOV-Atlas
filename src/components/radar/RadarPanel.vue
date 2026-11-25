@@ -11,9 +11,9 @@ import { colourClass, type ChartCurve, type ChartOutline, type RadarSeries } fro
 import { compareState } from '../../pages/compare/compareState.ts'
 import { pictureOutline } from '../../lib/ceiling.ts'
 import { eyeModeFor, eyeView, type EyeMode } from '../../lib/fovStats.ts'
-import { missesPrincipal } from '../../lib/radarGeometry.ts'
+import { hasUnmeasured } from '../../lib/radarGeometry.ts'
 import { sceneNames, sceneOf, type SceneName } from '../../lib/scene.ts'
-import { measuresBothEyesAtOnce, showsRenderedAverage, toolNameOf, type EyeMeasures, type Tool } from '../../lib/submission.ts'
+import { showsRenderedAverage, toolNameOf, type Eye, type EyeMeasure, type EyeMeasures, type Tool } from '../../lib/submission.ts'
 
 const props = defineProps<{
   readonly series: readonly RadarSeries[]
@@ -32,7 +32,7 @@ const through = computed(() => withShapes.value.find((item) => item.key === comp
 
 const showsMeans = computed(() => compareState.radar.alsoMean && compareState.radar.statistic === 'highest' && !seeing.value)
 
-const viewOf = (measures: EyeMeasures) => eyeView(measures, eyeMode.value, props.tool)
+const viewOf = (measures: EyeMeasures) => eyeView(measures, eyeMode.value)
 
 const curves = computed<ChartCurve[]>(() =>
   withShapes.value.flatMap((item) => {
@@ -61,7 +61,7 @@ const curves = computed<ChartCurve[]>(() =>
 )
 const showsOutlines = computed(() => showsRenderedAverage(props.tool) && compareState.radar.showRendered)
 /** Union and overlap show both eyes' pictures: their union and overlap are then plain to see. */
-const eyesShown = computed<readonly ('left' | 'right')[]>(() => {
+const eyesShown = computed<readonly Eye[]>(() => {
   if (eyeMode.value === 'left' || eyeMode.value === 'right') return [eyeMode.value]
   return ['left', 'right']
 })
@@ -78,24 +78,26 @@ const outlines = computed<ChartOutline[]>(() =>
   }),
 )
 
-function bothEyesOf(measures: EyeMeasures): EyeMeasures['left'] | null {
-  return eyeMode.value === 'union' && !measuresBothEyesAtOnce(props.tool) ? eyeView(measures, 'overlap', props.tool).shape : null
+function bothEyesOf(measures: EyeMeasures): EyeMeasure | null {
+  return eyeMode.value === 'union' ? eyeView(measures, 'overlap').shape : null
 }
 
 const sceneProps = computed(() => {
   const shown = through.value
-  if (!seeing.value || shown === undefined) return { scene: null, window: null, bothEyes: null }
-  return { scene: compareState.radar.scene, window: viewOf(shown.measures).shape, bothEyes: bothEyesOf(shown.measures) }
+  const windowShape = curves.value.find((curve) => curve.key === shown?.key)?.shape
+  if (!seeing.value || shown === undefined || windowShape === undefined) return { scene: null, window: null, bothEyes: null }
+  return { scene: compareState.radar.scene, window: windowShape, bothEyes: bothEyesOf(shown.measures) }
 })
 
 const toolName = computed(() => toolNameOf(props.tool))
 const showsUnmeasured = computed(() =>
-  [...curves.value.map((curve) => curve.shape), sceneProps.value.bothEyes].some((shape) => shape !== null && missesPrincipal(shape)),
+  [...curves.value.map((curve) => curve.shape), sceneProps.value.bothEyes].some((shape) => shape !== null && hasUnmeasured(shape)),
 )
 const showsOneEye = computed(() => curves.value.some((curve) => curve.oneEye.length > 0))
 
 const eyeWords: Readonly<Record<EyeMode, string>> = {
   union: 'both eyes together',
+  together: 'both eyes together',
   overlap: 'only what both eyes see',
   left: 'left eye',
   right: 'right eye',

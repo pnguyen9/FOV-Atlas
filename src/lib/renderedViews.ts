@@ -22,9 +22,7 @@ import {
   type Vector3,
 } from './headFrame.ts'
 import { turnOf } from './radarGeometry.ts'
-import { ceilingProblem, type Ceiling, type Direction, type EdgeAngles } from './submission.ts'
-
-export type Eye = 'left' | 'right'
+import { ceilingProblem, type Ceiling, type Direction, type EdgeAngles, type Eye } from './submission.ts'
 
 /** How far the picture reaches across its own plane, one unit in front of the eye; left and down are negative. */
 export interface ViewTangents {

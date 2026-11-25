@@ -8,8 +8,8 @@
  */
 
 import { answerSearch, searchOutcome, startSearch, type EdgeSearch, type SearchOutcome } from './edgeSearch.ts'
-import { reachToward, type Eye, type RenderedView } from './renderedViews.ts'
-import { directions, principalDirections, type Ceiling, type CornerMask, type Direction, type EyeMeasures } from './submission.ts'
+import { reachToward, type RenderedView } from './renderedViews.ts'
+import { directions, principalDirections, type Ceiling, type CornerMask, type Direction, type Eye, type EyeMeasures } from './submission.ts'
 
 /** The eight principal directions are required; the eight in between are optional. */
 export type DirectionChoice = 'principal' | 'all'

@@ -56,21 +56,21 @@ describe('scenePath', () => {
 })
 
 describe('scenes', () => {
+  const voidScene = sceneOf('void')
+  if (voidScene.kind !== 'sketch') throw new Error('The grid void is a sketch')
   it('projects the sketched scene once per reach', () => {
-    const shapes = sceneShapes('void', 90, scale)
+    const shapes = sceneShapes(voidScene, 90, scale)
     expect(shapes.length).toBeGreaterThan(10)
-    expect(sceneShapes('void', 90, scale)).toBe(shapes)
-    expect(sceneOf('void')).toMatchObject({ name: 'Grid void', photo: null })
+    expect(sceneShapes(voidScene, 90, scale)).toBe(shapes)
+    expect(voidScene).toMatchObject({ kind: 'sketch', name: 'Grid void' })
   })
   it('draws lines without fill and areas with one', () => {
-    const shapes = sceneShapes('void', 90, scale)
+    const shapes = sceneShapes(voidScene, 90, scale)
     expect(shapes.some((shape) => shape.fill === 'none' && shape.strokeOpacity === 0.7)).toBe(true)
     expect(shapes.some((shape) => shape.fill !== 'none' && shape.stroke === undefined)).toBe(true)
   })
-  it('shows the living room as a photo, with no shapes over it', () => {
-    expect(sceneOf('room')).toMatchObject({ name: 'Living room', photo: 'scenes/living-room.webp' })
-    expect(sceneShapes('room', 90, scale)).toEqual([])
-    expect(sceneOf('cockpit')).toMatchObject({ name: 'Cockpit', photo: 'scenes/cockpit.webp' })
-    expect(sceneShapes('cockpit', 90, scale)).toEqual([])
+  it('shows the living room and the cockpit as photos', () => {
+    expect(sceneOf('room')).toMatchObject({ kind: 'photo', name: 'Living room', photo: 'scenes/living-room.webp' })
+    expect(sceneOf('cockpit')).toMatchObject({ kind: 'photo', name: 'Cockpit', photo: 'scenes/cockpit.webp' })
   })
 })
