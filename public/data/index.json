@@ -19,6 +19,10 @@
       "bigscreen-beyond-2": {
         "count": 5,
         "pages": 1
+      },
+      "htc-vive": {
+        "count": 1,
+        "pages": 1
       }
     }
   }

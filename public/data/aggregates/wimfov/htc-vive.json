@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "tool": "wimfov",
+  "headset": "htc-vive",
+  "count": 1,
+  "cells": {
+    "almost-flush|low|modded|fixed": {
+      "left": {
+        "up": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "left": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "down": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "right": {
+          "count": 1,
+          "sum": 45,
+          "sumsq": 2025,
+          "max": 45
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 49,
+          "sumsq": 2401,
+          "max": 49
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        }
+      },
+      "right": {
+        "up": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "left": {
+          "count": 1,
+          "sum": 45,
+          "sumsq": 2025,
+          "max": 45
+        },
+        "down": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "right": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 50,
+          "sumsq": 2500,
+          "max": 50
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 54,
+          "sumsq": 2916,
+          "max": 54
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 55,
+          "sumsq": 3025,
+          "max": 55
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 48,
+          "sumsq": 2304,
+          "max": 48
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 52,
+          "sumsq": 2704,
+          "max": 52
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 53,
+          "sumsq": 2809,
+          "max": 53
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 54,
+          "sumsq": 2916,
+          "max": 54
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 56,
+          "sumsq": 3136,
+          "max": 56
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 57,
+          "sumsq": 3249,
+          "max": 57
+        }
+      },
+      "figures": {
+        "horizontal": {
+          "count": 1,
+          "sum": 110,
+          "sumsq": 12100,
+          "max": 110
+        },
+        "vertical": {
+          "count": 1,
+          "sum": 112,
+          "sumsq": 12544,
+          "max": 112
+        },
+        "overlap": {
+          "count": 1,
+          "sum": 90,
+          "sumsq": 8100,
+          "max": 90
+        }
+      }
+    }
+  }
+}
