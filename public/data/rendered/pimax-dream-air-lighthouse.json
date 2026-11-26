@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "headset": "pimax-dream-air-lighthouse",
+  "count": 1,
+  "values": {
+    "leftWidth": {
+      "count": 1,
+      "sum": 100.61,
+      "sumsq": 10122.3721,
+      "min": 100.61,
+      "max": 100.61
+    },
+    "leftHeight": {
+      "count": 1,
+      "sum": 89.08,
+      "sumsq": 7935.2464,
+      "min": 89.08,
+      "max": 89.08
+    },
+    "rightWidth": {
+      "count": 1,
+      "sum": 100.61,
+      "sumsq": 10122.3721,
+      "min": 100.61,
+      "max": 100.61
+    },
+    "rightHeight": {
+      "count": 1,
+      "sum": 89.08,
+      "sumsq": 7935.2464,
+      "min": 89.08,
+      "max": 89.08
+    },
+    "horizontal": {
+      "count": 1,
+      "sum": 110.14,
+      "sumsq": 12130.8196,
+      "min": 110.14,
+      "max": 110.14
+    },
+    "overlap": {
+      "count": 1,
+      "sum": 91.08,
+      "sumsq": 8295.5664,
+      "min": 91.08,
+      "max": 91.08
+    },
+    "leftEyeLeft": {
+      "count": 1,
+      "sum": 55.07,
+      "sumsq": 3032.7049,
+      "min": 55.07,
+      "max": 55.07
+    },
+    "leftEyeRight": {
+      "count": 1,
+      "sum": 45.54,
+      "sumsq": 2073.8916,
+      "min": 45.54,
+      "max": 45.54
+    },
+    "leftEyeUp": {
+      "count": 1,
+      "sum": 44.54,
+      "sumsq": 1983.8116,
+      "min": 44.54,
+      "max": 44.54
+    },
+    "leftEyeDown": {
+      "count": 1,
+      "sum": 44.54,
+      "sumsq": 1983.8116,
+      "min": 44.54,
+      "max": 44.54
+    },
+    "rightEyeLeft": {
+      "count": 1,
+      "sum": 45.54,
+      "sumsq": 2073.8916,
+      "min": 45.54,
+      "max": 45.54
+    },
+    "rightEyeRight": {
+      "count": 1,
+      "sum": 55.07,
+      "sumsq": 3032.7049,
+      "min": 55.07,
+      "max": 55.07
+    },
+    "rightEyeUp": {
+      "count": 1,
+      "sum": 44.54,
+      "sumsq": 1983.8116,
+      "min": 44.54,
+      "max": 44.54
+    },
+    "rightEyeDown": {
+      "count": 1,
+      "sum": 44.54,
+      "sumsq": 1983.8116,
+      "min": 44.54,
+      "max": 44.54
+    },
+    "turn": {
+      "count": 1,
+      "sum": 0,
+      "sumsq": 0,
+      "min": 0,
+      "max": 0
+    }
+  }
+}
