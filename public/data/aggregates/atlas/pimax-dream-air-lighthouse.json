@@ -2,7 +2,7 @@
   "version": 3,
   "tool": "atlas",
   "headset": "pimax-dream-air-lighthouse",
-  "count": 4,
+  "count": 5,
   "cells": {
     "almost-flush|low|both|fixed": {
       "left": {
@@ -623,245 +623,245 @@
     "almost-flush|low|tuned|fixed": {
       "left": {
         "up": {
-          "count": 1,
-          "sum": 43.98,
-          "sumsq": 1934.2404,
-          "max": 43.98
+          "count": 2,
+          "sum": 88.52,
+          "sumsq": 3918.052,
+          "max": 44.54
         },
         "up-up-left": {
-          "count": 1,
-          "sum": 46.65,
-          "sumsq": 2176.2225,
-          "max": 46.65
+          "count": 2,
+          "sum": 93.46,
+          "sumsq": 4367.3986,
+          "max": 46.81
         },
         "up-left": {
-          "count": 1,
-          "sum": 54.7,
-          "sumsq": 2992.09,
+          "count": 2,
+          "sum": 109,
+          "sumsq": 5940.58,
           "max": 54.7
         },
         "left-up-left": {
-          "count": 1,
-          "sum": 53.19,
-          "sumsq": 2829.1761,
-          "max": 53.19
+          "count": 2,
+          "sum": 113.26,
+          "sumsq": 6437.581,
+          "max": 60.07
         },
         "left": {
-          "count": 1,
-          "sum": 51,
-          "sumsq": 2601,
-          "max": 51
+          "count": 2,
+          "sum": 109.07,
+          "sumsq": 5973.1249,
+          "max": 58.07
         },
         "left-down-left": {
-          "count": 1,
-          "sum": 53.19,
-          "sumsq": 2829.1761,
-          "max": 53.19
+          "count": 2,
+          "sum": 113.26,
+          "sumsq": 6437.581,
+          "max": 60.07
         },
         "down-left": {
-          "count": 1,
-          "sum": 54.7,
-          "sumsq": 2992.09,
+          "count": 2,
+          "sum": 109,
+          "sumsq": 5940.58,
           "max": 54.7
         },
         "down-down-left": {
-          "count": 1,
-          "sum": 46.65,
-          "sumsq": 2176.2225,
-          "max": 46.65
+          "count": 2,
+          "sum": 93.46,
+          "sumsq": 4367.3986,
+          "max": 46.81
         },
         "down": {
-          "count": 1,
-          "sum": 43.98,
-          "sumsq": 1934.2404,
-          "max": 43.98
+          "count": 2,
+          "sum": 88.52,
+          "sumsq": 3918.052,
+          "max": 44.54
         },
         "down-down-right": {
-          "count": 1,
-          "sum": 45.85,
-          "sumsq": 2102.2225,
-          "max": 45.85
+          "count": 2,
+          "sum": 92.66,
+          "sumsq": 4293.3986,
+          "max": 46.81
         },
         "down-right": {
-          "count": 1,
-          "sum": 52.86,
-          "sumsq": 2794.1796,
+          "count": 2,
+          "sum": 101.81,
+          "sumsq": 5190.2821,
           "max": 52.86
         },
         "right-down-right": {
-          "count": 1,
-          "sum": 49.25,
-          "sumsq": 2425.5625,
+          "count": 2,
+          "sum": 94.05,
+          "sumsq": 4432.6025,
           "max": 49.25
         },
         "right": {
-          "count": 1,
-          "sum": 47,
-          "sumsq": 2209,
+          "count": 2,
+          "sum": 89.54,
+          "sumsq": 4018.6516,
           "max": 47
         },
         "right-up-right": {
-          "count": 1,
-          "sum": 49.25,
-          "sumsq": 2425.5625,
+          "count": 2,
+          "sum": 94.05,
+          "sumsq": 4432.6025,
           "max": 49.25
         },
         "up-right": {
-          "count": 1,
-          "sum": 52.86,
-          "sumsq": 2794.1796,
+          "count": 2,
+          "sum": 101.18,
+          "sumsq": 5129.002,
           "max": 52.86
         },
         "up-up-right": {
-          "count": 1,
-          "sum": 45.85,
-          "sumsq": 2102.2225,
-          "max": 45.85
+          "count": 2,
+          "sum": 92.66,
+          "sumsq": 4293.3986,
+          "max": 46.81
         }
       },
       "right": {
         "up": {
-          "count": 1,
-          "sum": 43.98,
-          "sumsq": 1934.2404,
-          "max": 43.98
+          "count": 2,
+          "sum": 88.52,
+          "sumsq": 3918.052,
+          "max": 44.54
         },
         "up-up-left": {
-          "count": 1,
-          "sum": 45.85,
-          "sumsq": 2102.2225,
-          "max": 45.85
+          "count": 2,
+          "sum": 92.66,
+          "sumsq": 4293.3986,
+          "max": 46.81
         },
         "up-left": {
-          "count": 1,
-          "sum": 52.86,
-          "sumsq": 2794.1796,
+          "count": 2,
+          "sum": 101.18,
+          "sumsq": 5129.002,
           "max": 52.86
         },
         "left-up-left": {
-          "count": 1,
-          "sum": 49.25,
-          "sumsq": 2425.5625,
+          "count": 2,
+          "sum": 94.05,
+          "sumsq": 4432.6025,
           "max": 49.25
         },
         "left": {
-          "count": 1,
-          "sum": 47,
-          "sumsq": 2209,
+          "count": 2,
+          "sum": 89.54,
+          "sumsq": 4018.6516,
           "max": 47
         },
         "left-down-left": {
-          "count": 1,
-          "sum": 49.25,
-          "sumsq": 2425.5625,
+          "count": 2,
+          "sum": 94.05,
+          "sumsq": 4432.6025,
           "max": 49.25
         },
         "down-left": {
-          "count": 1,
-          "sum": 52.86,
-          "sumsq": 2794.1796,
+          "count": 2,
+          "sum": 101.81,
+          "sumsq": 5190.2821,
           "max": 52.86
         },
         "down-down-left": {
-          "count": 1,
-          "sum": 45.85,
-          "sumsq": 2102.2225,
-          "max": 45.85
+          "count": 2,
+          "sum": 92.66,
+          "sumsq": 4293.3986,
+          "max": 46.81
         },
         "down": {
-          "count": 1,
-          "sum": 43.98,
-          "sumsq": 1934.2404,
-          "max": 43.98
+          "count": 2,
+          "sum": 88.52,
+          "sumsq": 3918.052,
+          "max": 44.54
         },
         "down-down-right": {
-          "count": 1,
-          "sum": 46.65,
-          "sumsq": 2176.2225,
-          "max": 46.65
+          "count": 2,
+          "sum": 93.46,
+          "sumsq": 4367.3986,
+          "max": 46.81
         },
         "down-right": {
-          "count": 1,
-          "sum": 54.7,
-          "sumsq": 2992.09,
+          "count": 2,
+          "sum": 109,
+          "sumsq": 5940.58,
           "max": 54.7
         },
         "right-down-right": {
-          "count": 1,
-          "sum": 53.19,
-          "sumsq": 2829.1761,
-          "max": 53.19
+          "count": 2,
+          "sum": 113.26,
+          "sumsq": 6437.581,
+          "max": 60.07
         },
         "right": {
-          "count": 1,
-          "sum": 51,
-          "sumsq": 2601,
-          "max": 51
+          "count": 2,
+          "sum": 109.07,
+          "sumsq": 5973.1249,
+          "max": 58.07
         },
         "right-up-right": {
-          "count": 1,
-          "sum": 53.19,
-          "sumsq": 2829.1761,
-          "max": 53.19
+          "count": 2,
+          "sum": 113.26,
+          "sumsq": 6437.581,
+          "max": 60.07
         },
         "up-right": {
-          "count": 1,
-          "sum": 54.7,
-          "sumsq": 2992.09,
+          "count": 2,
+          "sum": 109,
+          "sumsq": 5940.58,
           "max": 54.7
         },
         "up-up-right": {
-          "count": 1,
-          "sum": 46.65,
-          "sumsq": 2176.2225,
-          "max": 46.65
+          "count": 2,
+          "sum": 93.46,
+          "sumsq": 4367.3986,
+          "max": 46.81
         }
       },
       "figures": {
         "horizontal": {
-          "count": 1,
-          "sum": 102,
-          "sumsq": 10404,
-          "max": 102
+          "count": 2,
+          "sum": 218.14,
+          "sumsq": 23892.4996,
+          "max": 116.14
         },
         "vertical": {
-          "count": 1,
-          "sum": 87.96,
-          "sumsq": 7736.9616,
-          "max": 87.96
+          "count": 2,
+          "sum": 177.04,
+          "sumsq": 15672.208,
+          "max": 89.08
         },
         "overlap": {
-          "count": 1,
-          "sum": 94,
-          "sumsq": 8836,
+          "count": 2,
+          "sum": 179.08,
+          "sumsq": 16074.6064,
           "max": 94
         },
         "area": {
-          "count": 1,
-          "sum": 36.52,
-          "sumsq": 1333.7104,
-          "max": 36.52
+          "count": 2,
+          "sum": 76.79,
+          "sumsq": 2955.3833,
+          "max": 40.27
         },
         "overlapArea": {
-          "count": 1,
-          "sum": 33.62,
-          "sumsq": 1130.3044,
+          "count": 2,
+          "sum": 64.12,
+          "sumsq": 2060.5544,
           "max": 33.62
         },
         "renderedHorizontal": {
-          "count": 1,
-          "sum": 102,
-          "sumsq": 10404,
-          "max": 102
+          "count": 2,
+          "sum": 218.14,
+          "sumsq": 23892.4996,
+          "max": 116.14
         },
         "renderedOverlap": {
-          "count": 1,
-          "sum": 94,
-          "sumsq": 8836,
+          "count": 2,
+          "sum": 179.08,
+          "sumsq": 16074.6064,
           "max": 94
         },
         "horizontalPastRendered": {
-          "count": 1,
+          "count": 2,
           "sum": 0,
           "sumsq": 0,
           "max": 0
@@ -869,60 +869,60 @@
       },
       "leaders": {
         "highest": {
-          "issue": 29,
+          "issue": 31,
           "author": "pnguyen9",
           "rank": [
-            3652,
-            10200,
-            8796,
-            158192
+            4027,
+            11614,
+            8908,
+            158508
           ],
           "figures": {
-            "horizontal": 102,
-            "vertical": 87.96,
-            "overlap": 94,
-            "area": 36.52,
-            "overlapArea": 33.62,
-            "renderedHorizontal": 102,
-            "renderedOverlap": 94,
+            "horizontal": 116.14,
+            "vertical": 89.08,
+            "overlap": 85.08,
+            "area": 40.27,
+            "overlapArea": 30.5,
+            "renderedHorizontal": 116.14,
+            "renderedOverlap": 85.08,
             "horizontalPastRendered": 0
           },
           "measures": {
             "left": {
-              "up": 43.98,
-              "up-up-left": 46.65,
-              "up-left": 54.7,
-              "left-up-left": 53.19,
-              "left": 51,
-              "left-down-left": 53.19,
-              "down-left": 54.7,
-              "down-down-left": 46.65,
-              "down": 43.98,
-              "down-down-right": 45.85,
-              "down-right": 52.86,
-              "right-down-right": 49.25,
-              "right": 47,
-              "right-up-right": 49.25,
-              "up-right": 52.86,
-              "up-up-right": 45.85
+              "up": 44.54,
+              "up-up-left": 46.81,
+              "up-left": 54.3,
+              "left-up-left": 60.07,
+              "left": 58.07,
+              "left-down-left": 60.07,
+              "down-left": 54.3,
+              "down-down-left": 46.81,
+              "down": 44.54,
+              "down-down-right": 46.81,
+              "down-right": 48.95,
+              "right-down-right": 44.8,
+              "right": 42.54,
+              "right-up-right": 44.8,
+              "up-right": 48.32,
+              "up-up-right": 46.81
             },
             "right": {
-              "up": 43.98,
-              "up-up-left": 45.85,
-              "up-left": 52.86,
-              "left-up-left": 49.25,
-              "left": 47,
-              "left-down-left": 49.25,
-              "down-left": 52.86,
-              "down-down-left": 45.85,
-              "down": 43.98,
-              "down-down-right": 46.65,
-              "down-right": 54.7,
-              "right-down-right": 53.19,
-              "right": 51,
-              "right-up-right": 53.19,
-              "up-right": 54.7,
-              "up-up-right": 46.65
+              "up": 44.54,
+              "up-up-left": 46.81,
+              "up-left": 48.32,
+              "left-up-left": 44.8,
+              "left": 42.54,
+              "left-down-left": 44.8,
+              "down-left": 48.95,
+              "down-down-left": 46.81,
+              "down": 44.54,
+              "down-down-right": 46.81,
+              "down-right": 54.3,
+              "right-down-right": 60.07,
+              "right": 58.07,
+              "right-up-right": 60.07,
+              "up-right": 54.3,
+              "up-up-right": 46.81
             }
           }
         }
