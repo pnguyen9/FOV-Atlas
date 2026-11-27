@@ -51,7 +51,7 @@
         "pages": 1
       },
       "bigscreen-beyond-2": {
-        "count": 2,
+        "count": 3,
         "pages": 1
       },
       "pimax-dream-air-lighthouse": {
@@ -62,7 +62,7 @@
   },
   "rendered": {
     "bigscreen-beyond": 3,
-    "bigscreen-beyond-2": 2,
+    "bigscreen-beyond-2": 3,
     "pimax-dream-air-lighthouse": 1
   }
 }
