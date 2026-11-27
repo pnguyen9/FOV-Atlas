@@ -1,0 +1,204 @@
+{
+  "version": 3,
+  "tool": "atlas",
+  "headset": "bigscreen-beyond-2",
+  "count": 1,
+  "cells": {
+    "almost-flush|low|stock|fixed": {
+      "left": {
+        "up": {
+          "count": 1,
+          "sum": 40.54,
+          "sumsq": 1643.4916,
+          "max": 40.54
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 48.8,
+          "sumsq": 2381.44,
+          "max": 48.8
+        },
+        "left": {
+          "count": 1,
+          "sum": 52.8,
+          "sumsq": 2787.84,
+          "max": 52.8
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 55.84,
+          "sumsq": 3118.1056,
+          "max": 55.84
+        },
+        "down": {
+          "count": 1,
+          "sum": 51.07,
+          "sumsq": 2608.1449,
+          "max": 51.07
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 45.26,
+          "sumsq": 2048.4676,
+          "max": 45.26
+        },
+        "right": {
+          "count": 1,
+          "sum": 38.53,
+          "sumsq": 1484.5609,
+          "max": 38.53
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 39.01,
+          "sumsq": 1521.7801,
+          "max": 39.01
+        }
+      },
+      "right": {
+        "up": {
+          "count": 1,
+          "sum": 40.41,
+          "sumsq": 1632.9681,
+          "max": 40.41
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 38.15,
+          "sumsq": 1455.4225,
+          "max": 38.15
+        },
+        "left": {
+          "count": 1,
+          "sum": 39.24,
+          "sumsq": 1539.7776,
+          "max": 39.24
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 45.96,
+          "sumsq": 2112.3216,
+          "max": 45.96
+        },
+        "down": {
+          "count": 1,
+          "sum": 49.38,
+          "sumsq": 2438.3844,
+          "max": 49.38
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 54.64,
+          "sumsq": 2985.5296,
+          "max": 54.64
+        },
+        "right": {
+          "count": 1,
+          "sum": 50.5,
+          "sumsq": 2550.25,
+          "max": 50.5
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 47.07,
+          "sumsq": 2215.5849,
+          "max": 47.07
+        }
+      },
+      "figures": {
+        "horizontal": {
+          "count": 1,
+          "sum": 103.3,
+          "sumsq": 10670.89,
+          "max": 103.3
+        },
+        "vertical": {
+          "count": 1,
+          "sum": 91.61,
+          "sumsq": 8392.3921,
+          "max": 91.61
+        },
+        "overlap": {
+          "count": 1,
+          "sum": 77.77,
+          "sumsq": 6048.1729,
+          "max": 77.77
+        },
+        "area": {
+          "count": 1,
+          "sum": 36.09,
+          "sumsq": 1302.4881,
+          "max": 36.09
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 25.82,
+          "sumsq": 666.6724,
+          "max": 25.82
+        },
+        "renderedHorizontal": {
+          "count": 1,
+          "sum": 109.23,
+          "sumsq": 11931.1929,
+          "max": 109.23
+        },
+        "renderedOverlap": {
+          "count": 1,
+          "sum": 84.32,
+          "sumsq": 7109.8624,
+          "max": 84.32
+        },
+        "horizontalPastRendered": {
+          "count": 1,
+          "sum": -5.93,
+          "sumsq": 35.1649,
+          "max": -5.93
+        }
+      },
+      "leaders": {
+        "highest": {
+          "issue": 35,
+          "author": "pnguyen9",
+          "rank": [
+            3609,
+            10330,
+            9161,
+            73720
+          ],
+          "figures": {
+            "horizontal": 103.3,
+            "vertical": 91.61,
+            "overlap": 77.77,
+            "area": 36.09,
+            "overlapArea": 25.82,
+            "renderedHorizontal": 109.23,
+            "renderedOverlap": 84.32,
+            "horizontalPastRendered": -5.93
+          },
+          "measures": {
+            "left": {
+              "up": 40.54,
+              "up-left": 48.8,
+              "left": 52.8,
+              "down-left": 55.84,
+              "down": 51.07,
+              "down-right": 45.26,
+              "right": 38.53,
+              "up-right": 39.01
+            },
+            "right": {
+              "up": 40.41,
+              "up-left": 38.15,
+              "left": 39.24,
+              "down-left": 45.96,
+              "down": 49.38,
+              "down-right": 54.64,
+              "right": 50.5,
+              "up-right": 47.07
+            }
+          }
+        }
+      }
+    }
+  }
+}

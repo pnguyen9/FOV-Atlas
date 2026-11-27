@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "headset": "bigscreen-beyond-2",
+  "count": 1,
+  "values": {
+    "leftWidth": {
+      "count": 1,
+      "sum": 96.94,
+      "sumsq": 9397.3636,
+      "min": 96.94,
+      "max": 96.94
+    },
+    "leftHeight": {
+      "count": 1,
+      "sum": 96.92,
+      "sumsq": 9393.4864,
+      "min": 96.92,
+      "max": 96.92
+    },
+    "rightWidth": {
+      "count": 1,
+      "sum": 96.61,
+      "sumsq": 9333.4921,
+      "min": 96.61,
+      "max": 96.61
+    },
+    "rightHeight": {
+      "count": 1,
+      "sum": 96.66,
+      "sumsq": 9343.1556,
+      "min": 96.66,
+      "max": 96.66
+    },
+    "horizontal": {
+      "count": 1,
+      "sum": 109.23,
+      "sumsq": 11931.1929,
+      "min": 109.23,
+      "max": 109.23
+    },
+    "overlap": {
+      "count": 1,
+      "sum": 84.32,
+      "sumsq": 7109.8624,
+      "min": 84.32,
+      "max": 84.32
+    },
+    "leftEyeLeft": {
+      "count": 1,
+      "sum": 54.98,
+      "sumsq": 3022.8004,
+      "min": 54.98,
+      "max": 54.98
+    },
+    "leftEyeRight": {
+      "count": 1,
+      "sum": 41.96,
+      "sumsq": 1760.6416,
+      "min": 41.96,
+      "max": 41.96
+    },
+    "leftEyeUp": {
+      "count": 1,
+      "sum": 43.04,
+      "sumsq": 1852.4416,
+      "min": 43.04,
+      "max": 43.04
+    },
+    "leftEyeDown": {
+      "count": 1,
+      "sum": 53.88,
+      "sumsq": 2903.0544,
+      "min": 53.88,
+      "max": 53.88
+    },
+    "rightEyeLeft": {
+      "count": 1,
+      "sum": 42.36,
+      "sumsq": 1794.3696,
+      "min": 42.36,
+      "max": 42.36
+    },
+    "rightEyeRight": {
+      "count": 1,
+      "sum": 54.25,
+      "sumsq": 2943.0625,
+      "min": 54.25,
+      "max": 54.25
+    },
+    "rightEyeUp": {
+      "count": 1,
+      "sum": 44.16,
+      "sumsq": 1950.1056,
+      "min": 44.16,
+      "max": 44.16
+    },
+    "rightEyeDown": {
+      "count": 1,
+      "sum": 52.5,
+      "sumsq": 2756.25,
+      "min": 52.5,
+      "max": 52.5
+    },
+    "turn": {
+      "count": 1,
+      "sum": 0,
+      "sumsq": 0,
+      "min": 0,
+      "max": 0
+    }
+  }
+}
