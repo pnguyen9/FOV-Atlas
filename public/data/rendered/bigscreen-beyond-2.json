@@ -1,108 +1,108 @@
 {
   "version": 1,
   "headset": "bigscreen-beyond-2",
-  "count": 1,
+  "count": 2,
   "values": {
     "leftWidth": {
-      "count": 1,
-      "sum": 96.94,
-      "sumsq": 9397.3636,
+      "count": 2,
+      "sum": 193.88,
+      "sumsq": 18794.7272,
       "min": 96.94,
       "max": 96.94
     },
     "leftHeight": {
-      "count": 1,
-      "sum": 96.92,
-      "sumsq": 9393.4864,
+      "count": 2,
+      "sum": 193.84,
+      "sumsq": 18786.9728,
       "min": 96.92,
       "max": 96.92
     },
     "rightWidth": {
-      "count": 1,
-      "sum": 96.61,
-      "sumsq": 9333.4921,
+      "count": 2,
+      "sum": 193.22,
+      "sumsq": 18666.9842,
       "min": 96.61,
       "max": 96.61
     },
     "rightHeight": {
-      "count": 1,
-      "sum": 96.66,
-      "sumsq": 9343.1556,
+      "count": 2,
+      "sum": 193.32,
+      "sumsq": 18686.3112,
       "min": 96.66,
       "max": 96.66
     },
     "horizontal": {
-      "count": 1,
-      "sum": 109.23,
-      "sumsq": 11931.1929,
+      "count": 2,
+      "sum": 218.46,
+      "sumsq": 23862.3858,
       "min": 109.23,
       "max": 109.23
     },
     "overlap": {
-      "count": 1,
-      "sum": 84.32,
-      "sumsq": 7109.8624,
+      "count": 2,
+      "sum": 168.64,
+      "sumsq": 14219.7248,
       "min": 84.32,
       "max": 84.32
     },
     "leftEyeLeft": {
-      "count": 1,
-      "sum": 54.98,
-      "sumsq": 3022.8004,
+      "count": 2,
+      "sum": 109.96,
+      "sumsq": 6045.6008,
       "min": 54.98,
       "max": 54.98
     },
     "leftEyeRight": {
-      "count": 1,
-      "sum": 41.96,
-      "sumsq": 1760.6416,
+      "count": 2,
+      "sum": 83.92,
+      "sumsq": 3521.2832,
       "min": 41.96,
       "max": 41.96
     },
     "leftEyeUp": {
-      "count": 1,
-      "sum": 43.04,
-      "sumsq": 1852.4416,
+      "count": 2,
+      "sum": 86.08,
+      "sumsq": 3704.8832,
       "min": 43.04,
       "max": 43.04
     },
     "leftEyeDown": {
-      "count": 1,
-      "sum": 53.88,
-      "sumsq": 2903.0544,
+      "count": 2,
+      "sum": 107.76,
+      "sumsq": 5806.1088,
       "min": 53.88,
       "max": 53.88
     },
     "rightEyeLeft": {
-      "count": 1,
-      "sum": 42.36,
-      "sumsq": 1794.3696,
+      "count": 2,
+      "sum": 84.72,
+      "sumsq": 3588.7392,
       "min": 42.36,
       "max": 42.36
     },
     "rightEyeRight": {
-      "count": 1,
-      "sum": 54.25,
-      "sumsq": 2943.0625,
+      "count": 2,
+      "sum": 108.5,
+      "sumsq": 5886.125,
       "min": 54.25,
       "max": 54.25
     },
     "rightEyeUp": {
-      "count": 1,
-      "sum": 44.16,
-      "sumsq": 1950.1056,
+      "count": 2,
+      "sum": 88.32,
+      "sumsq": 3900.2112,
       "min": 44.16,
       "max": 44.16
     },
     "rightEyeDown": {
-      "count": 1,
-      "sum": 52.5,
-      "sumsq": 2756.25,
+      "count": 2,
+      "sum": 105,
+      "sumsq": 5512.5,
       "min": 52.5,
       "max": 52.5
     },
     "turn": {
-      "count": 1,
+      "count": 2,
       "sum": 0,
       "sumsq": 0,
       "min": 0,
