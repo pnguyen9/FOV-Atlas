@@ -1,108 +1,108 @@
 {
   "version": 1,
   "headset": "bigscreen-beyond",
-  "count": 1,
+  "count": 2,
   "values": {
     "leftWidth": {
-      "count": 1,
-      "sum": 88.65,
-      "sumsq": 7858.8225,
+      "count": 2,
+      "sum": 177.3,
+      "sumsq": 15717.645,
       "min": 88.65,
       "max": 88.65
     },
     "leftHeight": {
-      "count": 1,
-      "sum": 88.64,
-      "sumsq": 7857.0496,
+      "count": 2,
+      "sum": 177.28,
+      "sumsq": 15714.0992,
       "min": 88.64,
       "max": 88.64
     },
     "rightWidth": {
-      "count": 1,
-      "sum": 88.49,
-      "sumsq": 7830.4801,
+      "count": 2,
+      "sum": 176.98,
+      "sumsq": 15660.9602,
       "min": 88.49,
       "max": 88.49
     },
     "rightHeight": {
-      "count": 1,
-      "sum": 88.49,
-      "sumsq": 7830.4801,
+      "count": 2,
+      "sum": 176.98,
+      "sumsq": 15660.9602,
       "min": 88.49,
       "max": 88.49
     },
     "horizontal": {
-      "count": 1,
-      "sum": 97.53,
-      "sumsq": 9512.1009,
+      "count": 2,
+      "sum": 195.06,
+      "sumsq": 19024.2018,
       "min": 97.53,
       "max": 97.53
     },
     "overlap": {
-      "count": 1,
-      "sum": 79.61,
-      "sumsq": 6337.7521,
+      "count": 2,
+      "sum": 159.22,
+      "sumsq": 12675.5042,
       "min": 79.61,
       "max": 79.61
     },
     "leftEyeLeft": {
-      "count": 1,
-      "sum": 49.02,
-      "sumsq": 2402.9604,
+      "count": 2,
+      "sum": 98.04,
+      "sumsq": 4805.9208,
       "min": 49.02,
       "max": 49.02
     },
     "leftEyeRight": {
-      "count": 1,
-      "sum": 39.63,
-      "sumsq": 1570.5369,
+      "count": 2,
+      "sum": 79.26,
+      "sumsq": 3141.0738,
       "min": 39.63,
       "max": 39.63
     },
     "leftEyeUp": {
-      "count": 1,
-      "sum": 38.42,
-      "sumsq": 1476.0964,
+      "count": 2,
+      "sum": 76.84,
+      "sumsq": 2952.1928,
       "min": 38.42,
       "max": 38.42
     },
     "leftEyeDown": {
-      "count": 1,
-      "sum": 50.22,
-      "sumsq": 2522.0484,
+      "count": 2,
+      "sum": 100.44,
+      "sumsq": 5044.0968,
       "min": 50.22,
       "max": 50.22
     },
     "rightEyeLeft": {
-      "count": 1,
-      "sum": 39.98,
-      "sumsq": 1598.4004,
+      "count": 2,
+      "sum": 79.96,
+      "sumsq": 3196.8008,
       "min": 39.98,
       "max": 39.98
     },
     "rightEyeRight": {
-      "count": 1,
-      "sum": 48.51,
-      "sumsq": 2353.2201,
+      "count": 2,
+      "sum": 97.02,
+      "sumsq": 4706.4402,
       "min": 48.51,
       "max": 48.51
     },
     "rightEyeUp": {
-      "count": 1,
-      "sum": 38.77,
-      "sumsq": 1503.1129,
+      "count": 2,
+      "sum": 77.54,
+      "sumsq": 3006.2258,
       "min": 38.77,
       "max": 38.77
     },
     "rightEyeDown": {
-      "count": 1,
-      "sum": 49.72,
-      "sumsq": 2472.0784,
+      "count": 2,
+      "sum": 99.44,
+      "sumsq": 4944.1568,
       "min": 49.72,
       "max": 49.72
     },
     "turn": {
-      "count": 1,
+      "count": 2,
       "sum": 0,
       "sumsq": 0,
       "min": 0,

@@ -47,7 +47,7 @@
     },
     "atlas": {
       "bigscreen-beyond": {
-        "count": 1,
+        "count": 2,
         "pages": 1
       },
       "pimax-dream-air-lighthouse": {
@@ -57,7 +57,7 @@
     }
   },
   "rendered": {
-    "bigscreen-beyond": 1,
+    "bigscreen-beyond": 2,
     "pimax-dream-air-lighthouse": 1
   }
 }
