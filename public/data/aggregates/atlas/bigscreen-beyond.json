@@ -2,8 +2,204 @@
   "version": 3,
   "tool": "atlas",
   "headset": "bigscreen-beyond",
-  "count": 2,
+  "count": 3,
   "cells": {
+    "almost-flush|low|modded|fixed": {
+      "left": {
+        "up": {
+          "count": 1,
+          "sum": 38.42,
+          "sumsq": 1476.0964,
+          "max": 38.42
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 46.72,
+          "sumsq": 2182.7584,
+          "max": 46.72
+        },
+        "left": {
+          "count": 1,
+          "sum": 49.02,
+          "sumsq": 2402.9604,
+          "max": 49.02
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 54.07,
+          "sumsq": 2923.5649,
+          "max": 54.07
+        },
+        "down": {
+          "count": 1,
+          "sum": 50.22,
+          "sumsq": 2522.0484,
+          "max": 50.22
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 47.01,
+          "sumsq": 2209.9401,
+          "max": 47.01
+        },
+        "right": {
+          "count": 1,
+          "sum": 39.32,
+          "sumsq": 1546.0624,
+          "max": 39.32
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 38.6,
+          "sumsq": 1489.96,
+          "max": 38.6
+        }
+      },
+      "right": {
+        "up": {
+          "count": 1,
+          "sum": 38.46,
+          "sumsq": 1479.1716,
+          "max": 38.46
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 38.65,
+          "sumsq": 1493.8225,
+          "max": 38.65
+        },
+        "left": {
+          "count": 1,
+          "sum": 39.98,
+          "sumsq": 1598.4004,
+          "max": 39.98
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 46.74,
+          "sumsq": 2184.6276,
+          "max": 46.74
+        },
+        "down": {
+          "count": 1,
+          "sum": 49.41,
+          "sumsq": 2441.3481,
+          "max": 49.41
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 52.05,
+          "sumsq": 2709.2025,
+          "max": 52.05
+        },
+        "right": {
+          "count": 1,
+          "sum": 47.89,
+          "sumsq": 2293.4521,
+          "max": 47.89
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 44.89,
+          "sumsq": 2015.1121,
+          "max": 44.89
+        }
+      },
+      "figures": {
+        "horizontal": {
+          "count": 1,
+          "sum": 96.91,
+          "sumsq": 9391.5481,
+          "max": 96.91
+        },
+        "vertical": {
+          "count": 1,
+          "sum": 88.64,
+          "sumsq": 7857.0496,
+          "max": 88.64
+        },
+        "overlap": {
+          "count": 1,
+          "sum": 79.3,
+          "sumsq": 6288.49,
+          "max": 79.3
+        },
+        "area": {
+          "count": 1,
+          "sum": 33.15,
+          "sumsq": 1098.9225,
+          "max": 33.15
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 26.18,
+          "sumsq": 685.3924,
+          "max": 26.18
+        },
+        "renderedHorizontal": {
+          "count": 1,
+          "sum": 97.53,
+          "sumsq": 9512.1009,
+          "max": 97.53
+        },
+        "renderedOverlap": {
+          "count": 1,
+          "sum": 79.61,
+          "sumsq": 6337.7521,
+          "max": 79.61
+        },
+        "horizontalPastRendered": {
+          "count": 1,
+          "sum": -0.62,
+          "sumsq": 0.3844,
+          "max": -0.62
+        }
+      },
+      "leaders": {
+        "highest": {
+          "issue": 34,
+          "author": "pnguyen9",
+          "rank": [
+            3315,
+            9691,
+            8864,
+            72145
+          ],
+          "figures": {
+            "horizontal": 96.91,
+            "vertical": 88.64,
+            "overlap": 79.3,
+            "area": 33.15,
+            "overlapArea": 26.18,
+            "renderedHorizontal": 97.53,
+            "renderedOverlap": 79.61,
+            "horizontalPastRendered": -0.62
+          },
+          "measures": {
+            "left": {
+              "up": 38.42,
+              "up-left": 46.72,
+              "left": 49.02,
+              "down-left": 54.07,
+              "down": 50.22,
+              "down-right": 47.01,
+              "right": 39.32,
+              "up-right": 38.6
+            },
+            "right": {
+              "up": 38.46,
+              "up-left": 38.65,
+              "left": 39.98,
+              "down-left": 46.74,
+              "down": 49.41,
+              "down-right": 52.05,
+              "right": 47.89,
+              "up-right": 44.89
+            }
+          }
+        }
+      }
+    },
     "almost-flush|low|stock|fixed": {
       "left": {
         "up": {
