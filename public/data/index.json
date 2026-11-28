@@ -54,6 +54,10 @@
         "count": 3,
         "pages": 1
       },
+      "htc-vive-pro": {
+        "count": 1,
+        "pages": 1
+      },
       "pimax-dream-air-lighthouse": {
         "count": 5,
         "pages": 1
@@ -63,6 +67,7 @@
   "rendered": {
     "bigscreen-beyond": 3,
     "bigscreen-beyond-2": 3,
+    "htc-vive-pro": 1,
     "pimax-dream-air-lighthouse": 1
   }
 }

@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "headset": "htc-vive-pro",
+  "count": 1,
+  "values": {
+    "leftWidth": {
+      "count": 1,
+      "sum": 103.63,
+      "sumsq": 10739.1769,
+      "min": 103.63,
+      "max": 103.63
+    },
+    "leftHeight": {
+      "count": 1,
+      "sum": 109.58,
+      "sumsq": 12007.7764,
+      "min": 109.58,
+      "max": 109.58
+    },
+    "rightWidth": {
+      "count": 1,
+      "sum": 103.81,
+      "sumsq": 10776.5161,
+      "min": 103.81,
+      "max": 103.81
+    },
+    "rightHeight": {
+      "count": 1,
+      "sum": 109.75,
+      "sumsq": 12045.0625,
+      "min": 109.75,
+      "max": 109.75
+    },
+    "horizontal": {
+      "count": 1,
+      "sum": 106.87,
+      "sumsq": 11421.1969,
+      "min": 106.87,
+      "max": 106.87
+    },
+    "overlap": {
+      "count": 1,
+      "sum": 100.57,
+      "sumsq": 10114.3249,
+      "min": 100.57,
+      "max": 100.57
+    },
+    "leftEyeLeft": {
+      "count": 1,
+      "sum": 53.39,
+      "sumsq": 2850.4921,
+      "min": 53.39,
+      "max": 53.39
+    },
+    "leftEyeRight": {
+      "count": 1,
+      "sum": 50.24,
+      "sumsq": 2524.0576,
+      "min": 50.24,
+      "max": 50.24
+    },
+    "leftEyeUp": {
+      "count": 1,
+      "sum": 54.93,
+      "sumsq": 3017.3049,
+      "min": 54.93,
+      "max": 54.93
+    },
+    "leftEyeDown": {
+      "count": 1,
+      "sum": 54.65,
+      "sumsq": 2986.6225,
+      "min": 54.65,
+      "max": 54.65
+    },
+    "rightEyeLeft": {
+      "count": 1,
+      "sum": 50.33,
+      "sumsq": 2533.1089,
+      "min": 50.33,
+      "max": 50.33
+    },
+    "rightEyeRight": {
+      "count": 1,
+      "sum": 53.48,
+      "sumsq": 2860.1104,
+      "min": 53.48,
+      "max": 53.48
+    },
+    "rightEyeUp": {
+      "count": 1,
+      "sum": 55.01,
+      "sumsq": 3026.1001,
+      "min": 55.01,
+      "max": 55.01
+    },
+    "rightEyeDown": {
+      "count": 1,
+      "sum": 54.74,
+      "sumsq": 2996.4676,
+      "min": 54.74,
+      "max": 54.74
+    },
+    "turn": {
+      "count": 1,
+      "sum": 0,
+      "sumsq": 0,
+      "min": 0,
+      "max": 0
+    }
+  }
+}

@@ -1,0 +1,316 @@
+{
+  "version": 3,
+  "tool": "atlas",
+  "headset": "htc-vive-pro",
+  "count": 1,
+  "cells": {
+    "almost-flush|low|modded|fixed": {
+      "left": {
+        "up": {
+          "count": 1,
+          "sum": 53.68,
+          "sumsq": 2881.5424,
+          "max": 53.68
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 55.16,
+          "sumsq": 3042.6256,
+          "max": 55.16
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 55.1,
+          "sumsq": 3036.01,
+          "max": 55.1
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 54.6,
+          "sumsq": 2981.16,
+          "max": 54.6
+        },
+        "left": {
+          "count": 1,
+          "sum": 52.15,
+          "sumsq": 2719.6225,
+          "max": 52.15
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 54.91,
+          "sumsq": 3015.1081,
+          "max": 54.91
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 55.1,
+          "sumsq": 3036.01,
+          "max": 55.1
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 54.89,
+          "sumsq": 3012.9121,
+          "max": 54.89
+        },
+        "down": {
+          "count": 1,
+          "sum": 52.78,
+          "sumsq": 2785.7284,
+          "max": 52.78
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 53.95,
+          "sumsq": 2910.6025,
+          "max": 53.95
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 52.97,
+          "sumsq": 2805.8209,
+          "max": 52.97
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 48.39,
+          "sumsq": 2341.5921,
+          "max": 48.39
+        },
+        "right": {
+          "count": 1,
+          "sum": 42.43,
+          "sumsq": 1800.3049,
+          "max": 42.43
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 49.64,
+          "sumsq": 2464.1296,
+          "max": 49.64
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 54.85,
+          "sumsq": 3008.5225,
+          "max": 54.85
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 54.53,
+          "sumsq": 2973.5209,
+          "max": 54.53
+        }
+      },
+      "right": {
+        "up": {
+          "count": 1,
+          "sum": 53.76,
+          "sumsq": 2890.1376,
+          "max": 53.76
+        },
+        "up-up-left": {
+          "count": 1,
+          "sum": 53.68,
+          "sumsq": 2881.5424,
+          "max": 53.68
+        },
+        "up-left": {
+          "count": 1,
+          "sum": 54.62,
+          "sumsq": 2983.3444,
+          "max": 54.62
+        },
+        "left-up-left": {
+          "count": 1,
+          "sum": 50.98,
+          "sumsq": 2598.9604,
+          "max": 50.98
+        },
+        "left": {
+          "count": 1,
+          "sum": 42.52,
+          "sumsq": 1807.9504,
+          "max": 42.52
+        },
+        "left-down-left": {
+          "count": 1,
+          "sum": 48.48,
+          "sumsq": 2350.3104,
+          "max": 48.48
+        },
+        "down-left": {
+          "count": 1,
+          "sum": 53.05,
+          "sumsq": 2814.3025,
+          "max": 53.05
+        },
+        "down-down-left": {
+          "count": 1,
+          "sum": 54.04,
+          "sumsq": 2920.3216,
+          "max": 54.04
+        },
+        "down": {
+          "count": 1,
+          "sum": 53.18,
+          "sumsq": 2828.1124,
+          "max": 53.18
+        },
+        "down-down-right": {
+          "count": 1,
+          "sum": 54.67,
+          "sumsq": 2988.8089,
+          "max": 54.67
+        },
+        "down-right": {
+          "count": 1,
+          "sum": 54.87,
+          "sumsq": 3010.7169,
+          "max": 54.87
+        },
+        "right-down-right": {
+          "count": 1,
+          "sum": 55.01,
+          "sumsq": 3026.1001,
+          "max": 55.01
+        },
+        "right": {
+          "count": 1,
+          "sum": 52.24,
+          "sumsq": 2729.0176,
+          "max": 52.24
+        },
+        "right-up-right": {
+          "count": 1,
+          "sum": 55.01,
+          "sumsq": 3026.1001,
+          "max": 55.01
+        },
+        "up-right": {
+          "count": 1,
+          "sum": 54.87,
+          "sumsq": 3010.7169,
+          "max": 54.87
+        },
+        "up-up-right": {
+          "count": 1,
+          "sum": 54.93,
+          "sumsq": 3017.3049,
+          "max": 54.93
+        }
+      },
+      "figures": {
+        "horizontal": {
+          "count": 1,
+          "sum": 104.39,
+          "sumsq": 10897.2721,
+          "max": 104.39
+        },
+        "vertical": {
+          "count": 1,
+          "sum": 106.94,
+          "sumsq": 11436.1636,
+          "max": 106.94
+        },
+        "overlap": {
+          "count": 1,
+          "sum": 84.95,
+          "sumsq": 7216.5025,
+          "max": 84.95
+        },
+        "area": {
+          "count": 1,
+          "sum": 41.8,
+          "sumsq": 1747.24,
+          "max": 41.8
+        },
+        "overlapArea": {
+          "count": 1,
+          "sum": 37.58,
+          "sumsq": 1412.2564,
+          "max": 37.58
+        },
+        "renderedHorizontal": {
+          "count": 1,
+          "sum": 106.87,
+          "sumsq": 11421.1969,
+          "max": 106.87
+        },
+        "renderedOverlap": {
+          "count": 1,
+          "sum": 100.57,
+          "sumsq": 10114.3249,
+          "max": 100.57
+        },
+        "horizontalPastRendered": {
+          "count": 1,
+          "sum": -2.48,
+          "sumsq": 6.1504,
+          "max": -2.48
+        }
+      },
+      "leaders": {
+        "highest": {
+          "issue": 38,
+          "author": "pnguyen9",
+          "rank": [
+            4180,
+            10439,
+            10694,
+            169104
+          ],
+          "figures": {
+            "horizontal": 104.39,
+            "vertical": 106.94,
+            "overlap": 84.95,
+            "area": 41.8,
+            "overlapArea": 37.58,
+            "renderedHorizontal": 106.87,
+            "renderedOverlap": 100.57,
+            "horizontalPastRendered": -2.48
+          },
+          "measures": {
+            "left": {
+              "up": 53.68,
+              "up-up-left": 55.16,
+              "up-left": 55.1,
+              "left-up-left": 54.6,
+              "left": 52.15,
+              "left-down-left": 54.91,
+              "down-left": 55.1,
+              "down-down-left": 54.89,
+              "down": 52.78,
+              "down-down-right": 53.95,
+              "down-right": 52.97,
+              "right-down-right": 48.39,
+              "right": 42.43,
+              "right-up-right": 49.64,
+              "up-right": 54.85,
+              "up-up-right": 54.53
+            },
+            "right": {
+              "up": 53.76,
+              "up-up-left": 53.68,
+              "up-left": 54.62,
+              "left-up-left": 50.98,
+              "left": 42.52,
+              "left-down-left": 48.48,
+              "down-left": 53.05,
+              "down-down-left": 54.04,
+              "down": 53.18,
+              "down-down-right": 54.67,
+              "down-right": 54.87,
+              "right-down-right": 55.01,
+              "right": 52.24,
+              "right-up-right": 55.01,
+              "up-right": 54.87,
+              "up-up-right": 54.93
+            }
+          }
+        }
+      }
+    }
+  }
+}
